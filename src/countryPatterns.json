@@ -1,0 +1,1002 @@
+[
+  {
+    "regex": "/\\bAntigua and Barbuda\\b|Antigua and Barbuda|Antigua and Barbuda/i",
+    "country": "Antigua and Barbuda"
+  },
+  {
+    "regex": "/\\bBhutan\\b|Kingdom of Bhutan|འབྲུག་ཡུལ་/i",
+    "country": "Bhutan"
+  },
+  {
+    "regex": "/\\bItaly\\b|Italian Republic|Italia/i",
+    "country": "Italy"
+  },
+  {
+    "regex": "/\\bTuvalu\\b|Tuvalu|Tuvalu/i",
+    "country": "Tuvalu"
+  },
+  {
+    "regex": "/\\bAnguilla\\b|Anguilla|Anguilla/i",
+    "country": "Anguilla"
+  },
+  {
+    "regex": "/\\bAustralia\\b|Commonwealth of Australia|Australia/i",
+    "country": "Australia"
+  },
+  {
+    "regex": "/\\bBelize\\b|Belize|Belize/i",
+    "country": "Belize"
+  },
+  {
+    "regex": "/\\bVanuatu\\b|Republic of Vanuatu|Vanuatu/i",
+    "country": "Vanuatu"
+  },
+  {
+    "regex": "/\\bBelarus\\b|Republic of Belarus|Белару́сь/i",
+    "country": "Belarus"
+  },
+  {
+    "regex": "/\\bMauritius\\b|Republic of Mauritius|Mauritius/i",
+    "country": "Mauritius"
+  },
+  {
+    "regex": "/\\bLaos\\b|Lao People's Democratic Republic|ສປປລາວ/i",
+    "country": "Laos"
+  },
+  {
+    "regex": "/\\bSenegal\\b|Republic of Senegal|Sénégal/i",
+    "country": "Senegal"
+  },
+  {
+    "regex": "/\\bTurkey\\b|Republic of Turkey|Türkiye/i",
+    "country": "Turkey"
+  },
+  {
+    "regex": "/\\bBolivia\\b|Plurinational State of Bolivia|Wuliwya/i",
+    "country": "Bolivia"
+  },
+  {
+    "regex": "/\\bSri Lanka\\b|Democratic Socialist Republic of Sri Lanka|ශ්‍රී ලංකාව/i",
+    "country": "Sri Lanka"
+  },
+  {
+    "regex": "/\\bNorfolk Island\\b|Territory of Norfolk Island|Norfolk Island/i",
+    "country": "Norfolk Island"
+  },
+  {
+    "regex": "/\\bChina\\b|People's Republic of China|中国/i",
+    "country": "China"
+  },
+  {
+    "regex": "/\\bCaribbean Netherlands\\b|Bonaire, Sint Eustatius and Saba|Caribisch Nederland/i",
+    "country": "Caribbean Netherlands"
+  },
+  {
+    "regex": "/\\bGuernsey\\b|Bailiwick of Guernsey|Guernsey/i",
+    "country": "Guernsey"
+  },
+  {
+    "regex": "/\\bSudan\\b|Republic of the Sudan|السودان/i",
+    "country": "Sudan"
+  },
+  {
+    "regex": "/\\bMayotte\\b|Department of Mayotte|Mayotte/i",
+    "country": "Mayotte"
+  },
+  {
+    "regex": "/\\bSaint Barthélemy\\b|Collectivity of Saint Barthélemy|Saint-Barthélemy/i",
+    "country": "Saint Barthélemy"
+  },
+  {
+    "regex": "/\\bVatican City\\b|Vatican City State|Vaticano/i",
+    "country": "Vatican City"
+  },
+  {
+    "regex": "/\\bTurks and Caicos Islands\\b|Turks and Caicos Islands|Turks and Caicos Islands/i",
+    "country": "Turks and Caicos Islands"
+  },
+  {
+    "regex": "/\\bCuraçao\\b|Country of Curaçao|Curaçao/i",
+    "country": "Curaçao"
+  },
+  {
+    "regex": "/\\bBotswana\\b|Republic of Botswana|Botswana/i",
+    "country": "Botswana"
+  },
+  {
+    "regex": "/\\bBenin\\b|Republic of Benin|Bénin/i",
+    "country": "Benin"
+  },
+  {
+    "regex": "/\\bLithuania\\b|Republic of Lithuania|Lietuva/i",
+    "country": "Lithuania"
+  },
+  {
+    "regex": "/\\bMontserrat\\b|Montserrat|Montserrat/i",
+    "country": "Montserrat"
+  },
+  {
+    "regex": "/\\bBritish Virgin Islands\\b|Virgin Islands|British Virgin Islands/i",
+    "country": "British Virgin Islands"
+  },
+  {
+    "regex": "/\\bBurundi\\b|Republic of Burundi|Burundi/i",
+    "country": "Burundi"
+  },
+  {
+    "regex": "/\\bUnited States Minor Outlying Islands\\b|United States Minor Outlying Islands|United States Minor Outlying Islands/i",
+    "country": "United States Minor Outlying Islands"
+  },
+  {
+    "regex": "/\\bIreland\\b|Republic of Ireland|Ireland/i",
+    "country": "Ireland"
+  },
+  {
+    "regex": "/\\bSolomon Islands\\b|Solomon Islands|Solomon Islands/i",
+    "country": "Solomon Islands"
+  },
+  {
+    "regex": "/\\bBermuda\\b|Bermuda|Bermuda/i",
+    "country": "Bermuda"
+  },
+  {
+    "regex": "/\\bFinland\\b|Republic of Finland|Suomi/i",
+    "country": "Finland"
+  },
+  {
+    "regex": "/\\bPeru\\b|Republic of Peru|Piruw/i",
+    "country": "Peru"
+  },
+  {
+    "regex": "/\\bBangladesh\\b|People's Republic of Bangladesh|বাংলাদেশ/i",
+    "country": "Bangladesh"
+  },
+  {
+    "regex": "/\\bDenmark\\b|Kingdom of Denmark|Danmark/i",
+    "country": "Denmark"
+  },
+  {
+    "regex": "/\\bSaint Vincent and the Grenadines\\b|Saint Vincent and the Grenadines|Saint Vincent and the Grenadines/i",
+    "country": "Saint Vincent and the Grenadines"
+  },
+  {
+    "regex": "/\\bDominican Republic\\b|Dominican Republic|República Dominicana/i",
+    "country": "Dominican Republic"
+  },
+  {
+    "regex": "/\\bMoldova\\b|Republic of Moldova|Moldova/i",
+    "country": "Moldova"
+  },
+  {
+    "regex": "/\\bBulgaria\\b|Republic of Bulgaria|България/i",
+    "country": "Bulgaria"
+  },
+  {
+    "regex": "/\\bCosta Rica\\b|Republic of Costa Rica|Costa Rica/i",
+    "country": "Costa Rica"
+  },
+  {
+    "regex": "/\\bNamibia\\b|Republic of Namibia|Namibië/i",
+    "country": "Namibia"
+  },
+  {
+    "regex": "/\\bSvalbard and Jan Mayen\\b|Svalbard og Jan Mayen|Svalbard og Jan Mayen/i",
+    "country": "Svalbard and Jan Mayen"
+  },
+  {
+    "regex": "/\\bLuxembourg\\b|Grand Duchy of Luxembourg|Luxemburg/i",
+    "country": "Luxembourg"
+  },
+  {
+    "regex": "/\\bRussia\\b|Russian Federation|Россия/i",
+    "country": "Russia"
+  },
+  {
+    "regex": "/\\bUnited Arab Emirates\\b|United Arab Emirates|دولة الإمارات العربية المتحدة/i",
+    "country": "United Arab Emirates"
+  },
+  {
+    "regex": "/\\bSint Maarten\\b|Sint Maarten|Sint Maarten/i",
+    "country": "Sint Maarten"
+  },
+  {
+    "regex": "/\\bBahamas\\b|Commonwealth of the Bahamas|Bahamas/i",
+    "country": "Bahamas"
+  },
+  {
+    "regex": "/\\bJapan\\b|Japan|日本/i",
+    "country": "Japan"
+  },
+  {
+    "regex": "/\\bNigeria\\b|Federal Republic of Nigeria|Nigeria/i",
+    "country": "Nigeria"
+  },
+  {
+    "regex": "/\\bGhana\\b|Republic of Ghana|Ghana/i",
+    "country": "Ghana"
+  },
+  {
+    "regex": "/\\bSierra Leone\\b|Republic of Sierra Leone|Sierra Leone/i",
+    "country": "Sierra Leone"
+  },
+  {
+    "regex": "/\\bSaint Pierre and Miquelon\\b|Saint Pierre and Miquelon|Saint-Pierre-et-Miquelon/i",
+    "country": "Saint Pierre and Miquelon"
+  },
+  {
+    "regex": "/\\bAlbania\\b|Republic of Albania|Shqipëria/i",
+    "country": "Albania"
+  },
+  {
+    "regex": "/\\bTokelau\\b|Tokelau|Tokelau/i",
+    "country": "Tokelau"
+  },
+  {
+    "regex": "/\\bSaint Helena, Ascension and Tristan da Cunha\\b|Saint Helena, Ascension and Tristan da Cunha|Saint Helena, Ascension and Tristan da Cunha/i",
+    "country": "Saint Helena, Ascension and Tristan da Cunha"
+  },
+  {
+    "regex": "/\\bTonga\\b|Kingdom of Tonga|Tonga/i",
+    "country": "Tonga"
+  },
+  {
+    "regex": "/\\bTurkmenistan\\b|Turkmenistan|Туркмения/i",
+    "country": "Turkmenistan"
+  },
+  {
+    "regex": "/\\bDjibouti\\b|Republic of Djibouti|جيبوتي‎/i",
+    "country": "Djibouti"
+  },
+  {
+    "regex": "/\\bCentral African Republic\\b|Central African Republic|République centrafricaine/i",
+    "country": "Central African Republic"
+  },
+  {
+    "regex": "/\\bLebanon\\b|Lebanese Republic|لبنان/i",
+    "country": "Lebanon"
+  },
+  {
+    "regex": "/\\bLatvia\\b|Republic of Latvia|Latvija/i",
+    "country": "Latvia"
+  },
+  {
+    "regex": "/\\bCocos (Keeling) Islands\\b|Territory of the Cocos (Keeling) Islands|Cocos (Keeling) Islands/i",
+    "country": "Cocos (Keeling) Islands"
+  },
+  {
+    "regex": "/\\bGambia\\b|Republic of the Gambia|Gambia/i",
+    "country": "Gambia"
+  },
+  {
+    "regex": "/\\bHonduras\\b|Republic of Honduras|Honduras/i",
+    "country": "Honduras"
+  },
+  {
+    "regex": "/\\bNiue\\b|Niue|Niue/i",
+    "country": "Niue"
+  },
+  {
+    "regex": "/\\bMauritania\\b|Islamic Republic of Mauritania|موريتانيا/i",
+    "country": "Mauritania"
+  },
+  {
+    "regex": "/\\bKosovo\\b|Republic of Kosovo|Kosova/i",
+    "country": "Kosovo"
+  },
+  {
+    "regex": "/\\bWallis and Futuna\\b|Territory of the Wallis and Futuna Islands|Wallis et Futuna/i",
+    "country": "Wallis and Futuna"
+  },
+  {
+    "regex": "/\\bSouth Georgia\\b|South Georgia and the South Sandwich Islands|South Georgia/i",
+    "country": "South Georgia"
+  },
+  {
+    "regex": "/\\bFrench Polynesia\\b|French Polynesia|Polynésie française/i",
+    "country": "French Polynesia"
+  },
+  {
+    "regex": "/\\bTogo\\b|Togolese Republic|Togo/i",
+    "country": "Togo"
+  },
+  {
+    "regex": "/\\bBelgium\\b|Kingdom of Belgium|Belgien/i",
+    "country": "Belgium"
+  },
+  {
+    "regex": "/\\bZambia\\b|Republic of Zambia|Zambia/i",
+    "country": "Zambia"
+  },
+  {
+    "regex": "/\\bCayman Islands\\b|Cayman Islands|Cayman Islands/i",
+    "country": "Cayman Islands"
+  },
+  {
+    "regex": "/\\bPitcairn Islands\\b|Pitcairn Group of Islands|Pitcairn Islands/i",
+    "country": "Pitcairn Islands"
+  },
+  {
+    "regex": "/\\bCook Islands\\b|Cook Islands|Cook Islands/i",
+    "country": "Cook Islands"
+  },
+  {
+    "regex": "/\\bMadagascar\\b|Republic of Madagascar|Madagascar/i",
+    "country": "Madagascar"
+  },
+  {
+    "regex": "/\\bMontenegro\\b|Montenegro|Црна Гора/i",
+    "country": "Montenegro"
+  },
+  {
+    "regex": "/\\bSouth Korea\\b|Republic of Korea|한국/i",
+    "country": "South Korea"
+  },
+  {
+    "regex": "/\\bEthiopia\\b|Federal Democratic Republic of Ethiopia|ኢትዮጵያ/i",
+    "country": "Ethiopia"
+  },
+  {
+    "regex": "/\\bMongolia\\b|Mongolia|Монгол улс/i",
+    "country": "Mongolia"
+  },
+  {
+    "regex": "/\\bSlovakia\\b|Slovak Republic|Slovensko/i",
+    "country": "Slovakia"
+  },
+  {
+    "regex": "/\\bCuba\\b|Republic of Cuba|Cuba/i",
+    "country": "Cuba"
+  },
+  {
+    "regex": "/\\bAntarctica\\b|Antarctica|Antarctica/i",
+    "country": "Antarctica"
+  },
+  {
+    "regex": "/\\bGuatemala\\b|Republic of Guatemala|Guatemala/i",
+    "country": "Guatemala"
+  },
+  {
+    "regex": "/\\bFrench Guiana\\b|Guiana|Guyane française/i",
+    "country": "French Guiana"
+  },
+  {
+    "regex": "/\\bNorway\\b|Kingdom of Norway|Noreg/i",
+    "country": "Norway"
+  },
+  {
+    "regex": "/\\bGrenada\\b|Grenada|Grenada/i",
+    "country": "Grenada"
+  },
+  {
+    "regex": "/\\bRéunion\\b|Réunion Island|La Réunion/i",
+    "country": "Réunion"
+  },
+  {
+    "regex": "/\\bChile\\b|Republic of Chile|Chile/i",
+    "country": "Chile"
+  },
+  {
+    "regex": "/\\bColombia\\b|Republic of Colombia|Colombia/i",
+    "country": "Colombia"
+  },
+  {
+    "regex": "/\\bSaudi Arabia\\b|Kingdom of Saudi Arabia|العربية السعودية/i",
+    "country": "Saudi Arabia"
+  },
+  {
+    "regex": "/\\bIsrael\\b|State of Israel|إسرائيل/i",
+    "country": "Israel"
+  },
+  {
+    "regex": "/\\bGermany\\b|Federal Republic of Germany|Deutschland/i",
+    "country": "Germany"
+  },
+  {
+    "regex": "/\\bNew Zealand\\b|New Zealand|New Zealand/i",
+    "country": "New Zealand"
+  },
+  {
+    "regex": "/\\bGreenland\\b|Greenland|Kalaallit Nunaat/i",
+    "country": "Greenland"
+  },
+  {
+    "regex": "/\\bKyrgyzstan\\b|Kyrgyz Republic|Кыргызстан/i",
+    "country": "Kyrgyzstan"
+  },
+  {
+    "regex": "/\\bEl Salvador\\b|Republic of El Salvador|El Salvador/i",
+    "country": "El Salvador"
+  },
+  {
+    "regex": "/\\bFaroe Islands\\b|Faroe Islands|Færøerne/i",
+    "country": "Faroe Islands"
+  },
+  {
+    "regex": "/\\bPalau\\b|Republic of Palau|Palau/i",
+    "country": "Palau"
+  },
+  {
+    "regex": "/\\bMalta\\b|Republic of Malta|Malta/i",
+    "country": "Malta"
+  },
+  {
+    "regex": "/\\bSyria\\b|Syrian Arab Republic|سوريا/i",
+    "country": "Syria"
+  },
+  {
+    "regex": "/\\bTimor-Leste\\b|Democratic Republic of Timor-Leste|Timor-Leste/i",
+    "country": "Timor-Leste"
+  },
+  {
+    "regex": "/\\bCroatia\\b|Republic of Croatia|Hrvatska/i",
+    "country": "Croatia"
+  },
+  {
+    "regex": "/\\bPapua New Guinea\\b|Independent State of Papua New Guinea|Papua New Guinea/i",
+    "country": "Papua New Guinea"
+  },
+  {
+    "regex": "/\\bNetherlands\\b|Kingdom of the Netherlands|Nederland/i",
+    "country": "Netherlands"
+  },
+  {
+    "regex": "/\\bLiberia\\b|Republic of Liberia|Liberia/i",
+    "country": "Liberia"
+  },
+  {
+    "regex": "/\\bSomalia\\b|Federal Republic of Somalia|الصومال‎‎/i",
+    "country": "Somalia"
+  },
+  {
+    "regex": "/\\bVenezuela\\b|Bolivarian Republic of Venezuela|Venezuela/i",
+    "country": "Venezuela"
+  },
+  {
+    "regex": "/\\bHaiti\\b|Republic of Haiti|Haïti/i",
+    "country": "Haiti"
+  },
+  {
+    "regex": "/\\bAlgeria\\b|People's Democratic Republic of Algeria|الجزائر/i",
+    "country": "Algeria"
+  },
+  {
+    "regex": "/\\bNorthern Mariana Islands\\b|Commonwealth of the Northern Mariana Islands|Northern Mariana Islands/i",
+    "country": "Northern Mariana Islands"
+  },
+  {
+    "regex": "/\\bSaint Martin\\b|Saint Martin|Saint-Martin/i",
+    "country": "Saint Martin"
+  },
+  {
+    "regex": "/\\bHeard Island and McDonald Islands\\b|Heard Island and McDonald Islands|Heard Island and McDonald Islands/i",
+    "country": "Heard Island and McDonald Islands"
+  },
+  {
+    "regex": "/\\bAruba\\b|Aruba|Aruba/i",
+    "country": "Aruba"
+  },
+  {
+    "regex": "/\\bEgypt\\b|Arab Republic of Egypt|مصر/i",
+    "country": "Egypt"
+  },
+  {
+    "regex": "/\\bMalawi\\b|Republic of Malawi|Malawi/i",
+    "country": "Malawi"
+  },
+  {
+    "regex": "/\\bEquatorial Guinea\\b|Republic of Equatorial Guinea|Guinée équatoriale/i",
+    "country": "Equatorial Guinea"
+  },
+  {
+    "regex": "/\\bUnited States Virgin Islands\\b|Virgin Islands of the United States|United States Virgin Islands/i",
+    "country": "United States Virgin Islands"
+  },
+  {
+    "regex": "/\\bEcuador\\b|Republic of Ecuador|Ecuador/i",
+    "country": "Ecuador"
+  },
+  {
+    "regex": "/\\bUzbekistan\\b|Republic of Uzbekistan|Узбекистан/i",
+    "country": "Uzbekistan"
+  },
+  {
+    "regex": "/\\bGabon\\b|Gabonese Republic|Gabon/i",
+    "country": "Gabon"
+  },
+  {
+    "regex": "/\\bSouth Sudan\\b|Republic of South Sudan|South Sudan/i",
+    "country": "South Sudan"
+  },
+  {
+    "regex": "/\\bIran\\b|Islamic Republic of Iran|ایران/i",
+    "country": "Iran"
+  },
+  {
+    "regex": "/\\bKazakhstan\\b|Republic of Kazakhstan|Қазақстан/i",
+    "country": "Kazakhstan"
+  },
+  {
+    "regex": "/\\bNicaragua\\b|Republic of Nicaragua|Nicaragua/i",
+    "country": "Nicaragua"
+  },
+  {
+    "regex": "/\\bIceland\\b|Iceland|Ísland/i",
+    "country": "Iceland"
+  },
+  {
+    "regex": "/\\bSlovenia\\b|Republic of Slovenia|Slovenija/i",
+    "country": "Slovenia"
+  },
+  {
+    "regex": "/\\bGuadeloupe\\b|Guadeloupe|Guadeloupe/i",
+    "country": "Guadeloupe"
+  },
+  {
+    "regex": "/\\bCameroon\\b|Republic of Cameroon|Cameroon/i",
+    "country": "Cameroon"
+  },
+  {
+    "regex": "/\\bArgentina\\b|Argentine Republic|Argentina/i",
+    "country": "Argentina"
+  },
+  {
+    "regex": "/\\bAzerbaijan\\b|Republic of Azerbaijan|Azərbaycan/i",
+    "country": "Azerbaijan"
+  },
+  {
+    "regex": "/\\bUganda\\b|Republic of Uganda|Uganda/i",
+    "country": "Uganda"
+  },
+  {
+    "regex": "/\\bNiger\\b|Republic of Niger|Niger/i",
+    "country": "Niger"
+  },
+  {
+    "regex": "/\\bChristmas Island\\b|Territory of Christmas Island|Christmas Island/i",
+    "country": "Christmas Island"
+  },
+  {
+    "regex": "/\\bMyanmar\\b|Republic of the Union of Myanmar|မြန်မာ/i",
+    "country": "Myanmar"
+  },
+  {
+    "regex": "/\\bPoland\\b|Republic of Poland|Polska/i",
+    "country": "Poland"
+  },
+  {
+    "regex": "/\\bJordan\\b|Hashemite Kingdom of Jordan|الأردن/i",
+    "country": "Jordan"
+  },
+  {
+    "regex": "/\\bHong Kong\\b|Hong Kong Special Administrative Region of the People's Republic of China|Hong Kong/i",
+    "country": "Hong Kong"
+  },
+  {
+    "regex": "/\\bDR Congo\\b|Democratic Republic of the Congo|RD Congo/i",
+    "country": "DR Congo"
+  },
+  {
+    "regex": "/\\bEritrea\\b|State of Eritrea|إرتريا‎/i",
+    "country": "Eritrea"
+  },
+  {
+    "regex": "/\\bKiribati\\b|Independent and Sovereign Republic of Kiribati|Kiribati/i",
+    "country": "Kiribati"
+  },
+  {
+    "regex": "/\\bMarshall Islands\\b|Republic of the Marshall Islands|Marshall Islands/i",
+    "country": "Marshall Islands"
+  },
+  {
+    "regex": "/\\bBurkina Faso\\b|Burkina Faso|Burkina Faso/i",
+    "country": "Burkina Faso"
+  },
+  {
+    "regex": "/\\bZimbabwe\\b|Republic of Zimbabwe|Zimbabwe/i",
+    "country": "Zimbabwe"
+  },
+  {
+    "regex": "/\\bKenya\\b|Republic of Kenya|Kenya/i",
+    "country": "Kenya"
+  },
+  {
+    "regex": "/\\bComoros\\b|Union of the Comoros|القمر‎/i",
+    "country": "Comoros"
+  },
+  {
+    "regex": "/\\bGibraltar\\b|Gibraltar|Gibraltar/i",
+    "country": "Gibraltar"
+  },
+  {
+    "regex": "/\\bBrunei\\b|Nation of Brunei, Abode of Peace|Negara Brunei Darussalam/i",
+    "country": "Brunei"
+  },
+  {
+    "regex": "/\\bSweden\\b|Kingdom of Sweden|Sverige/i",
+    "country": "Sweden"
+  },
+  {
+    "regex": "/\\bLesotho\\b|Kingdom of Lesotho|Lesotho/i",
+    "country": "Lesotho"
+  },
+  {
+    "regex": "/\\bIsle of Man\\b|Isle of Man|Isle of Man/i",
+    "country": "Isle of Man"
+  },
+  {
+    "regex": "/\\bMicronesia\\b|Federated States of Micronesia|Micronesia/i",
+    "country": "Micronesia"
+  },
+  {
+    "regex": "/\\bTanzania\\b|United Republic of Tanzania|Tanzania/i",
+    "country": "Tanzania"
+  },
+  {
+    "regex": "/\\bCape Verde\\b|Republic of Cabo Verde|Cabo Verde/i",
+    "country": "Cape Verde"
+  },
+  {
+    "regex": "/\\bAfghanistan\\b|Islamic Republic of Afghanistan|افغانستان/i",
+    "country": "Afghanistan"
+  },
+  {
+    "regex": "/\\bAndorra\\b|Principality of Andorra|Andorra/i",
+    "country": "Andorra"
+  },
+  {
+    "regex": "/\\bGreece\\b|Hellenic Republic|Ελλάδα/i",
+    "country": "Greece"
+  },
+  {
+    "regex": "/\\bVietnam\\b|Socialist Republic of Vietnam|Việt Nam/i",
+    "country": "Vietnam"
+  },
+  {
+    "regex": "/\\bFrench Southern and Antarctic Lands\\b|Territory of the French Southern and Antarctic Lands|Terres australes et antarctiques françaises/i",
+    "country": "French Southern and Antarctic Lands"
+  },
+  {
+    "regex": "/\\bIraq\\b|Republic of Iraq|العراق/i",
+    "country": "Iraq"
+  },
+  {
+    "regex": "/\\bLibya\\b|State of Libya|‏ليبيا/i",
+    "country": "Libya"
+  },
+  {
+    "regex": "/\\bPortugal\\b|Portuguese Republic|Portugal/i",
+    "country": "Portugal"
+  },
+  {
+    "regex": "/\\bPakistan\\b|Islamic Republic of Pakistan|Pakistan/i",
+    "country": "Pakistan"
+  },
+  {
+    "regex": "/\\bMaldives\\b|Republic of the Maldives|ދިވެހިރާއްޖޭގެ/i",
+    "country": "Maldives"
+  },
+  {
+    "regex": "/\\bMorocco\\b|Kingdom of Morocco|المغرب/i",
+    "country": "Morocco"
+  },
+  {
+    "regex": "/\\bBosnia and Herzegovina\\b|Bosnia and Herzegovina|Bosna i Hercegovina/i",
+    "country": "Bosnia and Herzegovina"
+  },
+  {
+    "regex": "/\\bSamoa\\b|Independent State of Samoa|Samoa/i",
+    "country": "Samoa"
+  },
+  {
+    "regex": "/\\bPalestine\\b|State of Palestine|فلسطين/i",
+    "country": "Palestine"
+  },
+  {
+    "regex": "/\\bOman\\b|Sultanate of Oman|عمان/i",
+    "country": "Oman"
+  },
+  {
+    "regex": "/\\bBahrain\\b|Kingdom of Bahrain|‏البحرين/i",
+    "country": "Bahrain"
+  },
+  {
+    "regex": "/\\bUnited States\\b|United States of America|United States/i",
+    "country": "United States"
+  },
+  {
+    "regex": "/\\bPuerto Rico\\b|Commonwealth of Puerto Rico|Puerto Rico/i",
+    "country": "Puerto Rico"
+  },
+  {
+    "regex": "/\\bBritish Indian Ocean Territory\\b|British Indian Ocean Territory|British Indian Ocean Territory/i",
+    "country": "British Indian Ocean Territory"
+  },
+  {
+    "regex": "/\\bJersey\\b|Bailiwick of Jersey|Jersey/i",
+    "country": "Jersey"
+  },
+  {
+    "regex": "/\\bNorth Macedonia\\b|Republic of North Macedonia|Македонија/i",
+    "country": "North Macedonia"
+  },
+  {
+    "regex": "/\\bTunisia\\b|Tunisian Republic|تونس/i",
+    "country": "Tunisia"
+  },
+  {
+    "regex": "/\\bTrinidad and Tobago\\b|Republic of Trinidad and Tobago|Trinidad and Tobago/i",
+    "country": "Trinidad and Tobago"
+  },
+  {
+    "regex": "/\\bEstonia\\b|Republic of Estonia|Eesti/i",
+    "country": "Estonia"
+  },
+  {
+    "regex": "/\\bSingapore\\b|Republic of Singapore|Singapore/i",
+    "country": "Singapore"
+  },
+  {
+    "regex": "/\\bPanama\\b|Republic of Panama|Panamá/i",
+    "country": "Panama"
+  },
+  {
+    "regex": "/\\bSwitzerland\\b|Swiss Confederation|Suisse/i",
+    "country": "Switzerland"
+  },
+  {
+    "regex": "/\\bUruguay\\b|Oriental Republic of Uruguay|Uruguay/i",
+    "country": "Uruguay"
+  },
+  {
+    "regex": "/\\bTajikistan\\b|Republic of Tajikistan|Таджикистан/i",
+    "country": "Tajikistan"
+  },
+  {
+    "regex": "/\\bTaiwan\\b|Republic of China (Taiwan)|台灣/i",
+    "country": "Taiwan"
+  },
+  {
+    "regex": "/\\bSouth Africa\\b|Republic of South Africa|South Africa/i",
+    "country": "South Africa"
+  },
+  {
+    "regex": "/\\bLiechtenstein\\b|Principality of Liechtenstein|Liechtenstein/i",
+    "country": "Liechtenstein"
+  },
+  {
+    "regex": "/\\bBrazil\\b|Federative Republic of Brazil|Brasil/i",
+    "country": "Brazil"
+  },
+  {
+    "regex": "/\\bArmenia\\b|Republic of Armenia|Հայաստան/i",
+    "country": "Armenia"
+  },
+  {
+    "regex": "/\\bGeorgia\\b|Georgia|საქართველო/i",
+    "country": "Georgia"
+  },
+  {
+    "regex": "/\\bÅland Islands\\b|Åland Islands|Åland/i",
+    "country": "Åland Islands"
+  },
+  {
+    "regex": "/\\bQatar\\b|State of Qatar|قطر/i",
+    "country": "Qatar"
+  },
+  {
+    "regex": "/\\bDominica\\b|Commonwealth of Dominica|Dominica/i",
+    "country": "Dominica"
+  },
+  {
+    "regex": "/\\bUkraine\\b|Ukraine|Україна/i",
+    "country": "Ukraine"
+  },
+  {
+    "regex": "/\\bGuinea\\b|Republic of Guinea|Guinée/i",
+    "country": "Guinea"
+  },
+  {
+    "regex": "/\\bMacau\\b|Macao Special Administrative Region of the People's Republic of China|Macau/i",
+    "country": "Macau"
+  },
+  {
+    "regex": "/\\bWestern Sahara\\b|Sahrawi Arab Democratic Republic|Western Sahara/i",
+    "country": "Western Sahara"
+  },
+  {
+    "regex": "/\\bCzechia\\b|Czech Republic|Česko/i",
+    "country": "Czechia"
+  },
+  {
+    "regex": "/\\bAustria\\b|Republic of Austria|Österreich/i",
+    "country": "Austria"
+  },
+  {
+    "regex": "/\\bSaint Kitts and Nevis\\b|Federation of Saint Christopher and Nevis|Saint Kitts and Nevis/i",
+    "country": "Saint Kitts and Nevis"
+  },
+  {
+    "regex": "/\\bSaint Lucia\\b|Saint Lucia|Saint Lucia/i",
+    "country": "Saint Lucia"
+  },
+  {
+    "regex": "/\\bYemen\\b|Republic of Yemen|اليَمَن/i",
+    "country": "Yemen"
+  },
+  {
+    "regex": "/\\bRwanda\\b|Republic of Rwanda|Rwanda/i",
+    "country": "Rwanda"
+  },
+  {
+    "regex": "/\\bMonaco\\b|Principality of Monaco|Monaco/i",
+    "country": "Monaco"
+  },
+  {
+    "regex": "/\\bSão Tomé and Príncipe\\b|Democratic Republic of São Tomé and Príncipe|São Tomé e Príncipe/i",
+    "country": "São Tomé and Príncipe"
+  },
+  {
+    "regex": "/\\bRepublic of the Congo\\b|Republic of the Congo|République du Congo/i",
+    "country": "Republic of the Congo"
+  },
+  {
+    "regex": "/\\bParaguay\\b|Republic of Paraguay|Paraguái/i",
+    "country": "Paraguay"
+  },
+  {
+    "regex": "/\\bBouvet Island\\b|Bouvet Island|Bouvetøya/i",
+    "country": "Bouvet Island"
+  },
+  {
+    "regex": "/\\bMozambique\\b|Republic of Mozambique|Moçambique/i",
+    "country": "Mozambique"
+  },
+  {
+    "regex": "/\\bFrance\\b|French Republic|France/i",
+    "country": "France"
+  },
+  {
+    "regex": "/\\bEswatini\\b|Kingdom of Eswatini|Eswatini/i",
+    "country": "Eswatini"
+  },
+  {
+    "regex": "/\\bBarbados\\b|Barbados|Barbados/i",
+    "country": "Barbados"
+  },
+  {
+    "regex": "/\\bSpain\\b|Kingdom of Spain|España/i",
+    "country": "Spain"
+  },
+  {
+    "regex": "/\\bThailand\\b|Kingdom of Thailand|ประเทศไทย/i",
+    "country": "Thailand"
+  },
+  {
+    "regex": "/\\bGuinea-Bissau\\b|Republic of Guinea-Bissau|Guiné-Bissau/i",
+    "country": "Guinea-Bissau"
+  },
+  {
+    "regex": "/\\bAngola\\b|Republic of Angola|Angola/i",
+    "country": "Angola"
+  },
+  {
+    "regex": "/\\bIndia\\b|Republic of India|India/i",
+    "country": "India"
+  },
+  {
+    "regex": "/\\bMartinique\\b|Martinique|Martinique/i",
+    "country": "Martinique"
+  },
+  {
+    "regex": "/\\bNew Caledonia\\b|New Caledonia|Nouvelle-Calédonie/i",
+    "country": "New Caledonia"
+  },
+  {
+    "regex": "/\\bSeychelles\\b|Republic of Seychelles|Sesel/i",
+    "country": "Seychelles"
+  },
+  {
+    "regex": "/\\bFalkland Islands\\b|Falkland Islands|Falkland Islands/i",
+    "country": "Falkland Islands"
+  },
+  {
+    "regex": "/\\bUnited Kingdom\\b|United Kingdom of Great Britain and Northern Ireland|United Kingdom/i",
+    "country": "United Kingdom"
+  },
+  {
+    "regex": "/\\bFiji\\b|Republic of Fiji|Fiji/i",
+    "country": "Fiji"
+  },
+  {
+    "regex": "/\\bSan Marino\\b|Republic of San Marino|San Marino/i",
+    "country": "San Marino"
+  },
+  {
+    "regex": "/\\bMali\\b|Republic of Mali|Mali/i",
+    "country": "Mali"
+  },
+  {
+    "regex": "/\\bCanada\\b|Canada|Canada/i",
+    "country": "Canada"
+  },
+  {
+    "regex": "/\\bJamaica\\b|Jamaica|Jamaica/i",
+    "country": "Jamaica"
+  },
+  {
+    "regex": "/\\bNauru\\b|Republic of Nauru|Nauru/i",
+    "country": "Nauru"
+  },
+  {
+    "regex": "/\\bIndonesia\\b|Republic of Indonesia|Indonesia/i",
+    "country": "Indonesia"
+  },
+  {
+    "regex": "/\\bGuam\\b|Guam|Guåhån/i",
+    "country": "Guam"
+  },
+  {
+    "regex": "/\\bIvory Coast\\b|Republic of Côte d'Ivoire|Côte d'Ivoire/i",
+    "country": "Ivory Coast"
+  },
+  {
+    "regex": "/\\bKuwait\\b|State of Kuwait|الكويت/i",
+    "country": "Kuwait"
+  },
+  {
+    "regex": "/\\bPhilippines\\b|Republic of the Philippines|Philippines/i",
+    "country": "Philippines"
+  },
+  {
+    "regex": "/\\bGuyana\\b|Co-operative Republic of Guyana|Guyana/i",
+    "country": "Guyana"
+  },
+  {
+    "regex": "/\\bHungary\\b|Hungary|Magyarország/i",
+    "country": "Hungary"
+  },
+  {
+    "regex": "/\\bMexico\\b|United Mexican States|México/i",
+    "country": "Mexico"
+  },
+  {
+    "regex": "/\\bNorth Korea\\b|Democratic People's Republic of Korea|조선/i",
+    "country": "North Korea"
+  },
+  {
+    "regex": "/\\bRomania\\b|Romania|România/i",
+    "country": "Romania"
+  },
+  {
+    "regex": "/\\bSuriname\\b|Republic of Suriname|Suriname/i",
+    "country": "Suriname"
+  },
+  {
+    "regex": "/\\bAmerican Samoa\\b|American Samoa|American Samoa/i",
+    "country": "American Samoa"
+  },
+  {
+    "regex": "/\\bNepal\\b|Federal Democratic Republic of Nepal|नेपाल/i",
+    "country": "Nepal"
+  },
+  {
+    "regex": "/\\bChad\\b|Republic of Chad|تشاد‎/i",
+    "country": "Chad"
+  },
+  {
+    "regex": "/\\bSerbia\\b|Republic of Serbia|Србија/i",
+    "country": "Serbia"
+  },
+  {
+    "regex": "/\\bCambodia\\b|Kingdom of Cambodia|Kâmpŭchéa/i",
+    "country": "Cambodia"
+  },
+  {
+    "regex": "/\\bMalaysia\\b|Malaysia|Malaysia/i",
+    "country": "Malaysia"
+  },
+  {
+    "regex": "/\\bCyprus\\b|Republic of Cyprus|Κύπρος/i",
+    "country": "Cyprus"
+  }
+]
