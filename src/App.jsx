@@ -8,7 +8,7 @@ import { TooltipProvider, TooltipContext, Tip } from "./Tooltip";
 import ArticleModal from "./ArticleModal.jsx"
 import { Tooltip as ReactTooltip} from 'react-tooltip'
 // import { ReactFlow } from '@xyflow/react';
-import StatisticsSection from "./Statisticssection.jsx"
+import StatisticsSection from "./StatisticsSection.jsx"
 // import {
 //   Line, Bar, Cell, Pie, PieChart, XAxis, YAxis,
 //   CartesianGrid, Tooltip, Legend, ComposedChart, BarChart,
