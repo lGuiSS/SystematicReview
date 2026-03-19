@@ -216,6 +216,7 @@ const importedBibtexArticles = (bibtexContent, source = 'Scopus', numString=1, a
       abstract: getField(fullEntry, "abstract") || getField(fullEntry, "Abstract") || 'Resumo não disponível',
       keywords: getField(fullEntry, "keywords")?.split(";").map(k => k.trim()) || getField(fullEntry, "Keywords")?.split(";").map(k => k.trim()) || [],
       studyType: getField(fullEntry, "type") || getField(fullEntry, "Type") || 'Não especificado',
+      quality: null,
       doi: getField(fullEntry, "doi") || getField(fullEntry, "DOI"),
       language: getField(fullEntry, "language") || getField(fullEntry, "Language") || 'Não informado',
       source: source,
@@ -226,10 +227,10 @@ const importedBibtexArticles = (bibtexContent, source = 'Scopus', numString=1, a
       filter1Status: 'pending',
       filter2Status: 'pending',
       filter3Status: 'pending',
-      inclusionCriterion: [],
-      exclusionCriterion: [],
-      qualityCriteria: [],
-      extractionCriteria: [],
+      exclusionReason: null,
+      inclusionCriterion: null,
+      exclusionCriterion: null,
+      extractionCriteria: null,
       searchString: null,
       importDate: new Date(),
       lastModified: new Date()
@@ -289,6 +290,7 @@ const importedPubmedArticles = (pubmedContent, source = 'PubMed', numString = 1,
       abstract:     getPubMedField(fullEntry, "AB")   || 'Resumo não disponível',
       keywords:     keywordsArray,
       studyType,
+      quality:      null,
       doi,
       language:     getPubMedField(fullEntry, "LA")   || 'Não informado',
       pmid:         getPubMedField(fullEntry, "PMID")  || null,
@@ -300,10 +302,10 @@ const importedPubmedArticles = (pubmedContent, source = 'PubMed', numString = 1,
       filter1Status:        'pending',
       filter2Status:        'pending',
       filter3Status:        'pending',
-      inclusionCriterion:   [],
-      exclusionCriterion:   [],
-      qualityCriteria:      [],
-      extractionCriteria:   [],
+      exclusionReason:      null,
+      inclusionCriterion:   null,
+      exclusionCriterion:   null,
+      extractionCriteria:   null,
       searchString:         null,
       importDate:           new Date(),
       lastModified:         new Date()
@@ -3876,40 +3878,59 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
     }
     setSortConfig({ key, direction });
   };
-  const getDownstreamFields = (statusField) => ({
-    dataProcessingStatus: ['filter1Status', 'filter2Status', 'filter3Status'],
-    filter1Status:        ['filter2Status', 'filter3Status'],
-    filter2Status:        ['filter3Status'],
-  }[statusField] ?? []);
-
-  const resetDownstream = (articleId, statusField) => {
-    getDownstreamFields(statusField).forEach(field =>
-      onUpdateStatus(articleId, field, null, null)
-    );
-  };
 
   const handleInclude = (article, criterion = null) => {
-    onUpdateStatus(article.id, getStatusField(currentFilter), 'included', criterion);
+    const statusField = getStatusField(currentFilter);
+    onUpdateStatus(article.id, statusField, 'included', null, criterion);
     setShowCriterionModal(null);
   };
 
   const handleExclude = (article, criterion = null) => {
     const statusField = getStatusField(currentFilter);
+
     onUpdateStatus(article.id, statusField, 'excluded', criterion);
-    resetDownstream(article.id, statusField);
     setShowCriterionModal(null);
+
+    if(statusField === 'dataProcessingStatus'){
+      onUpdateStatus(article.id, 'filter1Status', null, criterion)
+      onUpdateStatus(article.id, 'filter2Status', null, criterion)
+      onUpdateStatus(article.id, 'filter3Status', null, criterion)
+    }
+    if(statusField === 'filter1Status'){
+      onUpdateStatus(article.id, 'filter2Status', null, criterion)
+      onUpdateStatus(article.id, 'filter3Status', null, criterion)
+    }
+    if(statusField === 'filter2Status'){
+      onUpdateStatus(article.id, 'filter3Status', null, criterion)
+    }
+  
   };
 
   const handleExtraction = (article, criterion = null) => {
-    onUpdateStatus(article.id, getStatusField(currentFilter), 'extracted', criterion);
+    const statusField = getStatusField(currentFilter);
+    onUpdateStatus(article.id, statusField, 'extracted', null, criterion);
     setShowCriterionModal(null);
-  };
+  }
 
   const handleDuplicate = (article, criterion = null) => {
+    console.log(currentFilter)
     const statusField = getStatusField(currentFilter);
     onUpdateStatus(article.id, statusField, 'duplicate', criterion);
-    resetDownstream(article.id, statusField);
-    setShowCriterionModal(null);
+    // setShowCriterionModal(null);
+
+    if(statusField === 'dataProcessingStatus'){
+      onUpdateStatus(article.id, 'filter1Status', null, criterion)
+      onUpdateStatus(article.id, 'filter2Status', null, criterion)
+      onUpdateStatus(article.id, 'filter3Status', null, criterion)
+    }
+    if(statusField === 'filter1Status'){
+      onUpdateStatus(article.id, 'filter2Status', null, criterion)
+      onUpdateStatus(article.id, 'filter3Status', null, criterion)
+    }
+    if(statusField === 'filter2Status'){
+      onUpdateStatus(article.id, 'filter3Status', null, criterion)
+    }
+  
   };
 
   const handleContextMenu = (e, article) => {
@@ -4608,9 +4629,9 @@ const SystematicReviewTool = () => {
     scoringSystem: {
       enabled: true,
       weights: {
-        title: 8,      // Peso para keywords no título
-        abstract: 3,   // Peso para keywords no resumo
-        keywords: 10    // Peso para keywords nas palavras-chave
+        title: 3,      // Peso para keywords no título
+        abstract: 2,   // Peso para keywords no resumo
+        keywords: 1    // Peso para keywords nas palavras-chave
       },
       caseInsensitive: true,
       exactMatch: true, // false = busca parcial, true = palavra completa
@@ -4804,7 +4825,7 @@ const SystematicReviewTool = () => {
   }, [protocol.keywords, protocol.scoringSystem, articles.length, recalculateAllScores, calculateArticleScore]);
 
   const handleSaveProject = async () => {
-    const state = { protocol, articles, statistics, currentSection, importedData, warnAfterMin };
+    const state = { protocol, articles, currentSection, importedData, warnAfterMin };
     const result = await saveProjectToFile(state);
     
     if (result.success) {
@@ -4868,9 +4889,9 @@ const SystematicReviewTool = () => {
       scoringSystem: {
         enabled: true,
         weights: {
-          title: 8,      // Peso para keywords no título
-          abstract: 3,   // Peso para keywords no resumo
-          keywords: 10    // Peso para keywords nas palavras-chave
+          title: 3,      // Peso para keywords no título
+          abstract: 2,   // Peso para keywords no resumo
+          keywords: 1    // Peso para keywords nas palavras-chave
         },
         caseInsensitive: true,
         exactMatch: true, // false = busca parcial, true = palavra completa
@@ -4970,6 +4991,7 @@ const SystematicReviewTool = () => {
           quality,
           numString,
           duplicateOf,
+          exclusionReason,
           extractionCriteria,
           ...resto
         } = article;
@@ -4980,24 +5002,21 @@ const SystematicReviewTool = () => {
               return acc;
             }, {})
           : {};
-        
-          const exclusionCriterions = article.exclusionCriterion.map(a => a.id)
-          const inclusionCriterions = article.inclusionCriterion.map(a => a.id)
-          const qualityCriterias = article.qualityCriteria.map(a => a.id)
-
+          
+        console.log(article.countries)
         return {
           ...resto,
           isDuplicate: article.isDuplicate ? "Yes" : "No",
           keywords: article.keywords ? article.keywords.join("; ") : "",
           countries: !article.countries.includes('País não informado') ? article.countries.join("; ") : "",
-          inclusionCriterion: inclusionCriterions
-            ? inclusionCriterions.join("; ")
+          inclusionCriterion: article.inclusionCriterion
+            ? article.inclusionCriterion.join("; ")
             : "",
-          exclusionCriterion: exclusionCriterions
-            ? exclusionCriterions.join("; ")
+          exclusionCriterion: article.exclusionCriterion
+            ? article.exclusionCriterion.join("; ")
             : "",
-          qualityCriteria: qualityCriterias
-            ? qualityCriterias.join("; ")
+          qualityCriteria: article.qualityCriteria
+            ? article.qualityCriteria.join("; ")
             : "",
           ...extractionAttributes,
         };
@@ -5197,41 +5216,79 @@ const SystematicReviewTool = () => {
     // }, 1500);
   }, []);
   
-  const handleUpdateStatus = useCallback((id, statusType, status, criterion = null) => {
-    setArticles(prev => prev.map(article => {
-      if (article.id !== id) return article;
+  const handleUpdateStatus = useCallback((id, statusType, status, reason = null, criterion = null) => {
+    // criterions agora é um array de critérios selecionados
+    // Se for chamada pelço modo "rápido", será passado um array apenas com um critério
+    // parametro multiselect indica se é múltipla seleção
 
-      const base = { ...article, [statusType]: status, lastModified: new Date() };
+    if(status === 'extracted'){
+      const extractionCriteria = criterion
+      setArticles(prev => prev.map(article => 
+          article.id === id 
+            ? { 
+                ...article, 
+                [statusType]: status, 
+                extractionCriteria: extractionCriteria,
+                lastModified: new Date() 
+              }
+            : article
+      ));
+      
+    }else{
+      if(criterion && Array.isArray(criterion)){
 
-      // Cascade reset — apenas atualiza o campo de status
-      if (status === null) return base;
+        const inclusionCriteria = criterion.filter(c => c.category === 'inclusion').map(c => c.id)
+        const exclusionCriteria = criterion.filter(c => c.category === 'exclusion').map(c => c.id)
+        const qualityCriteria = criterion.filter(c => c.category === 'quality').map(c => c.id)
+        setArticles(prev => prev.map(article => 
+          article.id === id 
+            ? { 
+                ...article, 
+                [statusType]: status, 
+                exclusionReason: reason,
+                inclusionCriterion: inclusionCriteria.length !== 0 ? inclusionCriteria : article.inclusionCriterion,
+                exclusionCriterion: exclusionCriteria.length !== 0 ? exclusionCriteria : article.exclusionCriterion,
+                qualityCriteria: qualityCriteria.length !== 0 ? qualityCriteria : article.qualityCriteria,
+                lastModified: new Date() 
+              }
+            : article
+        ));
 
-      // Extração
-      if (status === 'extracted') {
-        return { ...base, extractionCriteria: criterion };
+      }else{
+        console.log(statusType, status)
+        if(status === 'duplicate'){
+          setArticles(prev => prev.map(article => 
+            article.id === id 
+              ? { 
+                  ...article, 
+                  [statusType]: status, 
+                  isDuplicate: status === 'duplicate'? true: false,
+                  lastModified: new Date() 
+                }
+              : article
+          ));
+        }else{
+          criterion = [criterion]
+          setArticles(prev => prev.map(article => 
+            article.id === id 
+              ? { 
+                  ...article, 
+                  [statusType]: status, 
+                  exclusionReason: reason,
+                  inclusionCriterion: status === 'included' ? criterion : article.inclusionCriterion,
+                  exclusionCriterion: status === 'excluded' ? criterion : article.exclusionCriterion,
+                  isDuplicate: false,
+                  lastModified: new Date() 
+                }
+              : article
+          ));
+        }
+        
       }
+    }
+    
+    
 
-      // Duplicata
-      if (status === 'duplicate') {
-        return { ...base, isDuplicate: true };
-      }
-
-      // included / excluded — processa critérios
-      const criteria = (Array.isArray(criterion) ? criterion : [criterion]).filter(Boolean);
-
-      const byCat = (cat) => criteria.filter(c => c.category === cat);
-      const inclusionCriteria = byCat('inclusion');
-      const exclusionCriteria = byCat('exclusion');
-      const qualityCriteria   = byCat('quality');
-
-      return {
-        ...base,
-        isDuplicate:       false,
-        inclusionCriterion: inclusionCriteria.length ? inclusionCriteria : article.inclusionCriterion,
-        exclusionCriterion: exclusionCriteria.length ? exclusionCriteria : article.exclusionCriterion,
-        qualityCriteria:    qualityCriteria.length   ? qualityCriteria   : article.qualityCriteria,
-      };
-    }));
   }, []);
 
   // Função para detectar duplicatas por diferentes critérios
@@ -5573,7 +5630,6 @@ const SystematicReviewTool = () => {
             onUpdateStatus={handleUpdateStatus}
             inclusionCriteria = {protocol.inclusionCriteria} 
             exclusionCriteria = {protocol.exclusionCriteria}
-            qualityCriteria = {protocol.qualityCriteria}
             extractionCriteria = {protocol.extractionCriteria}
             statistics={statistics}
             theme={theme}

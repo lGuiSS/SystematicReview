@@ -192,7 +192,7 @@ const ArticleModal = ({
             <strong className="text-base text-gray-700 dark:text-gray-300">Palavras-chave:</strong>
             <div className="mt-2 flex flex-wrap gap-1.5">
               {article.keywords.map((kw, i) => (
-                <span key={i} className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 text-xs rounded-full">
+                <span key={i} className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 text-sm rounded-full">
                   {kw}
                 </span>
               ))}

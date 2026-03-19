@@ -1,21 +1,79 @@
 // fileSystem.js - Sistema de salvamento e abertura de arquivos
 
 // Versão atual do schema do arquivo
-const CURRENT_SCHEMA_VERSION = "1.0.0";
+const CURRENT_SCHEMA_VERSION = "1.1.0";
 
 // Schemas de versões para compatibilidade retroativa
 const SCHEMA_VERSIONS = {
   "1.0.0": {
     requiredFields: ["version", "protocol", "articles", "statistics", "metadata"],
-    migrations: [] // versão atual, sem migrações necessárias
+    migrations: [] 
+  },
+  "1.1.0": {
+    requiredFields: ["version", "protocol", "articles", "statistics", "metadata"],
+    migrations: [migrateFrom1_0_0to1_1_0]
   }
   // Futuras versões serão adicionadas aqui:
-  // "1.1.0": {
+  // "1.2.0": {
   //   requiredFields: [...],
   //   migrations: [migrateFrom1_0_0to1_1_0]
   // }
 };
+// Remove exclusionReason dos artigos, movendo seu valor para exclusionCriterion
+function migrateFrom1_0_0to1_1_0(data) {
+  const { protocol } = data;
 
+  // Mapas id → label para lookup eficiente
+  const exclusionMap = Object.fromEntries(
+    (protocol.exclusionCriteria ?? []).map(c => [c.id, c.value])
+  );
+  const inclusionMap = Object.fromEntries(
+    (protocol.inclusionCriteria ?? []).map(c => [c.id, c.value])
+  );
+
+  const toObject = (id, map, category) =>
+    id && typeof id === "string"
+      ? { id, label: map[id] ?? id, category }
+      : id; // já é objeto (idempotência) ou inválido
+
+  return {
+    ...data,
+    version: "1.1.0",
+    articles: data.articles.map(article => {
+      const { exclusionReason, exclusionCriterion, inclusionCriterion, qualityCriteria = [], ...rest } = article;
+      // --- exclusionCriterion ---
+      const existingExclusion = Array.isArray(exclusionCriterion) ? exclusionCriterion : [];
+      const incoming          = Array.isArray(exclusionReason)
+                                  ? exclusionReason
+                                  : exclusionReason != null ? [exclusionReason] : [];
+
+      const mergedExclusionIds = [...new Set([...existingExclusion, ...incoming])].filter(Boolean);
+      const newExclusionCriterion = mergedExclusionIds
+        .map(id => toObject(id, exclusionMap, "exclusion"))
+        .filter(Boolean);
+
+      // --- inclusionCriterion ---
+      const inclusionIds = Array.isArray(inclusionCriterion)
+        ? inclusionCriterion
+        : inclusionCriterion != null ? [inclusionCriterion] : [];
+
+      const newInclusionCriterion = inclusionIds
+        .filter(Boolean)
+        .map(id => toObject(id, inclusionMap, "inclusion"))
+        .filter(Boolean);
+
+      // --- qualityCriterion ---
+      const newQualityCriterion = Array.isArray(qualityCriteria) ? qualityCriteria : [];  
+
+      return {
+        ...rest,
+        exclusionCriterion: newExclusionCriterion,
+        inclusionCriterion: newInclusionCriterion,
+        qualityCriteria: newQualityCriterion,
+      };
+    }),
+  };
+}
 // Função para criar o estado padrão
 const createDefaultState = () => ({
   protocol: {
@@ -98,84 +156,6 @@ const addMissingFields = (data) => {
 };
 
 // Função principal de salvamento
-// export const saveProjectToFile  = async (state) => {
-//   try {  
-//     // Criar objeto de dados para salvar
-//     const saveData = {
-//       version: CURRENT_SCHEMA_VERSION,
-//       protocol: state.protocol,
-      
-//       articles: state.articles,
-//       statistics: state.statistics,
-//       metadata: {
-//         savedAt: new Date().toISOString(),
-//         totalArticles: state.articles.length,
-//         duplicates: state.articles.filter(a => a.isDuplicate).length,
-//         appVersion: CURRENT_SCHEMA_VERSION
-//       },
-//       // Dados adicionais
-//       currentSection: state.currentSection,
-//       importedData: state.importedData || []
-//     };
-
-//     // Converter para JSON
-//     const jsonData = JSON.stringify(saveData, null, 2);
-    
-//   //  Abrir o explorador de arquivos para o usuário escolher nome e local
-//       const timestamp = new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-');
-      
-//       const fileHandle = await window.showSaveFilePicker({
-//         suggestedName: `systematic-review-${timestamp}.srp`,
-//         types: [
-//           {
-//             description: 'Systematic Review Project',
-//             accept: { 'application/json': ['.srp'] },
-//           },
-//         ],
-//       });
-
-//       // Escrever o conteúdo no arquivo escolhido
-//       const writable = await fileHandle.createWritable();
-//       await writable.write(jsonData);
-//       await writable.close();
-
-//       return { success: true, filename: fileHandle.name };
-
-// } catch (error) {
-//   // O usuário cancelou o diálogo (AbortError) ou outro erro
-//   if (error.name === 'AbortError') {
-//     return { success: false, error: 'Operação cancelada pelo usuário.' };
-//   }
-//   console.error('Erro ao salvar arquivo:', error);
-//   return { success: false, error: error.message };
-// }
-//     // Criar arquivo para download
-    
-//   //   const blob = new Blob([jsonData], { type: 'application/json' });
-//   //   const url = URL.createObjectURL(blob);
-    
-//   //   // Criar nome do arquivo com timestamp
-//   //   const timestamp = new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-');
-//   //   const filename = `systematic-review-${timestamp}.srp`;
-    
-//   //   // Criar link temporário para download
-//   //   const link = document.createElement('a');
-//   //   link.href = url;
-//   //   link.download = filename;
-//   //   document.body.appendChild(link);
-//   //   link.click();
-//   //   document.body.removeChild(link);
-    
-//   //   // Limpar URL temporária
-//   //   URL.revokeObjectURL(url);
-    
-//   //   return { success: true, filename };
-    
-//   // } catch (error) {
-//   //   console.error('Erro ao salvar arquivo:', error);
-//   //   return { success: false, error: error.message };
-//   // }
-// };
 export const saveProjectToFile = async (state) => {
   try {
     const saveData = {
@@ -187,10 +167,11 @@ export const saveProjectToFile = async (state) => {
         savedAt: new Date().toISOString(),
         totalArticles: state.articles.length,
         duplicates: state.articles.filter(a => a.isDuplicate).length,
-        appVersion: CURRENT_SCHEMA_VERSION
+        appVersion: CURRENT_SCHEMA_VERSION,
       },
       currentSection: state.currentSection,
-      importedData: state.importedData || []
+      importedData: state.importedData || [],
+      warnAfterMin: state.warnAfterMin
     };
 
     const jsonData = JSON.stringify(saveData, null, 2);

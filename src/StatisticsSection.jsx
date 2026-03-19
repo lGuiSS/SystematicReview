@@ -275,7 +275,8 @@ const StatisticsSection = ({ articles, onUpdateStatus, inclusionCriteria, exclus
   const filterRefs   = { filter1: useRef(null), filter2: useRef(null), filter3: useRef(null) };
   const prismaRef    = useRef(null);
   const countriesRef = useRef(null);
-
+  const criterionChartRefs = { Exclusão: useRef(null), Inclusão: useRef(null), Total: useRef(null),
+  };
   // ── ui state ────────────────────────────────────────────────────────────
   const [openMenuId,       setOpenMenuId]       = useState(null);
   const [stroke,           setStroke]           = useState('#000');
@@ -284,6 +285,7 @@ const StatisticsSection = ({ articles, onUpdateStatus, inclusionCriteria, exclus
   // multi-select por seção — Set das opções ativas
   const [pubYearSelected,  setPubYearSelected]  = useState(new Set(['Total']));
   const [filterSelected,   setFilterSelected]   = useState(new Set(['filter1']));
+  const [criterionSelected,   setCriterionSelected]   = useState(new Set(['Exclusão','Inclusão','Total']));
 
   const [criterionsCount, setCriterionsCount] = useState({
     dataProcessing: [{ name:'included',value:0},{name:'excluded',value:0},{name:'unclassified',value:0}],
@@ -302,6 +304,11 @@ const StatisticsSection = ({ articles, onUpdateStatus, inclusionCriteria, exclus
     const ar = deduplicate ? articles.filter(a => !a.isDuplicate) : articles;
     return source === 'Total' ? ar : ar.filter(a => a.source.toLowerCase() === source.toLowerCase());
   }, [articles]);
+
+  // const handleSource = useCallback((source, deduplicate = false) => {
+  //   const ar = deduplicate ? articles.filter(a => !a.isDuplicate) : articles;
+  //   return source === 'Total' ? ar : ar.filter(a => a.source.toLowerCase() === source.toLowerCase());
+  // }, [articles]);
 
   const publicationsByYear = (arts) =>
     Object.entries(arts.reduce((acc, a) => { acc[a.year] = (acc[a.year] || 0) + 1; return acc; }, {}))
@@ -340,6 +347,40 @@ const StatisticsSection = ({ articles, onUpdateStatus, inclusionCriteria, exclus
     });
   }, [statistics]);
 
+  const buildCriterionChartData = useCallback((category) => {
+  const countMap = {};
+  const labelMap = {};
+
+  const tally = (field) => {
+    articles.forEach(article => {
+      (article[field] ?? [])
+        .filter(c => c != null)
+        .forEach(c => {
+          countMap[c.id] = (countMap[c.id] || 0) + 1;
+          labelMap[c.id] = (c.label && c.label !== 'undefined') ? c.label : 'Outros'; // ← fix
+        });
+    });
+  };
+
+  if (category !== 'inclusion') tally('exclusionCriterion');
+  if (category !== 'exclusion') tally('inclusionCriterion');
+
+  return Object.entries(countMap)
+    .map(([id, value]) => ({ id, name: labelMap[id], value }))
+    .sort((a, b) => b.value - a.value);
+  }, [articles]);
+  const [criterionChartData, setCriterionChartData] = useState({
+    Exclusão: [], Inclusão: [], Total: [],
+  });
+
+  useEffect(() => {
+    setCriterionChartData({
+      Exclusão: buildCriterionChartData('exclusion'),
+      Inclusão: buildCriterionChartData('inclusion'),
+      Total:    buildCriterionChartData('total'),
+    });
+  }, [articles, buildCriterionChartData]);
+
   // ── toggle helpers ───────────────────────────────────────────────────────
   const togglePubYear = (src) => {
     setPubYearSelected(prev => {
@@ -359,6 +400,15 @@ const StatisticsSection = ({ articles, onUpdateStatus, inclusionCriteria, exclus
     });
   };
 
+   const toggleCriterion = (ctr) => {
+    setCriterionSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(ctr) && next.size === 1) return next;
+      next.has(ctr) ? next.delete(ctr) : next.add(ctr);
+      return next;
+    });
+  };
+
   const toggleMenu = (id) => setOpenMenuId(prev => prev === id ? null : id);
 
   // ── derived ──────────────────────────────────────────────────────────────
@@ -369,6 +419,17 @@ const StatisticsSection = ({ articles, onUpdateStatus, inclusionCriteria, exclus
   const availableSources = [hasScopus && 'Scopus', hasWOS && 'Web of Science', hasAny && 'Total'].filter(Boolean);
 
   const filterTabs = ['filter1', 'filter2', 'filter3'].filter(k => criterionsCount[k].some(e => e.value !== 0));
+
+  const hasExclusion = (article) =>
+  Array.isArray(article.exclusionCriterion) &&
+  article.exclusionCriterion.some(c => c != null);
+  const hasInclusion = (article) =>
+  Array.isArray(article.inclusionCriterion) &&
+  article.inclusionCriterion.some(c => c != null);
+  const hasAnyCriterion = articles.some(a => hasExclusion(a) || hasInclusion(a));
+
+
+  const availableCriterions = [articles.some(hasExclusion) && 'Exclusão', articles.some(hasExclusion) && 'Inclusão', hasAnyCriterion && 'Total'].filter(Boolean);
 
   const visibleCountries = countriesCount.slice(0, topNCountries);
 
@@ -385,6 +446,46 @@ const StatisticsSection = ({ articles, onUpdateStatus, inclusionCriteria, exclus
   const pubYearColors  = { Scopus: '#fb923c', 'Web of Science': '#d4d0e3', Total: '#646464' };
   const pubYearBarFill = { Scopus: '#3b2b2b', 'Web of Science': '#592aaa', Total: '#3f3f3f' };;
 
+  const EXCLUSION_COLORS = [
+    '#f87171','#ef4444','#dc2626','#fca5a5','#fb7185',
+    '#f43f5e','#e11d48','#fda4af','#b91c1c','#ff6b6b',
+  ];
+  const INCLUSION_COLORS = [
+    '#4ade80','#22c55e','#16a34a','#86efac','#34d399',
+    '#10b981','#059669','#6ee7b7','#15803d','#a7f3d0',
+  ];
+  const TOTAL_COLORS = [
+    '#6366f1','#f59e0b','#06b6d4','#8b5cf6','#14b8a6',
+    '#f97316','#ec4899','#3b82f6','#a855f7','#0ea5e9',
+  ];
+
+  const getCriterionColors = (ctr) => {
+    if (ctr.includes('Exclus')) return EXCLUSION_COLORS;
+    if (ctr.includes('Inclus')) return INCLUSION_COLORS;
+    return TOTAL_COLORS;
+  };
+  const CriterionLegend = ({ data, ctr }) => {
+    const colors = getCriterionColors(ctr); // chamada única
+    return (
+  
+      <div className={data.length <= 3 ? `flex justify-center flex-wrap gap-3 mt-2` : `grid gap-x-8 gap-y-1 mt-2 max-h-36 pr-1 mx-auto w-fit grid-cols-2`}>
+        {data.map((entry, i) => (
+          <div key={entry.id} className="flex items-start gap-1.5">
+            <div
+              className="w-2.5 h-2.5 rounded-full flex-shrink-0 mt-0.5"
+              style={{ backgroundColor: colors[i % colors.length] }}
+            />
+            <span className="text-xs text-gray-700 dark:text-gray-300 leading-tight">
+              <span className="font-semibold">{entry.id}:</span>
+              <span className="text-gray-300"> ({entry.value})</span>
+            </span>
+          </div>
+        ))}
+      </div>
+    );
+  };
+  
+  
   const sharedTooltip = (labelKey, color) => ({
     content: ({ active, payload }) => {
       if (!active || !payload?.length) return null;
@@ -398,6 +499,18 @@ const StatisticsSection = ({ articles, onUpdateStatus, inclusionCriteria, exclus
     },
   });
 
+  const criterionTooltip = {
+    content: ({ active, payload }) => {
+      if (!active || !payload?.length) return null;
+      const d = payload[0].payload;
+      return (
+        <div style={{ background: '#1a1a1a', padding: '10px', border: '1px solid #444', borderRadius: '8px' }}>
+          <p style={{ margin: 0, fontWeight: 'bold', color: '#fff', maxWidth: 220, fontSize: 12 }}>{d.name}</p>
+          <p style={{ margin: '4px 0 0', color: '#94a3b8', fontSize: 12 }}>Artigos: {d.value}</p>
+        </div>
+      );
+    },
+  };
   const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, value }) => {
     if (!value || !percent) return null;
     const RADIAN = Math.PI / 180;
@@ -406,6 +519,33 @@ const StatisticsSection = ({ articles, onUpdateStatus, inclusionCriteria, exclus
       <text x={cx + radius * Math.cos(-midAngle * RADIAN)}
             y={cy + radius * Math.sin(-midAngle * RADIAN)}
             fill="white" textAnchor="middle" dominantBaseline="central" fontSize={14} fontWeight="600">
+        {`${(percent * 100).toFixed(0)}%`}
+      </text>
+    );
+  };
+  const renderCriterionLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, value }) => {
+    if (!value || !percent || percent < 0.03) return null;
+    const RADIAN = Math.PI / 180;
+
+    if (percent < 0.07) {
+      // pequeno demais para dentro — exibe fora com linha implícita
+      const radius = outerRadius + 18;
+      const x = cx + radius * Math.cos(-midAngle * RADIAN);
+      const y = cy + radius * Math.sin(-midAngle * RADIAN);
+      return (
+        <text x={x} y={y} textAnchor={x > cx ? 'start' : 'end'}
+              dominantBaseline="central" fontSize={11} fill="#9ca3af">
+          {`${(percent * 100).toFixed(0)}%`}
+        </text>
+      );
+    }
+
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+    return (
+      <text x={cx + radius * Math.cos(-midAngle * RADIAN)}
+            y={cy + radius * Math.sin(-midAngle * RADIAN)}
+            fill="white" textAnchor="middle" dominantBaseline="central"
+            fontSize={13} fontWeight="600">
         {`${(percent * 100).toFixed(0)}%`}
       </text>
     );
@@ -559,7 +699,64 @@ const StatisticsSection = ({ articles, onUpdateStatus, inclusionCriteria, exclus
         </SectionWrapper>
       )}
 
-      {/* ── 4. Fluxograma PRISMA — SVG puro, apenas exportação SVG ───────── */}
+      {/* ── 4. Panorama de critérios ─────────────────────────────────────────── */}
+      {availableCriterions.length > 0 && (
+        <SectionWrapper
+          title="Panorama dos Critérios"
+          controls={
+            <MultiToggle
+              options={availableCriterions}
+              selected={criterionSelected}
+              onToggle={toggleCriterion}
+            />
+          }
+        >
+          <div className={gridClass([...criterionSelected].filter(c => availableCriterions.includes(c)).length)}>
+            {availableCriterions
+            .filter(ctr => criterionSelected.has(ctr))
+            .map(ctr => {
+              const data   = criterionChartData[ctr] ?? [];
+              const colors = getCriterionColors(ctr); // ← paleta por categoria
+              return (
+                <ChartInstance
+                  key={ctr}
+                  id={`criterion-${ctr}`}
+                  label={ctr}
+                  chartRef={criterionChartRefs[ctr]}
+                  data={data}
+                  openMenuId={openMenuId}
+                  onToggle={toggleMenu}
+                >
+                  {data.length === 0 ? (
+                    <p className="text-xs text-gray-400 text-center py-6">Nenhum critério registrado</p>
+                  ) : (
+                    <div ref={criterionChartRefs[ctr]}>
+                      <PieChart style={{ width: '100%', aspectRatio: 1, maxHeight: '50vh' }} responsive>
+                        <Pie
+                          data={data}
+                          dataKey="value"
+                          label={renderCriterionLabel}   // ← label adaptativo
+                          labelLine={false}
+                          stroke="none"
+                          isAnimationActive={false}
+                        >
+                          {data.map((_, i) => (
+                            <Cell key={i} fill={colors[i % colors.length]} /> // ← paleta correta
+                          ))}
+                        </Pie>
+                        <Tooltip {...criterionTooltip} />
+                        <Legend verticalAlign="bottom" content={<CriterionLegend data={data} ctr={ctr} />} />
+                      </PieChart>
+                    </div>
+                  )}
+                </ChartInstance>
+              );
+            })}
+          </div>
+        </SectionWrapper>
+      )}
+
+      {/* ── 5. Fluxograma PRISMA — SVG puro, apenas exportação SVG ───────── */}
       <SectionWrapper
         title="Fluxograma Prisma"
         controls={
