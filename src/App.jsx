@@ -27,7 +27,7 @@ import {
   clearAutoSave 
 } from './fileSystem.js';
 
-import countryPatternsData from './countryPatterns_r1.json';
+import countryPatternsData from './countryPatterns/countryPatterns_v2.json';
 // import * as XLSX from 'xlsx-js-style';
 import ExcelJS from "exceljs";
 
@@ -337,7 +337,6 @@ const MultiSelect = ({ isOpen, onClose, options, onSelect, type, criteria, initi
   const dropdownRef = useRef(null);
   const inputRef = useRef(null);
   const [resultsExtraction, setResultsExtraction] = useState([]);
-
   const filteredOptions = options.filter(opt =>
     opt.label.toLowerCase().includes(searchTerm.toLowerCase()) &&
     !selected.find(s => s.id === opt.id)
@@ -373,14 +372,17 @@ const MultiSelect = ({ isOpen, onClose, options, onSelect, type, criteria, initi
   }, []);
 
   useEffect(() => {
-    const initialResults = criteria.map(criterion => ({
-      id:       criterion.id,
-      label:    criterion.value,
-      type:     criterion.type,
-      response: criterion.type === 'text' ? '' : [],
-    }));
+    const initialResults = criteria.map(criterion => {
+      const saved = initialValues?.find(v => v.id === criterion.id);
+      return {
+        id:       criterion.id,
+        label:    criterion.value,
+        type:     criterion.type,
+        response: saved?.response ?? (criterion.type === 'text' ? '' : []),
+      };
+    });
     setResultsExtraction(initialResults);
-  }, []);
+  }, [initialValues]);
 
   const toggleOption = (option) => {
     setSelected(prev => {
@@ -3889,6 +3891,7 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
   };
 
   const handleInclude = (article, criterion = null) => {
+    console.log(criterion)
     onUpdateStatus(article.id, getStatusField(currentFilter), 'included', criterion);
     setShowCriterionModal(null);
   };
@@ -4034,16 +4037,6 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
     const ver = score > quadrant*(interval/10) ? true : false;
     return ver;
   };
-
-  const tooltipContent = (
-    <div>
-      <strong className="block mb-1.5 text-sm text-white">Tooltip rico 🎉</strong>
-      <p className="text-xs leading-relaxed text-gray-400">
-        Coloque qualquer <em className="text-violet-400">JSX</em> aqui — ícones, links, formatação…
-      </p>
-    </div>
-  );
-
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden transition-colors duration-200">
@@ -4324,7 +4317,12 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
         }}
         criteria={showCriterionModal?.type === 'include' ? protocol.inclusionCriteria : showCriterionModal?.type === 'exclude'? protocol.exclusionCriteria: protocol.extractionCriteria}
         type={showCriterionModal?.type === 'include' ? 'inclusion' : showCriterionModal?.type === 'exclude'? 'exclusion': 'extraction'}
-
+        initialSelected={[
+          ...(showCriterionModal?.article.inclusionCriterion ?? []),
+          ...(showCriterionModal?.article.exclusionCriterion ?? []),
+          ...(showCriterionModal?.article.qualityCriteria ?? []),
+        ]}
+        initialValues={showCriterionModal?.article.extractionCriteria ?? []}
       />
       {/* Modal de detalhes */}
       {selectedArticle && (
@@ -4965,44 +4963,53 @@ const SystematicReviewTool = () => {
         };
       });
 
-      const copyArticles = articles.map(article => {
-        const {
-          quality,
-          numString,
-          duplicateOf,
-          extractionCriteria,
-          ...resto
-        } = article;
 
-        const extractionAttributes = article.extractionCriteria
-          ? article.extractionCriteria.reduce((acc, item) => {
-              acc[item.id] = item.response ?? "";
-              return acc;
-            }, {})
-          : {};
-        
-          const exclusionCriterions = article.exclusionCriterion.map(a => a.id)
-          const inclusionCriterions = article.inclusionCriterion.map(a => a.id)
-          const qualityCriterias = article.qualityCriteria.map(a => a.id)
+      const getArticles = (filter, status) => {
+        const copyArticles = status != 'total'? articles.filter(a => a[filter] === status): articles
 
-        return {
-          ...resto,
-          isDuplicate: article.isDuplicate ? "Yes" : "No",
-          keywords: article.keywords ? article.keywords.join("; ") : "",
-          countries: !article.countries.includes('País não informado') ? article.countries.join("; ") : "",
-          inclusionCriterion: inclusionCriterions
-            ? inclusionCriterions.join("; ")
-            : "",
-          exclusionCriterion: exclusionCriterions
-            ? exclusionCriterions.join("; ")
-            : "",
-          qualityCriteria: qualityCriterias
-            ? qualityCriterias.join("; ")
-            : "",
-          ...extractionAttributes,
-        };
-      });
-      const headerArticles = {
+        const filterArticles = copyArticles.map(article => {
+          const {
+            quality,
+            numString,
+            duplicateOf,
+            extractionCriteria,
+            ...resto
+          } = article;
+
+          const extractionAttributes = article.extractionCriteria
+            ? article.extractionCriteria.reduce((acc, item) => {
+                acc[item.id] = item.response ?? "";
+                return acc;
+              }, {})
+            : {};
+          
+            const exclusionCriterions = article.exclusionCriterion.map(a => a.id)
+            const inclusionCriterions = article.inclusionCriterion.map(a => a.id)
+            const qualityCriterias = article.qualityCriteria.map(a => a.id)
+
+          return {
+            ...resto,
+            isDuplicate: article.isDuplicate ? "Yes" : "No",
+            keywords: article.keywords ? article.keywords.join("; ") : "",
+            countries: !article.countries.includes('País não informado') ? article.countries.join("; ") : "",
+            inclusionCriterion: inclusionCriterions
+              ? inclusionCriterions.join("; ")
+              : "",
+            exclusionCriterion: exclusionCriterions
+              ? exclusionCriterions.join("; ")
+              : "",
+            qualityCriteria: qualityCriterias
+              ? qualityCriterias.join("; ")
+              : "",
+            ...extractionAttributes,
+          };
+        });
+
+        return filterArticles
+      }
+      
+      
+      const headerArticlesInitial = {
         title: "Title",
         authors: "Authors",
         abstract: "Abstract",
@@ -5025,54 +5032,84 @@ const SystematicReviewTool = () => {
         inclusionCriterion: "Inclusion Criteria",
         exclusionCriterion: "Exclusion Criteria",
         qualityCriteria: "Quality Criteria",
+      };
+      const headerArticlesFinal = {
         importDate: "Imported Date",
         lastModified: "Last Modified",
       };
-      const wsArticles = workbook.addWorksheet("Articles");
+      const extractions = {};
+        protocol.extractionCriteria.forEach((criterion) => {
+        // Use o criterion.id em vez de montar a string manualmente se possível
+        extractions[criterion.id] = criterion.value; 
+      });
+      const headerArticles = {
+        ...headerArticlesInitial,
+        ...extractions, // Eles entram aqui, antes do bloco final
+        ...headerArticlesFinal
+      };
+      const tabs = [
+        {label: 'Articles', filter: 'total'},
+        {label: 'Included-Filter 1', filter: 'filter1Status', status: 'included'},
+        {label: 'Excluded-Filter 1', filter: 'filter1Status', status: 'excluded'},
+        {label: 'Included-Filter 2', filter: 'filter2Status', status: 'included'},
+        {label: 'Excluded-Filter 2', filter: 'filter2Status', status: 'excluded'},
+        {label: 'Included-Filter 3', filter: 'filter3Status', status: 'included'},
+        {label: 'Excluded-Filter 3', filter: 'filter3Status', status: 'excluded'},
+      ] 
+      // const tabs = ['Articles', 'Included-Filter 1']
 
-      wsArticles.columns = Object.keys(headerArticles).map(key => ({
-        header: headerArticles[key],
-        key,
-        width: 30,
-      }));
+      tabs.forEach(tab =>{
+        const wsArticles = workbook.addWorksheet(tab.label);
+        wsArticles.columns = Object.keys(headerArticles).map(key => ({
+          header: headerArticles[key],
+          key,
+          width: 30,
+        }));
 
-      // Adiciona linhas
-      copyArticles.forEach((article, index) => {
-        wsArticles.addRow(article);
-        
-        const rowNumber = index + 2; // +1 header, +1 índice base 0
-        const row = wsArticles.getRow(rowNumber);
+        const copyArticles = getArticles(tab.filter, tab.status)
+        // Adiciona linhas
+        copyArticles.forEach((article, index) => {
+          wsArticles.addRow(article);
+          
+          const rowNumber = index + 2; // +1 header, +1 índice base 0
+          const row = wsArticles.getRow(rowNumber);
 
-        const currentColor = index % 2 === 0 ? colors[0] : colors[1];
+          const currentColor = index % 2 === 0 ? colors[0] : colors[1];
 
-        row.eachCell({ includeEmpty: true }, cell => {
-          cell.alignment = { vertical: "middle"};
+          row.eachCell({ includeEmpty: true }, cell => {
+            cell.alignment = { vertical: "middle"};
+            cell.fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: { argb: currentColor },
+            };
+            cell.border = {
+              left: {style:'thin'},
+              right: {style:'thin'}
+            };
+          });
+        });
+
+        // Estilo do header
+        wsArticles.getRow(1).eachCell(cell => {
+          cell.font = { bold: true };
+          cell.alignment = { vertical: "middle", horizontal: "center" };
           cell.fill = {
             type: "pattern",
             pattern: "solid",
-            fgColor: { argb: currentColor },
+            fgColor: { argb: colorHeader },
           };
           cell.border = {
             left: {style:'thin'},
             right: {style:'thin'}
           };
         });
-      });
 
-      // Estilo do header
-      wsArticles.getRow(1).eachCell(cell => {
-        cell.font = { bold: true };
-        cell.alignment = { vertical: "middle", horizontal: "center" };
-        cell.fill = {
-          type: "pattern",
-          pattern: "solid",
-          fgColor: { argb: colorHeader },
-        };
-        cell.border = {
-          left: {style:'thin'},
-          right: {style:'thin'}
-        };
-      });
+      })
+      // const wsArticles = workbook.addWorksheet("Articles");
+
+     
+
 
       const buffer = await workbook.xlsx.writeBuffer();
 
@@ -5107,10 +5144,6 @@ const SystematicReviewTool = () => {
     // console.log(importedData)
     const importSection = {};
     importedData.forEach(data => {
-
-      console.log(articles.filter(a => a.idData === data.id ))
-      console.log(articles.filter(a =>  a.isDuplicate ))
-      console.log(articles.filter(a =>  a.idData === data.id && a.isDuplicate ))
 
       importSection['unique' + data.id] = articles.filter(
         a => a.idData === data.id && !a.isDuplicate
@@ -5201,8 +5234,10 @@ const SystematicReviewTool = () => {
     setArticles(prev => prev.map(article => {
       if (article.id !== id) return article;
 
-      const base = { ...article, [statusType]: status, lastModified: new Date() };
-
+      const base = status !== 'extracted'
+      ? { ...article, [statusType]: status, lastModified: new Date() }:
+      { ...article, lastModified: new Date() };
+      
       // Cascade reset — apenas atualiza o campo de status
       if (status === null) return base;
 
@@ -5220,16 +5255,16 @@ const SystematicReviewTool = () => {
       const criteria = (Array.isArray(criterion) ? criterion : [criterion]).filter(Boolean);
 
       const byCat = (cat) => criteria.filter(c => c.category === cat);
-      const inclusionCriteria = byCat('inclusion');
-      const exclusionCriteria = byCat('exclusion');
-      const qualityCriteria   = byCat('quality');
+      const newInclusionCriteria = byCat('inclusion');
+      const newExclusionCriteria = byCat('exclusion');
+      const newQualityCriteria   = byCat('quality');
 
       return {
         ...base,
         isDuplicate:       false,
-        inclusionCriterion: inclusionCriteria.length ? inclusionCriteria : article.inclusionCriterion,
-        exclusionCriterion: exclusionCriteria.length ? exclusionCriteria : article.exclusionCriterion,
-        qualityCriteria:    qualityCriteria.length   ? qualityCriteria   : article.qualityCriteria,
+        inclusionCriterion: newInclusionCriteria,
+        exclusionCriterion: newExclusionCriteria,
+        qualityCriteria:    newQualityCriteria,
       };
     }));
   }, []);
@@ -5577,6 +5612,7 @@ const SystematicReviewTool = () => {
             extractionCriteria = {protocol.extractionCriteria}
             statistics={statistics}
             theme={theme}
+            importedData={importedData}
           />
         )}
         

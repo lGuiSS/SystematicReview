@@ -1,0 +1,2002 @@
+[
+  {
+    "name": "Antigua and Barbuda",
+    "officialName": "Antigua and Barbuda",
+    "nativeName": "Antigua and Barbuda",
+    "cca3": "ATG",
+    "ccn3": "28",
+    "continentName": "North America"
+  },
+  {
+    "name": "Bhutan",
+    "officialName": "Kingdom of Bhutan",
+    "nativeName": "འབྲུག་ཡུལ་",
+    "cca3": "BTN",
+    "ccn3": "64",
+    "continentName": "Asia"
+  },
+  {
+    "name": "Italy",
+    "officialName": "Italian Republic",
+    "nativeName": "Italia",
+    "cca3": "ITA",
+    "ccn3": "380",
+    "continentName": "Europe"
+  },
+  {
+    "name": "Tuvalu",
+    "officialName": "Tuvalu",
+    "nativeName": "Tuvalu",
+    "cca3": "TUV",
+    "ccn3": "798",
+    "continentName": "Oceania"
+  },
+  {
+    "name": "Anguilla",
+    "officialName": "Anguilla",
+    "nativeName": "Anguilla",
+    "cca3": "AIA",
+    "ccn3": "660",
+    "continentName": "North America"
+  },
+  {
+    "name": "Australia",
+    "officialName": "Commonwealth of Australia",
+    "nativeName": "Australia",
+    "cca3": "AUS",
+    "ccn3": "36",
+    "continentName": "Oceania"
+  },
+  {
+    "name": "Belize",
+    "officialName": "Belize",
+    "nativeName": "Belize",
+    "cca3": "BLZ",
+    "ccn3": "84",
+    "continentName": "North America"
+  },
+  {
+    "name": "Vanuatu",
+    "officialName": "Republic of Vanuatu",
+    "nativeName": "Vanuatu",
+    "cca3": "VUT",
+    "ccn3": "548",
+    "continentName": "Oceania"
+  },
+  {
+    "name": "Belarus",
+    "officialName": "Republic of Belarus",
+    "nativeName": "Белару́сь",
+    "cca3": "BLR",
+    "ccn3": "112",
+    "continentName": "Europe"
+  },
+  {
+    "name": "Mauritius",
+    "officialName": "Republic of Mauritius",
+    "nativeName": "Mauritius",
+    "cca3": "MUS",
+    "ccn3": "480",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Laos",
+    "officialName": "Lao People's Democratic Republic",
+    "nativeName": "ສປປລາວ",
+    "cca3": "LAO",
+    "ccn3": "418",
+    "continentName": "Asia"
+  },
+  {
+    "name": "Senegal",
+    "officialName": "Republic of Senegal",
+    "nativeName": "Sénégal",
+    "cca3": "SEN",
+    "ccn3": "686",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Turkey",
+    "officialName": "Republic of Turkey",
+    "nativeName": "Türkiye",
+    "cca3": "TUR",
+    "ccn3": "792",
+    "continentName": "Asia"
+  },
+  {
+    "name": "Bolivia",
+    "officialName": "Plurinational State of Bolivia",
+    "nativeName": "Wuliwya",
+    "cca3": "BOL",
+    "ccn3": "68",
+    "continentName": "South America"
+  },
+  {
+    "name": "Sri Lanka",
+    "officialName": "Democratic Socialist Republic of Sri Lanka",
+    "nativeName": "ශ්‍රී ලංකාව",
+    "cca3": "LKA",
+    "ccn3": "144",
+    "continentName": "Asia"
+  },
+  {
+    "name": "Norfolk Island",
+    "officialName": "Territory of Norfolk Island",
+    "nativeName": "Norfolk Island",
+    "cca3": "NFK",
+    "ccn3": "574",
+    "continentName": "Oceania"
+  },
+  {
+    "name": "China",
+    "officialName": "People's Republic of China",
+    "nativeName": "中国",
+    "cca3": "CHN",
+    "ccn3": "156",
+    "continentName": "Asia"
+  },
+  {
+    "name": "Caribbean Netherlands",
+    "officialName": "Bonaire, Sint Eustatius and Saba",
+    "nativeName": "Caribisch Nederland",
+    "cca3": "BES",
+    "ccn3": "535",
+    "continentName": "North America"
+  },
+  {
+    "name": "Guernsey",
+    "officialName": "Bailiwick of Guernsey",
+    "nativeName": "Guernsey",
+    "cca3": "GGY",
+    "ccn3": "831",
+    "continentName": "Europe"
+  },
+  {
+    "name": "Sudan",
+    "officialName": "Republic of the Sudan",
+    "nativeName": "السودان",
+    "cca3": "SDN",
+    "ccn3": "729",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Mayotte",
+    "officialName": "Department of Mayotte",
+    "nativeName": "Mayotte",
+    "cca3": "MYT",
+    "ccn3": "175",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Saint Barthélemy",
+    "officialName": "Collectivity of Saint Barthélemy",
+    "nativeName": "Saint-Barthélemy",
+    "cca3": "BLM",
+    "ccn3": "652",
+    "continentName": "North America"
+  },
+  {
+    "name": "Vatican City",
+    "officialName": "Vatican City State",
+    "nativeName": "Vaticano",
+    "cca3": "VAT",
+    "ccn3": "336",
+    "continentName": "Europe"
+  },
+  {
+    "name": "Turks and Caicos Islands",
+    "officialName": "Turks and Caicos Islands",
+    "nativeName": "Turks and Caicos Islands",
+    "cca3": "TCA",
+    "ccn3": "796",
+    "continentName": "North America"
+  },
+  {
+    "name": "Curaçao",
+    "officialName": "Country of Curaçao",
+    "nativeName": "Curaçao",
+    "cca3": "CUW",
+    "ccn3": "531",
+    "continentName": "North America"
+  },
+  {
+    "name": "Botswana",
+    "officialName": "Republic of Botswana",
+    "nativeName": "Botswana",
+    "cca3": "BWA",
+    "ccn3": "72",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Benin",
+    "officialName": "Republic of Benin",
+    "nativeName": "Bénin",
+    "cca3": "BEN",
+    "ccn3": "204",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Lithuania",
+    "officialName": "Republic of Lithuania",
+    "nativeName": "Lietuva",
+    "cca3": "LTU",
+    "ccn3": "440",
+    "continentName": "Europe"
+  },
+  {
+    "name": "Montserrat",
+    "officialName": "Montserrat",
+    "nativeName": "Montserrat",
+    "cca3": "MSR",
+    "ccn3": "500",
+    "continentName": "North America"
+  },
+  {
+    "name": "British Virgin Islands",
+    "officialName": "Virgin Islands",
+    "nativeName": "British Virgin Islands",
+    "cca3": "VGB",
+    "ccn3": "92",
+    "continentName": "North America"
+  },
+  {
+    "name": "Burundi",
+    "officialName": "Republic of Burundi",
+    "nativeName": "Burundi",
+    "cca3": "BDI",
+    "ccn3": "108",
+    "continentName": "Africa"
+  },
+  {
+    "name": "United States Minor Outlying Islands",
+    "officialName": "United States Minor Outlying Islands",
+    "nativeName": "United States Minor Outlying Islands",
+    "cca3": "UMI",
+    "ccn3": "581",
+    "continentName": "North America"
+  },
+  {
+    "name": "Ireland",
+    "officialName": "Republic of Ireland",
+    "nativeName": "Ireland",
+    "cca3": "IRL",
+    "ccn3": "372",
+    "continentName": "Europe"
+  },
+  {
+    "name": "Solomon Islands",
+    "officialName": "Solomon Islands",
+    "nativeName": "Solomon Islands",
+    "cca3": "SLB",
+    "ccn3": "90",
+    "continentName": "Oceania"
+  },
+  {
+    "name": "Bermuda",
+    "officialName": "Bermuda",
+    "nativeName": "Bermuda",
+    "cca3": "BMU",
+    "ccn3": "60",
+    "continentName": "North America"
+  },
+  {
+    "name": "Finland",
+    "officialName": "Republic of Finland",
+    "nativeName": "Suomi",
+    "cca3": "FIN",
+    "ccn3": "246",
+    "continentName": "Europe"
+  },
+  {
+    "name": "Peru",
+    "officialName": "Republic of Peru",
+    "nativeName": "Piruw",
+    "cca3": "PER",
+    "ccn3": "604",
+    "continentName": "South America"
+  },
+  {
+    "name": "Bangladesh",
+    "officialName": "People's Republic of Bangladesh",
+    "nativeName": "বাংলাদেশ",
+    "cca3": "BGD",
+    "ccn3": "50",
+    "continentName": "Asia"
+  },
+  {
+    "name": "Denmark",
+    "officialName": "Kingdom of Denmark",
+    "nativeName": "Danmark",
+    "cca3": "DNK",
+    "ccn3": "208",
+    "continentName": "Europe"
+  },
+  {
+    "name": "Saint Vincent and the Grenadines",
+    "officialName": "Saint Vincent and the Grenadines",
+    "nativeName": "Saint Vincent and the Grenadines",
+    "cca3": "VCT",
+    "ccn3": "670",
+    "continentName": "North America"
+  },
+  {
+    "name": "Dominican Republic",
+    "officialName": "Dominican Republic",
+    "nativeName": "República Dominicana",
+    "cca3": "DOM",
+    "ccn3": "214",
+    "continentName": "North America"
+  },
+  {
+    "name": "Moldova",
+    "officialName": "Republic of Moldova",
+    "nativeName": "Moldova",
+    "cca3": "MDA",
+    "ccn3": "498",
+    "continentName": "Europe"
+  },
+  {
+    "name": "Bulgaria",
+    "officialName": "Republic of Bulgaria",
+    "nativeName": "България",
+    "cca3": "BGR",
+    "ccn3": "100",
+    "continentName": "Europe"
+  },
+  {
+    "name": "Costa Rica",
+    "officialName": "Republic of Costa Rica",
+    "nativeName": "Costa Rica",
+    "cca3": "CRI",
+    "ccn3": "188",
+    "continentName": "North America"
+  },
+  {
+    "name": "Namibia",
+    "officialName": "Republic of Namibia",
+    "nativeName": "Namibië",
+    "cca3": "NAM",
+    "ccn3": "516",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Svalbard and Jan Mayen",
+    "officialName": "Svalbard og Jan Mayen",
+    "nativeName": "Svalbard og Jan Mayen",
+    "cca3": "SJM",
+    "ccn3": "744",
+    "continentName": "Europe"
+  },
+  {
+    "name": "Luxembourg",
+    "officialName": "Grand Duchy of Luxembourg",
+    "nativeName": "Luxemburg",
+    "cca3": "LUX",
+    "ccn3": "442",
+    "continentName": "Europe"
+  },
+  {
+    "name": "Russia",
+    "officialName": "Russian Federation",
+    "nativeName": "Россия",
+    "cca3": "RUS",
+    "ccn3": "643",
+    "continentName": "Asia"
+  },
+  {
+    "name": "United Arab Emirates",
+    "officialName": "United Arab Emirates",
+    "nativeName": "دولة الإمارات العربية المتحدة",
+    "cca3": "ARE",
+    "ccn3": "784",
+    "continentName": "Asia"
+  },
+  {
+    "name": "Sint Maarten",
+    "officialName": "Sint Maarten",
+    "nativeName": "Sint Maarten",
+    "cca3": "SXM",
+    "ccn3": "534",
+    "continentName": "North America"
+  },
+  {
+    "name": "Bahamas",
+    "officialName": "Commonwealth of the Bahamas",
+    "nativeName": "Bahamas",
+    "cca3": "BHS",
+    "ccn3": "44",
+    "continentName": "North America"
+  },
+  {
+    "name": "Japan",
+    "officialName": "Japan",
+    "nativeName": "日本",
+    "cca3": "JPN",
+    "ccn3": "392",
+    "continentName": "Asia"
+  },
+  {
+    "name": "Nigeria",
+    "officialName": "Federal Republic of Nigeria",
+    "nativeName": "Nigeria",
+    "cca3": "NGA",
+    "ccn3": "566",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Ghana",
+    "officialName": "Republic of Ghana",
+    "nativeName": "Ghana",
+    "cca3": "GHA",
+    "ccn3": "288",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Sierra Leone",
+    "officialName": "Republic of Sierra Leone",
+    "nativeName": "Sierra Leone",
+    "cca3": "SLE",
+    "ccn3": "694",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Saint Pierre and Miquelon",
+    "officialName": "Saint Pierre and Miquelon",
+    "nativeName": "Saint-Pierre-et-Miquelon",
+    "cca3": "SPM",
+    "ccn3": "666",
+    "continentName": "North America"
+  },
+  {
+    "name": "Albania",
+    "officialName": "Republic of Albania",
+    "nativeName": "Shqipëria",
+    "cca3": "ALB",
+    "ccn3": "8",
+    "continentName": "Europe"
+  },
+  {
+    "name": "Tokelau",
+    "officialName": "Tokelau",
+    "nativeName": "Tokelau",
+    "cca3": "TKL",
+    "ccn3": "772",
+    "continentName": "Oceania"
+  },
+  {
+    "name": "Saint Helena, Ascension and Tristan da Cunha",
+    "officialName": "Saint Helena, Ascension and Tristan da Cunha",
+    "nativeName": "Saint Helena, Ascension and Tristan da Cunha",
+    "cca3": "SHN",
+    "ccn3": "654",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Tonga",
+    "officialName": "Kingdom of Tonga",
+    "nativeName": "Tonga",
+    "cca3": "TON",
+    "ccn3": "776",
+    "continentName": "Oceania"
+  },
+  {
+    "name": "Turkmenistan",
+    "officialName": "Turkmenistan",
+    "nativeName": "Туркмения",
+    "cca3": "TKM",
+    "ccn3": "795",
+    "continentName": "Asia"
+  },
+  {
+    "name": "Djibouti",
+    "officialName": "Republic of Djibouti",
+    "nativeName": "جيبوتي‎",
+    "cca3": "DJI",
+    "ccn3": "262",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Central African Republic",
+    "officialName": "Central African Republic",
+    "nativeName": "République centrafricaine",
+    "cca3": "CAF",
+    "ccn3": "140",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Lebanon",
+    "officialName": "Lebanese Republic",
+    "nativeName": "لبنان",
+    "cca3": "LBN",
+    "ccn3": "422",
+    "continentName": "Asia"
+  },
+  {
+    "name": "Latvia",
+    "officialName": "Republic of Latvia",
+    "nativeName": "Latvija",
+    "cca3": "LVA",
+    "ccn3": "428",
+    "continentName": "Europe"
+  },
+  {
+    "name": "Cocos (Keeling) Islands",
+    "officialName": "Territory of the Cocos (Keeling) Islands",
+    "nativeName": "Cocos (Keeling) Islands",
+    "cca3": "CCK",
+    "ccn3": "166",
+    "continentName": "Asia"
+  },
+  {
+    "name": "Gambia",
+    "officialName": "Republic of the Gambia",
+    "nativeName": "Gambia",
+    "cca3": "GMB",
+    "ccn3": "270",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Honduras",
+    "officialName": "Republic of Honduras",
+    "nativeName": "Honduras",
+    "cca3": "HND",
+    "ccn3": "340",
+    "continentName": "North America"
+  },
+  {
+    "name": "Niue",
+    "officialName": "Niue",
+    "nativeName": "Niue",
+    "cca3": "NIU",
+    "ccn3": "570",
+    "continentName": "Oceania"
+  },
+  {
+    "name": "Mauritania",
+    "officialName": "Islamic Republic of Mauritania",
+    "nativeName": "موريتانيا",
+    "cca3": "MRT",
+    "ccn3": "478",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Kosovo",
+    "officialName": "Republic of Kosovo",
+    "nativeName": "Kosova",
+    "cca3": "UNK",
+    "ccn3": "0",
+    "continentName": "Europe"
+  },
+  {
+    "name": "Wallis and Futuna",
+    "officialName": "Territory of the Wallis and Futuna Islands",
+    "nativeName": "Wallis et Futuna",
+    "cca3": "WLF",
+    "ccn3": "876",
+    "continentName": "Oceania"
+  },
+  {
+    "name": "South Georgia",
+    "officialName": "South Georgia and the South Sandwich Islands",
+    "nativeName": "South Georgia",
+    "cca3": "SGS",
+    "ccn3": "239",
+    "continentName": "Antarctica"
+  },
+  {
+    "name": "French Polynesia",
+    "officialName": "French Polynesia",
+    "nativeName": "Polynésie française",
+    "cca3": "PYF",
+    "ccn3": "258",
+    "continentName": "Oceania"
+  },
+  {
+    "name": "Togo",
+    "officialName": "Togolese Republic",
+    "nativeName": "Togo",
+    "cca3": "TGO",
+    "ccn3": "768",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Belgium",
+    "officialName": "Kingdom of Belgium",
+    "nativeName": "Belgien",
+    "cca3": "BEL",
+    "ccn3": "56",
+    "continentName": "Europe"
+  },
+  {
+    "name": "Zambia",
+    "officialName": "Republic of Zambia",
+    "nativeName": "Zambia",
+    "cca3": "ZMB",
+    "ccn3": "894",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Cayman Islands",
+    "officialName": "Cayman Islands",
+    "nativeName": "Cayman Islands",
+    "cca3": "CYM",
+    "ccn3": "136",
+    "continentName": "North America"
+  },
+  {
+    "name": "Pitcairn Islands",
+    "officialName": "Pitcairn Group of Islands",
+    "nativeName": "Pitcairn Islands",
+    "cca3": "PCN",
+    "ccn3": "612",
+    "continentName": "Oceania"
+  },
+  {
+    "name": "Cook Islands",
+    "officialName": "Cook Islands",
+    "nativeName": "Cook Islands",
+    "cca3": "COK",
+    "ccn3": "184",
+    "continentName": "Oceania"
+  },
+  {
+    "name": "Madagascar",
+    "officialName": "Republic of Madagascar",
+    "nativeName": "Madagascar",
+    "cca3": "MDG",
+    "ccn3": "450",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Montenegro",
+    "officialName": "Montenegro",
+    "nativeName": "Црна Гора",
+    "cca3": "MNE",
+    "ccn3": "499",
+    "continentName": "Europe"
+  },
+  {
+    "name": "South Korea",
+    "officialName": "Republic of Korea",
+    "nativeName": "한국",
+    "cca3": "KOR",
+    "ccn3": "410",
+    "continentName": "Asia"
+  },
+  {
+    "name": "Ethiopia",
+    "officialName": "Federal Democratic Republic of Ethiopia",
+    "nativeName": "ኢትዮጵያ",
+    "cca3": "ETH",
+    "ccn3": "231",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Mongolia",
+    "officialName": "Mongolia",
+    "nativeName": "Монгол улс",
+    "cca3": "MNG",
+    "ccn3": "496",
+    "continentName": "Asia"
+  },
+  {
+    "name": "Slovakia",
+    "officialName": "Slovak Republic",
+    "nativeName": "Slovensko",
+    "cca3": "SVK",
+    "ccn3": "703",
+    "continentName": "Europe"
+  },
+  {
+    "name": "Cuba",
+    "officialName": "Republic of Cuba",
+    "nativeName": "Cuba",
+    "cca3": "CUB",
+    "ccn3": "192",
+    "continentName": "North America"
+  },
+  {
+    "name": "Antarctica",
+    "officialName": "Antarctica",
+    "nativeName": "Antarctica",
+    "cca3": "ATA",
+    "ccn3": "10",
+    "continentName": "Antarctica"
+  },
+  {
+    "name": "Guatemala",
+    "officialName": "Republic of Guatemala",
+    "nativeName": "Guatemala",
+    "cca3": "GTM",
+    "ccn3": "320",
+    "continentName": "North America"
+  },
+  {
+    "name": "French Guiana",
+    "officialName": "Guiana",
+    "nativeName": "Guyane française",
+    "cca3": "GUF",
+    "ccn3": "254",
+    "continentName": "South America"
+  },
+  {
+    "name": "Norway",
+    "officialName": "Kingdom of Norway",
+    "nativeName": "Noreg",
+    "cca3": "NOR",
+    "ccn3": "578",
+    "continentName": "Europe"
+  },
+  {
+    "name": "Grenada",
+    "officialName": "Grenada",
+    "nativeName": "Grenada",
+    "cca3": "GRD",
+    "ccn3": "308",
+    "continentName": "North America"
+  },
+  {
+    "name": "Réunion",
+    "officialName": "Réunion Island",
+    "nativeName": "La Réunion",
+    "cca3": "REU",
+    "ccn3": "638",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Chile",
+    "officialName": "Republic of Chile",
+    "nativeName": "Chile",
+    "cca3": "CHL",
+    "ccn3": "152",
+    "continentName": "South America"
+  },
+  {
+    "name": "Colombia",
+    "officialName": "Republic of Colombia",
+    "nativeName": "Colombia",
+    "cca3": "COL",
+    "ccn3": "170",
+    "continentName": "South America"
+  },
+  {
+    "name": "Saudi Arabia",
+    "officialName": "Kingdom of Saudi Arabia",
+    "nativeName": "العربية السعودية",
+    "cca3": "SAU",
+    "ccn3": "682",
+    "continentName": "Asia"
+  },
+  {
+    "name": "Israel",
+    "officialName": "State of Israel",
+    "nativeName": "إسرائيل",
+    "cca3": "ISR",
+    "ccn3": "376",
+    "continentName": "Asia"
+  },
+  {
+    "name": "Germany",
+    "officialName": "Federal Republic of Germany",
+    "nativeName": "Deutschland",
+    "cca3": "DEU",
+    "ccn3": "276",
+    "continentName": "Europe"
+  },
+  {
+    "name": "New Zealand",
+    "officialName": "New Zealand",
+    "nativeName": "New Zealand",
+    "cca3": "NZL",
+    "ccn3": "554",
+    "continentName": "Oceania"
+  },
+  {
+    "name": "Greenland",
+    "officialName": "Greenland",
+    "nativeName": "Kalaallit Nunaat",
+    "cca3": "GRL",
+    "ccn3": "304",
+    "continentName": "North America"
+  },
+  {
+    "name": "Kyrgyzstan",
+    "officialName": "Kyrgyz Republic",
+    "nativeName": "Кыргызстан",
+    "cca3": "KGZ",
+    "ccn3": "417",
+    "continentName": "Asia"
+  },
+  {
+    "name": "El Salvador",
+    "officialName": "Republic of El Salvador",
+    "nativeName": "El Salvador",
+    "cca3": "SLV",
+    "ccn3": "222",
+    "continentName": "North America"
+  },
+  {
+    "name": "Faroe Islands",
+    "officialName": "Faroe Islands",
+    "nativeName": "Færøerne",
+    "cca3": "FRO",
+    "ccn3": "234",
+    "continentName": "Europe"
+  },
+  {
+    "name": "Palau",
+    "officialName": "Republic of Palau",
+    "nativeName": "Palau",
+    "cca3": "PLW",
+    "ccn3": "585",
+    "continentName": "Oceania"
+  },
+  {
+    "name": "Malta",
+    "officialName": "Republic of Malta",
+    "nativeName": "Malta",
+    "cca3": "MLT",
+    "ccn3": "470",
+    "continentName": "Europe"
+  },
+  {
+    "name": "Syria",
+    "officialName": "Syrian Arab Republic",
+    "nativeName": "سوريا",
+    "cca3": "SYR",
+    "ccn3": "760",
+    "continentName": "Asia"
+  },
+  {
+    "name": "Timor-Leste",
+    "officialName": "Democratic Republic of Timor-Leste",
+    "nativeName": "Timor-Leste",
+    "cca3": "TLS",
+    "ccn3": "626",
+    "continentName": "Asia"
+  },
+  {
+    "name": "Croatia",
+    "officialName": "Republic of Croatia",
+    "nativeName": "Hrvatska",
+    "cca3": "HRV",
+    "ccn3": "191",
+    "continentName": "Europe"
+  },
+  {
+    "name": "Papua New Guinea",
+    "officialName": "Independent State of Papua New Guinea",
+    "nativeName": "Papua New Guinea",
+    "cca3": "PNG",
+    "ccn3": "598",
+    "continentName": "Oceania"
+  },
+  {
+    "name": "Netherlands",
+    "officialName": "Kingdom of the Netherlands",
+    "nativeName": "Nederland",
+    "cca3": "NLD",
+    "ccn3": "528",
+    "continentName": "Europe"
+  },
+  {
+    "name": "Liberia",
+    "officialName": "Republic of Liberia",
+    "nativeName": "Liberia",
+    "cca3": "LBR",
+    "ccn3": "430",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Somalia",
+    "officialName": "Federal Republic of Somalia",
+    "nativeName": "الصومال‎‎",
+    "cca3": "SOM",
+    "ccn3": "706",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Venezuela",
+    "officialName": "Bolivarian Republic of Venezuela",
+    "nativeName": "Venezuela",
+    "cca3": "VEN",
+    "ccn3": "862",
+    "continentName": "South America"
+  },
+  {
+    "name": "Haiti",
+    "officialName": "Republic of Haiti",
+    "nativeName": "Haïti",
+    "cca3": "HTI",
+    "ccn3": "332",
+    "continentName": "North America"
+  },
+  {
+    "name": "Algeria",
+    "officialName": "People's Democratic Republic of Algeria",
+    "nativeName": "الجزائر",
+    "cca3": "DZA",
+    "ccn3": "12",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Northern Mariana Islands",
+    "officialName": "Commonwealth of the Northern Mariana Islands",
+    "nativeName": "Northern Mariana Islands",
+    "cca3": "MNP",
+    "ccn3": "580",
+    "continentName": "Oceania"
+  },
+  {
+    "name": "Saint Martin",
+    "officialName": "Saint Martin",
+    "nativeName": "Saint-Martin",
+    "cca3": "MAF",
+    "ccn3": "663",
+    "continentName": "North America"
+  },
+  {
+    "name": "Heard Island and McDonald Islands",
+    "officialName": "Heard Island and McDonald Islands",
+    "nativeName": "Heard Island and McDonald Islands",
+    "cca3": "HMD",
+    "ccn3": "334",
+    "continentName": "Antarctica"
+  },
+  {
+    "name": "Aruba",
+    "officialName": "Aruba",
+    "nativeName": "Aruba",
+    "cca3": "ABW",
+    "ccn3": "533",
+    "continentName": "North America"
+  },
+  {
+    "name": "Egypt",
+    "officialName": "Arab Republic of Egypt",
+    "nativeName": "مصر",
+    "cca3": "EGY",
+    "ccn3": "818",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Malawi",
+    "officialName": "Republic of Malawi",
+    "nativeName": "Malawi",
+    "cca3": "MWI",
+    "ccn3": "454",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Equatorial Guinea",
+    "officialName": "Republic of Equatorial Guinea",
+    "nativeName": "Guinée équatoriale",
+    "cca3": "GNQ",
+    "ccn3": "226",
+    "continentName": "Africa"
+  },
+  {
+    "name": "United States Virgin Islands",
+    "officialName": "Virgin Islands of the United States",
+    "nativeName": "United States Virgin Islands",
+    "cca3": "VIR",
+    "ccn3": "850",
+    "continentName": "North America"
+  },
+  {
+    "name": "Ecuador",
+    "officialName": "Republic of Ecuador",
+    "nativeName": "Ecuador",
+    "cca3": "ECU",
+    "ccn3": "218",
+    "continentName": "South America"
+  },
+  {
+    "name": "Uzbekistan",
+    "officialName": "Republic of Uzbekistan",
+    "nativeName": "Узбекистан",
+    "cca3": "UZB",
+    "ccn3": "860",
+    "continentName": "Asia"
+  },
+  {
+    "name": "Gabon",
+    "officialName": "Gabonese Republic",
+    "nativeName": "Gabon",
+    "cca3": "GAB",
+    "ccn3": "266",
+    "continentName": "Africa"
+  },
+  {
+    "name": "South Sudan",
+    "officialName": "Republic of South Sudan",
+    "nativeName": "South Sudan",
+    "cca3": "SSD",
+    "ccn3": "728",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Iran",
+    "officialName": "Islamic Republic of Iran",
+    "nativeName": "ایران",
+    "cca3": "IRN",
+    "ccn3": "364",
+    "continentName": "Asia"
+  },
+  {
+    "name": "Kazakhstan",
+    "officialName": "Republic of Kazakhstan",
+    "nativeName": "Қазақстан",
+    "cca3": "KAZ",
+    "ccn3": "398",
+    "continentName": "Asia"
+  },
+  {
+    "name": "Nicaragua",
+    "officialName": "Republic of Nicaragua",
+    "nativeName": "Nicaragua",
+    "cca3": "NIC",
+    "ccn3": "558",
+    "continentName": "North America"
+  },
+  {
+    "name": "Iceland",
+    "officialName": "Iceland",
+    "nativeName": "Ísland",
+    "cca3": "ISL",
+    "ccn3": "352",
+    "continentName": "Europe"
+  },
+  {
+    "name": "Slovenia",
+    "officialName": "Republic of Slovenia",
+    "nativeName": "Slovenija",
+    "cca3": "SVN",
+    "ccn3": "705",
+    "continentName": "Europe"
+  },
+  {
+    "name": "Guadeloupe",
+    "officialName": "Guadeloupe",
+    "nativeName": "Guadeloupe",
+    "cca3": "GLP",
+    "ccn3": "312",
+    "continentName": "North America"
+  },
+  {
+    "name": "Cameroon",
+    "officialName": "Republic of Cameroon",
+    "nativeName": "Cameroon",
+    "cca3": "CMR",
+    "ccn3": "120",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Argentina",
+    "officialName": "Argentine Republic",
+    "nativeName": "Argentina",
+    "cca3": "ARG",
+    "ccn3": "32",
+    "continentName": "South America"
+  },
+  {
+    "name": "Azerbaijan",
+    "officialName": "Republic of Azerbaijan",
+    "nativeName": "Azərbaycan",
+    "cca3": "AZE",
+    "ccn3": "31",
+    "continentName": "Asia"
+  },
+  {
+    "name": "Uganda",
+    "officialName": "Republic of Uganda",
+    "nativeName": "Uganda",
+    "cca3": "UGA",
+    "ccn3": "800",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Niger",
+    "officialName": "Republic of Niger",
+    "nativeName": "Niger",
+    "cca3": "NER",
+    "ccn3": "562",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Christmas Island",
+    "officialName": "Territory of Christmas Island",
+    "nativeName": "Christmas Island",
+    "cca3": "CXR",
+    "ccn3": "162",
+    "continentName": "Asia"
+  },
+  {
+    "name": "Myanmar",
+    "officialName": "Republic of the Union of Myanmar",
+    "nativeName": "မြန်မာ",
+    "cca3": "MMR",
+    "ccn3": "104",
+    "continentName": "Asia"
+  },
+  {
+    "name": "Poland",
+    "officialName": "Republic of Poland",
+    "nativeName": "Polska",
+    "cca3": "POL",
+    "ccn3": "616",
+    "continentName": "Europe"
+  },
+  {
+    "name": "Jordan",
+    "officialName": "Hashemite Kingdom of Jordan",
+    "nativeName": "الأردن",
+    "cca3": "JOR",
+    "ccn3": "400",
+    "continentName": "Asia"
+  },
+  {
+    "name": "Hong Kong",
+    "officialName": "Hong Kong Special Administrative Region of the People's Republic of China",
+    "nativeName": "Hong Kong",
+    "cca3": "HKG",
+    "ccn3": "344",
+    "continentName": "Asia"
+  },
+  {
+    "name": "DR Congo",
+    "officialName": "Democratic Republic of the Congo",
+    "nativeName": "RD Congo",
+    "cca3": "COD",
+    "ccn3": "180",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Eritrea",
+    "officialName": "State of Eritrea",
+    "nativeName": "إرتريا‎",
+    "cca3": "ERI",
+    "ccn3": "232",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Kiribati",
+    "officialName": "Independent and Sovereign Republic of Kiribati",
+    "nativeName": "Kiribati",
+    "cca3": "KIR",
+    "ccn3": "296",
+    "continentName": "Oceania"
+  },
+  {
+    "name": "Marshall Islands",
+    "officialName": "Republic of the Marshall Islands",
+    "nativeName": "Marshall Islands",
+    "cca3": "MHL",
+    "ccn3": "584",
+    "continentName": "Oceania"
+  },
+  {
+    "name": "Burkina Faso",
+    "officialName": "Burkina Faso",
+    "nativeName": "Burkina Faso",
+    "cca3": "BFA",
+    "ccn3": "854",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Zimbabwe",
+    "officialName": "Republic of Zimbabwe",
+    "nativeName": "Zimbabwe",
+    "cca3": "ZWE",
+    "ccn3": "716",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Kenya",
+    "officialName": "Republic of Kenya",
+    "nativeName": "Kenya",
+    "cca3": "KEN",
+    "ccn3": "404",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Comoros",
+    "officialName": "Union of the Comoros",
+    "nativeName": "القمر‎",
+    "cca3": "COM",
+    "ccn3": "174",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Gibraltar",
+    "officialName": "Gibraltar",
+    "nativeName": "Gibraltar",
+    "cca3": "GIB",
+    "ccn3": "292",
+    "continentName": "Europe"
+  },
+  {
+    "name": "Brunei",
+    "officialName": "Nation of Brunei, Abode of Peace",
+    "nativeName": "Negara Brunei Darussalam",
+    "cca3": "BRN",
+    "ccn3": "96",
+    "continentName": "Asia"
+  },
+  {
+    "name": "Sweden",
+    "officialName": "Kingdom of Sweden",
+    "nativeName": "Sverige",
+    "cca3": "SWE",
+    "ccn3": "752",
+    "continentName": "Europe"
+  },
+  {
+    "name": "Lesotho",
+    "officialName": "Kingdom of Lesotho",
+    "nativeName": "Lesotho",
+    "cca3": "LSO",
+    "ccn3": "426",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Isle of Man",
+    "officialName": "Isle of Man",
+    "nativeName": "Isle of Man",
+    "cca3": "IMN",
+    "ccn3": "833",
+    "continentName": "Europe"
+  },
+  {
+    "name": "Micronesia",
+    "officialName": "Federated States of Micronesia",
+    "nativeName": "Micronesia",
+    "cca3": "FSM",
+    "ccn3": "583",
+    "continentName": "Oceania"
+  },
+  {
+    "name": "Tanzania",
+    "officialName": "United Republic of Tanzania",
+    "nativeName": "Tanzania",
+    "cca3": "TZA",
+    "ccn3": "834",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Cape Verde",
+    "officialName": "Republic of Cabo Verde",
+    "nativeName": "Cabo Verde",
+    "cca3": "CPV",
+    "ccn3": "132",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Afghanistan",
+    "officialName": "Islamic Republic of Afghanistan",
+    "nativeName": "افغانستان",
+    "cca3": "AFG",
+    "ccn3": "4",
+    "continentName": "Asia"
+  },
+  {
+    "name": "Andorra",
+    "officialName": "Principality of Andorra",
+    "nativeName": "Andorra",
+    "cca3": "AND",
+    "ccn3": "20",
+    "continentName": "Europe"
+  },
+  {
+    "name": "Greece",
+    "officialName": "Hellenic Republic",
+    "nativeName": "Ελλάδα",
+    "cca3": "GRC",
+    "ccn3": "300",
+    "continentName": "Europe"
+  },
+  {
+    "name": "Vietnam",
+    "officialName": "Socialist Republic of Vietnam",
+    "nativeName": "Việt Nam",
+    "cca3": "VNM",
+    "ccn3": "704",
+    "continentName": "Asia"
+  },
+  {
+    "name": "French Southern and Antarctic Lands",
+    "officialName": "Territory of the French Southern and Antarctic Lands",
+    "nativeName": "Terres australes et antarctiques françaises",
+    "cca3": "ATF",
+    "ccn3": "260",
+    "continentName": "Antarctica"
+  },
+  {
+    "name": "Iraq",
+    "officialName": "Republic of Iraq",
+    "nativeName": "العراق",
+    "cca3": "IRQ",
+    "ccn3": "368",
+    "continentName": "Asia"
+  },
+  {
+    "name": "Libya",
+    "officialName": "State of Libya",
+    "nativeName": "‏ليبيا",
+    "cca3": "LBY",
+    "ccn3": "434",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Portugal",
+    "officialName": "Portuguese Republic",
+    "nativeName": "Portugal",
+    "cca3": "PRT",
+    "ccn3": "620",
+    "continentName": "Europe"
+  },
+  {
+    "name": "Pakistan",
+    "officialName": "Islamic Republic of Pakistan",
+    "nativeName": "Pakistan",
+    "cca3": "PAK",
+    "ccn3": "586",
+    "continentName": "Asia"
+  },
+  {
+    "name": "Maldives",
+    "officialName": "Republic of the Maldives",
+    "nativeName": "ދިވެހިރާއްޖޭގެ",
+    "cca3": "MDV",
+    "ccn3": "462",
+    "continentName": "Asia"
+  },
+  {
+    "name": "Morocco",
+    "officialName": "Kingdom of Morocco",
+    "nativeName": "المغرب",
+    "cca3": "MAR",
+    "ccn3": "504",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Bosnia and Herzegovina",
+    "officialName": "Bosnia and Herzegovina",
+    "nativeName": "Bosna i Hercegovina",
+    "cca3": "BIH",
+    "ccn3": "70",
+    "continentName": "Europe"
+  },
+  {
+    "name": "Samoa",
+    "officialName": "Independent State of Samoa",
+    "nativeName": "Samoa",
+    "cca3": "WSM",
+    "ccn3": "882",
+    "continentName": "Oceania"
+  },
+  {
+    "name": "Palestine",
+    "officialName": "State of Palestine",
+    "nativeName": "فلسطين",
+    "cca3": "PSE",
+    "ccn3": "275",
+    "continentName": "Asia"
+  },
+  {
+    "name": "Oman",
+    "officialName": "Sultanate of Oman",
+    "nativeName": "عمان",
+    "cca3": "OMN",
+    "ccn3": "512",
+    "continentName": "Asia"
+  },
+  {
+    "name": "Bahrain",
+    "officialName": "Kingdom of Bahrain",
+    "nativeName": "‏البحرين",
+    "cca3": "BHR",
+    "ccn3": "48",
+    "continentName": "Asia"
+  },
+  {
+    "name": "United States",
+    "officialName": "United States of America",
+    "nativeName": "United States",
+    "cca3": "USA",
+    "ccn3": "840",
+    "continentName": "North America"
+  },
+  {
+    "name": "Puerto Rico",
+    "officialName": "Commonwealth of Puerto Rico",
+    "nativeName": "Puerto Rico",
+    "cca3": "PRI",
+    "ccn3": "630",
+    "continentName": "North America"
+  },
+  {
+    "name": "British Indian Ocean Territory",
+    "officialName": "British Indian Ocean Territory",
+    "nativeName": "British Indian Ocean Territory",
+    "cca3": "IOT",
+    "ccn3": "86",
+    "continentName": "Asia"
+  },
+  {
+    "name": "Jersey",
+    "officialName": "Bailiwick of Jersey",
+    "nativeName": "Jersey",
+    "cca3": "JEY",
+    "ccn3": "832",
+    "continentName": "Europe"
+  },
+  {
+    "name": "North Macedonia",
+    "officialName": "Republic of North Macedonia",
+    "nativeName": "Македонија",
+    "cca3": "MKD",
+    "ccn3": "807",
+    "continentName": "Europe"
+  },
+  {
+    "name": "Tunisia",
+    "officialName": "Tunisian Republic",
+    "nativeName": "تونس",
+    "cca3": "TUN",
+    "ccn3": "788",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Trinidad and Tobago",
+    "officialName": "Republic of Trinidad and Tobago",
+    "nativeName": "Trinidad and Tobago",
+    "cca3": "TTO",
+    "ccn3": "780",
+    "continentName": "North America"
+  },
+  {
+    "name": "Estonia",
+    "officialName": "Republic of Estonia",
+    "nativeName": "Eesti",
+    "cca3": "EST",
+    "ccn3": "233",
+    "continentName": "Europe"
+  },
+  {
+    "name": "Singapore",
+    "officialName": "Republic of Singapore",
+    "nativeName": "Singapore",
+    "cca3": "SGP",
+    "ccn3": "702",
+    "continentName": "Asia"
+  },
+  {
+    "name": "Panama",
+    "officialName": "Republic of Panama",
+    "nativeName": "Panamá",
+    "cca3": "PAN",
+    "ccn3": "591",
+    "continentName": "North America"
+  },
+  {
+    "name": "Switzerland",
+    "officialName": "Swiss Confederation",
+    "nativeName": "Suisse",
+    "cca3": "CHE",
+    "ccn3": "756",
+    "continentName": "Europe"
+  },
+  {
+    "name": "Uruguay",
+    "officialName": "Oriental Republic of Uruguay",
+    "nativeName": "Uruguay",
+    "cca3": "URY",
+    "ccn3": "858",
+    "continentName": "South America"
+  },
+  {
+    "name": "Tajikistan",
+    "officialName": "Republic of Tajikistan",
+    "nativeName": "Таджикистан",
+    "cca3": "TJK",
+    "ccn3": "762",
+    "continentName": "Asia"
+  },
+  {
+    "name": "Taiwan",
+    "officialName": "Republic of China (Taiwan)",
+    "nativeName": "台灣",
+    "cca3": "TWN",
+    "ccn3": "158",
+    "continentName": "Asia"
+  },
+  {
+    "name": "South Africa",
+    "officialName": "Republic of South Africa",
+    "nativeName": "South Africa",
+    "cca3": "ZAF",
+    "ccn3": "710",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Liechtenstein",
+    "officialName": "Principality of Liechtenstein",
+    "nativeName": "Liechtenstein",
+    "cca3": "LIE",
+    "ccn3": "438",
+    "continentName": "Europe"
+  },
+  {
+    "name": "Brazil",
+    "officialName": "Federative Republic of Brazil",
+    "nativeName": "Brasil",
+    "cca3": "BRA",
+    "ccn3": "76",
+    "continentName": "South America"
+  },
+  {
+    "name": "Armenia",
+    "officialName": "Republic of Armenia",
+    "nativeName": "Հայաստան",
+    "cca3": "ARM",
+    "ccn3": "51",
+    "continentName": "Asia"
+  },
+  {
+    "name": "Georgia",
+    "officialName": "Georgia",
+    "nativeName": "საქართველო",
+    "cca3": "GEO",
+    "ccn3": "268",
+    "continentName": "Asia"
+  },
+  {
+    "name": "Åland Islands",
+    "officialName": "Åland Islands",
+    "nativeName": "Åland",
+    "cca3": "ALA",
+    "ccn3": "248",
+    "continentName": "Europe"
+  },
+  {
+    "name": "Qatar",
+    "officialName": "State of Qatar",
+    "nativeName": "قطر",
+    "cca3": "QAT",
+    "ccn3": "634",
+    "continentName": "Asia"
+  },
+  {
+    "name": "Dominica",
+    "officialName": "Commonwealth of Dominica",
+    "nativeName": "Dominica",
+    "cca3": "DMA",
+    "ccn3": "212",
+    "continentName": "North America"
+  },
+  {
+    "name": "Ukraine",
+    "officialName": "Ukraine",
+    "nativeName": "Україна",
+    "cca3": "UKR",
+    "ccn3": "804",
+    "continentName": "Europe"
+  },
+  {
+    "name": "Guinea",
+    "officialName": "Republic of Guinea",
+    "nativeName": "Guinée",
+    "cca3": "GIN",
+    "ccn3": "324",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Macau",
+    "officialName": "Macao Special Administrative Region of the People's Republic of China",
+    "nativeName": "Macau",
+    "cca3": "MAC",
+    "ccn3": "446",
+    "continentName": "Asia"
+  },
+  {
+    "name": "Western Sahara",
+    "officialName": "Sahrawi Arab Democratic Republic",
+    "nativeName": "Western Sahara",
+    "cca3": "ESH",
+    "ccn3": "732",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Czechia",
+    "officialName": "Czech Republic",
+    "nativeName": "Česko",
+    "cca3": "CZE",
+    "ccn3": "203",
+    "continentName": "Europe"
+  },
+  {
+    "name": "Austria",
+    "officialName": "Republic of Austria",
+    "nativeName": "Österreich",
+    "cca3": "AUT",
+    "ccn3": "40",
+    "continentName": "Europe"
+  },
+  {
+    "name": "Saint Kitts and Nevis",
+    "officialName": "Federation of Saint Christopher and Nevis",
+    "nativeName": "Saint Kitts and Nevis",
+    "cca3": "KNA",
+    "ccn3": "659",
+    "continentName": "North America"
+  },
+  {
+    "name": "Saint Lucia",
+    "officialName": "Saint Lucia",
+    "nativeName": "Saint Lucia",
+    "cca3": "LCA",
+    "ccn3": "662",
+    "continentName": "North America"
+  },
+  {
+    "name": "Yemen",
+    "officialName": "Republic of Yemen",
+    "nativeName": "اليَمَن",
+    "cca3": "YEM",
+    "ccn3": "887",
+    "continentName": "Asia"
+  },
+  {
+    "name": "Rwanda",
+    "officialName": "Republic of Rwanda",
+    "nativeName": "Rwanda",
+    "cca3": "RWA",
+    "ccn3": "646",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Monaco",
+    "officialName": "Principality of Monaco",
+    "nativeName": "Monaco",
+    "cca3": "MCO",
+    "ccn3": "492",
+    "continentName": "Europe"
+  },
+  {
+    "name": "São Tomé and Príncipe",
+    "officialName": "Democratic Republic of São Tomé and Príncipe",
+    "nativeName": "São Tomé e Príncipe",
+    "cca3": "STP",
+    "ccn3": "678",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Republic of the Congo",
+    "officialName": "Republic of the Congo",
+    "nativeName": "République du Congo",
+    "cca3": "COG",
+    "ccn3": "178",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Paraguay",
+    "officialName": "Republic of Paraguay",
+    "nativeName": "Paraguái",
+    "cca3": "PRY",
+    "ccn3": "600",
+    "continentName": "South America"
+  },
+  {
+    "name": "Bouvet Island",
+    "officialName": "Bouvet Island",
+    "nativeName": "Bouvetøya",
+    "cca3": "BVT",
+    "ccn3": "74",
+    "continentName": "Antarctica"
+  },
+  {
+    "name": "Mozambique",
+    "officialName": "Republic of Mozambique",
+    "nativeName": "Moçambique",
+    "cca3": "MOZ",
+    "ccn3": "508",
+    "continentName": "Africa"
+  },
+  {
+    "name": "France",
+    "officialName": "French Republic",
+    "nativeName": "France",
+    "cca3": "FRA",
+    "ccn3": "250",
+    "continentName": "Europe"
+  },
+  {
+    "name": "Eswatini",
+    "officialName": "Kingdom of Eswatini",
+    "nativeName": "Eswatini",
+    "cca3": "SWZ",
+    "ccn3": "748",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Barbados",
+    "officialName": "Barbados",
+    "nativeName": "Barbados",
+    "cca3": "BRB",
+    "ccn3": "52",
+    "continentName": "North America"
+  },
+  {
+    "name": "Spain",
+    "officialName": "Kingdom of Spain",
+    "nativeName": "España",
+    "cca3": "ESP",
+    "ccn3": "724",
+    "continentName": "Europe"
+  },
+  {
+    "name": "Thailand",
+    "officialName": "Kingdom of Thailand",
+    "nativeName": "ประเทศไทย",
+    "cca3": "THA",
+    "ccn3": "764",
+    "continentName": "Asia"
+  },
+  {
+    "name": "Guinea-Bissau",
+    "officialName": "Republic of Guinea-Bissau",
+    "nativeName": "Guiné-Bissau",
+    "cca3": "GNB",
+    "ccn3": "624",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Angola",
+    "officialName": "Republic of Angola",
+    "nativeName": "Angola",
+    "cca3": "AGO",
+    "ccn3": "24",
+    "continentName": "Africa"
+  },
+  {
+    "name": "India",
+    "officialName": "Republic of India",
+    "nativeName": "India",
+    "cca3": "IND",
+    "ccn3": "356",
+    "continentName": "Asia"
+  },
+  {
+    "name": "Martinique",
+    "officialName": "Martinique",
+    "nativeName": "Martinique",
+    "cca3": "MTQ",
+    "ccn3": "474",
+    "continentName": "North America"
+  },
+  {
+    "name": "New Caledonia",
+    "officialName": "New Caledonia",
+    "nativeName": "Nouvelle-Calédonie",
+    "cca3": "NCL",
+    "ccn3": "540",
+    "continentName": "Oceania"
+  },
+  {
+    "name": "Seychelles",
+    "officialName": "Republic of Seychelles",
+    "nativeName": "Sesel",
+    "cca3": "SYC",
+    "ccn3": "690",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Falkland Islands",
+    "officialName": "Falkland Islands",
+    "nativeName": "Falkland Islands",
+    "cca3": "FLK",
+    "ccn3": "238",
+    "continentName": "South America"
+  },
+  {
+    "name": "United Kingdom",
+    "officialName": "United Kingdom of Great Britain and Northern Ireland",
+    "nativeName": "United Kingdom",
+    "cca3": "GBR",
+    "ccn3": "826",
+    "continentName": "Europe"
+  },
+  {
+    "name": "Fiji",
+    "officialName": "Republic of Fiji",
+    "nativeName": "Fiji",
+    "cca3": "FJI",
+    "ccn3": "242",
+    "continentName": "Oceania"
+  },
+  {
+    "name": "San Marino",
+    "officialName": "Republic of San Marino",
+    "nativeName": "San Marino",
+    "cca3": "SMR",
+    "ccn3": "674",
+    "continentName": "Europe"
+  },
+  {
+    "name": "Mali",
+    "officialName": "Republic of Mali",
+    "nativeName": "Mali",
+    "cca3": "MLI",
+    "ccn3": "466",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Canada",
+    "officialName": "Canada",
+    "nativeName": "Canada",
+    "cca3": "CAN",
+    "ccn3": "124",
+    "continentName": "North America"
+  },
+  {
+    "name": "Jamaica",
+    "officialName": "Jamaica",
+    "nativeName": "Jamaica",
+    "cca3": "JAM",
+    "ccn3": "388",
+    "continentName": "North America"
+  },
+  {
+    "name": "Nauru",
+    "officialName": "Republic of Nauru",
+    "nativeName": "Nauru",
+    "cca3": "NRU",
+    "ccn3": "520",
+    "continentName": "Oceania"
+  },
+  {
+    "name": "Indonesia",
+    "officialName": "Republic of Indonesia",
+    "nativeName": "Indonesia",
+    "cca3": "IDN",
+    "ccn3": "360",
+    "continentName": "Asia"
+  },
+  {
+    "name": "Guam",
+    "officialName": "Guam",
+    "nativeName": "Guåhån",
+    "cca3": "GUM",
+    "ccn3": "316",
+    "continentName": "Oceania"
+  },
+  {
+    "name": "Ivory Coast",
+    "officialName": "Republic of Côte d'Ivoire",
+    "nativeName": "Côte d'Ivoire",
+    "cca3": "CIV",
+    "ccn3": "384",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Kuwait",
+    "officialName": "State of Kuwait",
+    "nativeName": "الكويت",
+    "cca3": "KWT",
+    "ccn3": "414",
+    "continentName": "Asia"
+  },
+  {
+    "name": "Philippines",
+    "officialName": "Republic of the Philippines",
+    "nativeName": "Philippines",
+    "cca3": "PHL",
+    "ccn3": "608",
+    "continentName": "Asia"
+  },
+  {
+    "name": "Guyana",
+    "officialName": "Co-operative Republic of Guyana",
+    "nativeName": "Guyana",
+    "cca3": "GUY",
+    "ccn3": "328",
+    "continentName": "South America"
+  },
+  {
+    "name": "Hungary",
+    "officialName": "Hungary",
+    "nativeName": "Magyarország",
+    "cca3": "HUN",
+    "ccn3": "348",
+    "continentName": "Europe"
+  },
+  {
+    "name": "Mexico",
+    "officialName": "United Mexican States",
+    "nativeName": "México",
+    "cca3": "MEX",
+    "ccn3": "484",
+    "continentName": "North America"
+  },
+  {
+    "name": "North Korea",
+    "officialName": "Democratic People's Republic of Korea",
+    "nativeName": "조선",
+    "cca3": "PRK",
+    "ccn3": "408",
+    "continentName": "Asia"
+  },
+  {
+    "name": "Romania",
+    "officialName": "Romania",
+    "nativeName": "România",
+    "cca3": "ROU",
+    "ccn3": "642",
+    "continentName": "Europe"
+  },
+  {
+    "name": "Suriname",
+    "officialName": "Republic of Suriname",
+    "nativeName": "Suriname",
+    "cca3": "SUR",
+    "ccn3": "740",
+    "continentName": "South America"
+  },
+  {
+    "name": "American Samoa",
+    "officialName": "American Samoa",
+    "nativeName": "American Samoa",
+    "cca3": "ASM",
+    "ccn3": "16",
+    "continentName": "Oceania"
+  },
+  {
+    "name": "Nepal",
+    "officialName": "Federal Democratic Republic of Nepal",
+    "nativeName": "नेपाल",
+    "cca3": "NPL",
+    "ccn3": "524",
+    "continentName": "Asia"
+  },
+  {
+    "name": "Chad",
+    "officialName": "Republic of Chad",
+    "nativeName": "تشاد‎",
+    "cca3": "TCD",
+    "ccn3": "148",
+    "continentName": "Africa"
+  },
+  {
+    "name": "Serbia",
+    "officialName": "Republic of Serbia",
+    "nativeName": "Србија",
+    "cca3": "SRB",
+    "ccn3": "688",
+    "continentName": "Europe"
+  },
+  {
+    "name": "Cambodia",
+    "officialName": "Kingdom of Cambodia",
+    "nativeName": "Kâmpŭchéa",
+    "cca3": "KHM",
+    "ccn3": "116",
+    "continentName": "Asia"
+  },
+  {
+    "name": "Malaysia",
+    "officialName": "Malaysia",
+    "nativeName": "Malaysia",
+    "cca3": "MYS",
+    "ccn3": "458",
+    "continentName": "Asia"
+  },
+  {
+    "name": "Cyprus",
+    "officialName": "Republic of Cyprus",
+    "nativeName": "Κύπρος",
+    "cca3": "CYP",
+    "ccn3": "196",
+    "continentName": "Asia"
+  }
+]

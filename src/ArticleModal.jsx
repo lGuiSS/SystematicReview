@@ -239,7 +239,7 @@ const ArticleModal = ({
                 icon:     <ListCollapse size={16} />,
                 cls:      'text-indigo-700 dark:text-indigo-300 bg-indigo-100 dark:bg-indigo-900/40 hover:bg-indigo-200 dark:hover:bg-indigo-800/60',
                 disabled: optionExtraction,
-                onClick:  () => setShowCriterionModal({ type: 'extraction', article }),
+                onClick:  () => setShowCriterionModal({ type: 'extraction', article: article }),
               }] : []),
             ].map(({ label, icon, cls, onClick, disabled }) => (
               <button
