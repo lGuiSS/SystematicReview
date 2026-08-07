@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect, useMemo, useCallback } from 'react';
 import { Search, Filter, ChartArea, Download, Table, Upload, CheckCircle, Check, XCircle, BookCopy, List, ListCollapse, Clock, BarChart3, FileText, Users, Calendar, Database,DatabaseBackup,  Trash2, RefreshCw, Settings, BookOpen, Globe, Sun, Moon, Bell, ArrowUpDown, ChevronDown, Eye, PlusCircle, X, ChevronRight, CopyX, CopyCheck} from 'lucide-react';
-import { SvgIcon } from './icons/CustomIcon';
+import { SvgIcon } from './icons/SysReviewIcon.jsx';
 import '@xyflow/react/dist/style.css';
 import * as htmlToImage from 'html-to-image';
 import { toSvg, toPng } from 'html-to-image';
@@ -4491,7 +4491,13 @@ const SystematicReviewTool = () => {
             <div className="min-w-0">
               <div className="flex justify-between items-start gap-3 align-items">
                 <div className="hidden sm:block w-[32px]">
-                  <SvgIcon className="w-full h-full" stroke={theme === 'light'?'#000':'#fff'} fill={theme === 'light'?'#fff':'#000'}/>
+                  {/* <SvgIcon className="w-full h-full" stroke={theme === 'light'?'#000':'#fff'} fill={theme === 'light'?'#fff':'#000'}/> */}
+                  <SvgIcon
+                    className="w-full h-full"
+                    stroke={theme === 'light' ? '#000' : '#fff'}
+                    fill={theme === 'light' ? '#fff' : '#000'}
+                    strokeWidth={0.4}
+                  />
                 </div>
                 <h1 className="text-xl sm:text-3xl font-bold text-gray-800 dark:text-white leading-tight">
                   SysReview
