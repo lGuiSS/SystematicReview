@@ -1568,13 +1568,6 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
         handleCriteriaChange={handleCriteriaChange}
       />
     </div>
-
-      {/* <div className="mt-8">
-        <ScoringSystemConfig 
-            scoringSystem={protocol.scoringSystem} 
-            onUpdate={onUpdateProtocol}
-          />
-      </div> */}
       
       <div className="mt-8 p-4 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg transition-colors duration-200">
         <h4 className="font-semibold text-indigo-800 dark:text-indigo-300 mb-2">Status do Protocolo</h4>
@@ -4501,7 +4494,7 @@ const SystematicReviewTool = () => {
                   <SvgIcon className="w-full h-full" stroke={theme === 'light'?'#000':'#fff'} fill={theme === 'light'?'#fff':'#000'}/>
                 </div>
                 <h1 className="text-xl sm:text-3xl font-bold text-gray-800 dark:text-white leading-tight">
-                  Review System
+                  SysReview
                   {/* Sistema de Revisão Sistemática da Literatura */}
                 </h1>
               </div>
