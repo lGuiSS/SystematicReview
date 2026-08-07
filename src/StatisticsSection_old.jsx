@@ -1,16 +1,12 @@
 // ─── StatisticsSection ───────────────────────────────────────────────────────
 import { useState, useEffect, useRef, useCallback, forwardRef } from "react";
-import { ChartArea, Download, X, Map, Earth } from 'lucide-react';
+import { ChartArea, Download, X, Map } from 'lucide-react';
 import {
   Line, Bar, Cell, Pie, PieChart, XAxis, YAxis,
   CartesianGrid, Tooltip, Legend, ComposedChart, BarChart,
 } from 'recharts';
-import { feature } from 'topojson-client';
-import { geoNaturalEarth1, geoPath } from 'd3-geo';
-import worldTopology from 'world-atlas/countries-110m.json';
 import FileSaver from 'file-saver';
 import ExcelJS from "exceljs";
-import countryPatternsData from './countryPatterns/countryPatterns_v3.json';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PRISMA
@@ -147,39 +143,155 @@ const exportToXLSX = async (data, filename) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // WorldHeatmap — mapa de calor usando dados de countriesCount
 // ─────────────────────────────────────────────────────────────────────────────
-// ── Lookups derivados do JSON de países ───────────────────────────────────────
 
-const COUNTRY_NAMES_MAP = Object.fromEntries(
-  countryPatternsData.map(c => [c.cca3, c.name])
-);
+const COUNTRY_NAMES_MAP = {
+  USA:"Estados Unidos",BRA:"Brasil",CHN:"China",IND:"Índia",RUS:"Rússia",
+  DEU:"Alemanha",GBR:"Reino Unido",FRA:"França",JPN:"Japão",CAN:"Canadá",
+  AUS:"Austrália",KOR:"Coreia do Sul",ESP:"Espanha",ITA:"Itália",MEX:"México",
+  ARG:"Argentina",ZAF:"África do Sul",NGA:"Nigéria",EGY:"Egito",SAU:"Arábia Saudita",
+  IDN:"Indonésia",TUR:"Turquia",NLD:"Holanda",CHE:"Suíça",SWE:"Suécia",
+  NOR:"Noruega",SGP:"Cingapura",ARE:"Emirados Árabes",QAT:"Catar",IRL:"Irlanda",
+  LUX:"Luxemburgo",ISL:"Islândia",DNK:"Dinamarca",FIN:"Finlândia",BEL:"Bélgica",
+  AUT:"Áustria",POL:"Polônia",PRT:"Portugal",GRC:"Grécia",CZE:"Tchéquia",
+  HUN:"Hungria",ROU:"Romênia",UKR:"Ucrânia",KAZ:"Cazaquistão",IRN:"Irã",
+  IRQ:"Iraque",ISR:"Israel",THA:"Tailândia",VNM:"Vietnã",PHL:"Filipinas",
+  MYS:"Malásia",PAK:"Paquistão",BGD:"Bangladesh",ETH:"Etiópia",KEN:"Quênia",
+  TZA:"Tanzânia",GHA:"Gana",CIV:"Côte d'Ivoire",CMR:"Camarões",SEN:"Senegal",
+  MOZ:"Moçambique",COD:"R.D. Congo",AGO:"Angola",ZMB:"Zâmbia",ZWE:"Zimbábue",
+  BWA:"Botsuana",NAM:"Namíbia",COL:"Colômbia",PER:"Peru",CHL:"Chile",
+  VEN:"Venezuela",ECU:"Equador",BOL:"Bolívia",PRY:"Paraguai",URY:"Uruguai",
+  NZL:"Nova Zelândia",PNG:"Papua Nova Guiné",FJI:"Fiji",SDN:"Sudão",
+  UGA:"Uganda",RWA:"Ruanda",MLI:"Mali",BFA:"Burkina Faso",NER:"Níger",
+  TCD:"Chade",CAF:"Rep. Centro-Africana",COG:"Congo",SWZ:"Essuatíni",
+  LSO:"Lesoto",MWI:"Malawi",MDG:"Madagáscar",ALB:"Albânia",MKD:"Macedônia do Norte",
+  SRB:"Sérvia",BIH:"Bósnia",MNE:"Montenegro",SVN:"Eslovênia",SVK:"Eslováquia",
+  HRV:"Croácia",LTU:"Lituânia",LVA:"Letônia",EST:"Estônia",BGR:"Bulgária",
+  BLR:"Bielorrússia",MDA:"Moldávia",GEO:"Geórgia",ARM:"Armênia",AZE:"Azerbaijão",
+  TJK:"Tadjiquistão",KGZ:"Quirguistão",TKM:"Turcomenistão",UZB:"Uzbequistão",
+  MNG:"Mongólia",MMR:"Myanmar",KHM:"Camboja",LAO:"Laos",LKA:"Sri Lanka",
+  NPL:"Nepal",AFG:"Afeganistão",SYR:"Síria",YEM:"Iêmen",JOR:"Jordânia",
+  LBN:"Líbano",OMN:"Omã",KWT:"Kuwait",BHR:"Bahrein",LBY:"Líbia",
+  TUN:"Tunísia",DZA:"Argélia",MAR:"Marrocos",
+};
 
-const NUMERIC_TO_ISO_MAP = Object.fromEntries(
-  countryPatternsData.map(c => [c.ccn3, c.cca3])
-);
+const NUMERIC_TO_ISO_MAP = {
+  4:"AFG",8:"ALB",12:"DZA",24:"AGO",32:"ARG",36:"AUS",40:"AUT",31:"AZE",
+  50:"BGD",51:"ARM",56:"BEL",64:"BTN",68:"BOL",70:"BIH",72:"BWA",76:"BRA",
+  100:"BGR",108:"BDI",112:"BLR",116:"KHM",120:"CMR",124:"CAN",140:"CAF",
+  144:"LKA",152:"CHL",156:"CHN",170:"COL",174:"COM",178:"COG",180:"COD",
+  188:"CRI",191:"HRV",192:"CUB",196:"CYP",203:"CZE",208:"DNK",218:"ECU",
+  222:"SLV",231:"ETH",232:"ERI",246:"FIN",250:"FRA",266:"GAB",268:"GEO",
+  275:"PSE",276:"DEU",288:"GHA",300:"GRC",320:"GTM",324:"GIN",332:"HTI",
+  340:"HND",348:"HUN",356:"IND",360:"IDN",364:"IRN",368:"IRQ",372:"IRL",
+  376:"ISR",380:"ITA",384:"CIV",388:"JAM",392:"JPN",398:"KAZ",400:"JOR",
+  404:"KEN",408:"PRK",410:"KOR",414:"KWT",418:"LAO",422:"LBN",426:"LSO",
+  430:"LBR",434:"LBY",438:"LIE",440:"LTU",442:"LUX",450:"MDG",454:"MWI",
+  458:"MYS",466:"MLI",480:"MUS",484:"MEX",492:"MCO",496:"MNG",499:"MNE",
+  504:"MAR",508:"MOZ",512:"OMN",516:"NAM",524:"NPL",528:"NLD",554:"NZL",
+  558:"NIC",562:"NER",566:"NGA",578:"NOR",586:"PAK",591:"PAN",598:"PNG",
+  600:"PRY",604:"PER",608:"PHL",616:"POL",620:"PRT",630:"PRI",634:"QAT",
+  642:"ROU",643:"RUS",646:"RWA",682:"SAU",686:"SEN",688:"SRB",690:"SYC",
+  694:"SLE",703:"SVK",704:"VNM",705:"SVN",706:"SOM",710:"ZAF",716:"ZWE",
+  724:"ESP",729:"SDN",748:"SWZ",752:"SWE",756:"CHE",760:"SYR",762:"TJK",
+  764:"THA",768:"TGO",780:"TTO",784:"ARE",788:"TUN",792:"TUR",800:"UGA",
+  804:"UKR",807:"MKD",818:"EGY",826:"GBR",834:"TZA",840:"USA",854:"BFA",
+  858:"URY",860:"UZB",862:"VEN",887:"YEM",894:"ZMB",
+};
 
-// Lookup nome → ISO gerado a partir do JSON (name, officialName, nativeName → cca3)
+// Nomes em inglês (como exportados pelo Scopus / Web of Science) → ISO alpha-3
+const COUNTRY_NAMES_EN = {
+  AFG:"Afghanistan",ALB:"Albania",DZA:"Algeria",AGO:"Angola",ARG:"Argentina",
+  ARM:"Armenia",AUS:"Australia",AUT:"Austria",AZE:"Azerbaijan",BGD:"Bangladesh",
+  BLR:"Belarus",BEL:"Belgium",BEN:"Benin",BTN:"Bhutan",BOL:"Bolivia",
+  BIH:"Bosnia and Herzegovina",BWA:"Botswana",BRA:"Brazil",BGR:"Bulgaria",
+  BFA:"Burkina Faso",BDI:"Burundi",KHM:"Cambodia",CMR:"Cameroon",CAN:"Canada",
+  CAF:"Central African Republic",TCD:"Chad",CHL:"Chile",CHN:"China",COL:"Colombia",
+  COG:"Congo",COD:"Democratic Republic of the Congo",CRI:"Costa Rica",HRV:"Croatia",
+  CUB:"Cuba",CYP:"Cyprus",CZE:"Czech Republic",DNK:"Denmark",DOM:"Dominican Republic",
+  ECU:"Ecuador",EGY:"Egypt",SLV:"El Salvador",ERI:"Eritrea",EST:"Estonia",
+  ETH:"Ethiopia",FIN:"Finland",FJI:"Fiji",FRA:"France",GAB:"Gabon",GEO:"Georgia",
+  DEU:"Germany",GHA:"Ghana",GRC:"Greece",GTM:"Guatemala",GIN:"Guinea",HTI:"Haiti",
+  HND:"Honduras",HUN:"Hungary",IND:"India",IDN:"Indonesia",IRN:"Iran",IRQ:"Iraq",
+  IRL:"Ireland",ISR:"Israel",ITA:"Italy",CIV:"Ivory Coast",JAM:"Jamaica",JPN:"Japan",
+  JOR:"Jordan",KAZ:"Kazakhstan",KEN:"Kenya",PRK:"North Korea",KOR:"South Korea",
+  KWT:"Kuwait",LAO:"Laos",LBN:"Lebanon",LSO:"Lesotho",LBR:"Liberia",LBY:"Libya",
+  LIE:"Liechtenstein",LTU:"Lithuania",LUX:"Luxembourg",MDG:"Madagascar",MWI:"Malawi",
+  MYS:"Malaysia",MLI:"Mali",MUS:"Mauritius",MEX:"Mexico",MDA:"Moldova",MNG:"Mongolia",
+  MNE:"Montenegro",MAR:"Morocco",MOZ:"Mozambique",MMR:"Myanmar",NAM:"Namibia",
+  NPL:"Nepal",NLD:"Netherlands",NZL:"New Zealand",NIC:"Nicaragua",NER:"Niger",
+  NGA:"Nigeria",NOR:"Norway",OMN:"Oman",PAK:"Pakistan",PAN:"Panama",PNG:"Papua New Guinea",
+  PRY:"Paraguay",PER:"Peru",PHL:"Philippines",POL:"Poland",PRT:"Portugal",
+  PSE:"Palestine",QAT:"Qatar",ROU:"Romania",RUS:"Russia",RWA:"Rwanda",SAU:"Saudi Arabia",
+  SEN:"Senegal",SRB:"Serbia",SLE:"Sierra Leone",SGP:"Singapore",SVK:"Slovakia",
+  SVN:"Slovenia",SOM:"Somalia",ZAF:"South Africa",ESP:"Spain",LKA:"Sri Lanka",
+  SDN:"Sudan",SWZ:"Eswatini",SWE:"Sweden",CHE:"Switzerland",SYR:"Syria",
+  TWN:"Taiwan",TJK:"Tajikistan",TZA:"Tanzania",THA:"Thailand",TGO:"Togo",
+  TTO:"Trinidad and Tobago",TUN:"Tunisia",TUR:"Turkey",TKM:"Turkmenistan",
+  UGA:"Uganda",UKR:"Ukraine",ARE:"United Arab Emirates",GBR:"United Kingdom",
+  USA:"United States",URY:"Uruguay",UZB:"Uzbekistan",VEN:"Venezuela",VNM:"Vietnam",
+  YEM:"Yemen",ZMB:"Zambia",ZWE:"Zimbabwe",ISL:"Iceland",MKD:"North Macedonia",
+  ALG:"Algeria",BWA:"Botswana",NAM:"Namibia",
+};
+
+const buildCountryToISOMap = () => {
+  const map = {};
+  // PT-BR
+  Object.entries(COUNTRY_NAMES_MAP).forEach(([iso, name]) => { map[name.toLowerCase()] = iso; });
+  // EN (Scopus/WoS)
+  Object.entries(COUNTRY_NAMES_EN).forEach(([iso, name]) => { map[name.toLowerCase()] = iso; });
+  // aliases extras
+  const aliases = {
+    "united states of america":"USA","u.s.a.":"USA","u.s.":"USA","us":"USA",
+    "uk":"GBR","great britain":"GBR","england":"GBR","scotland":"GBR","wales":"GBR",
+    "uae":"ARE","dr congo":"COD","drc":"COD","republic of congo":"COG",
+    "czechia":"CZE","czech rep.":"CZE",
+    "south korea":"KOR","republic of korea":"KOR","korea":"KOR",
+    "north korea":"PRK","democratic people's republic of korea":"PRK",
+    "iran (islamic republic of)":"IRN","islamic republic of iran":"IRN",
+    "vietnam":"VNM","viet nam":"VNM",
+    "russia":"RUS","russian federation":"RUS",
+    "bolivia (plurinational state of)":"BOL","plurinational state of bolivia":"BOL",
+    "venezuela (bolivarian republic of)":"VEN",
+    "tanzania, united republic of":"TZA","united republic of tanzania":"TZA",
+    "taiwan, province of china":"TWN","taiwan (province of china)":"TWN",
+    "moldova, republic of":"MDA","republic of moldova":"MDA",
+    "macedonia":"MKD","north macedonia":"MKD",
+    "ivory coast":"CIV","cote d'ivoire":"CIV","côte d'ivoire":"CIV",
+    "syria":"SYR","syrian arab republic":"SYR",
+    "laos":"LAO","lao pdr":"LAO","lao people's democratic republic":"LAO",
+    "myanmar":"MMR","burma":"MMR",
+    "eswatini":"SWZ","swaziland":"SWZ",
+    "timor-leste":"TLS","east timor":"TLS",
+    "turkey":"TUR","turkiye":"TUR","türkiye":"TUR",
+    "new caledonia":"NCL","french guiana":"GUF","reunion":"REU","réunion":"REU",
+    "hong kong":"HKG","macao":"MAC","macau":"MAC",
+  };
+  Object.entries(aliases).forEach(([a, iso]) => { map[a] = iso; });
+  return map;
+};
+const CTRY_TO_ISO = buildCountryToISOMap();
+
 const normalizeStr = (s) =>
   s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 
-const CTRY_TO_ISO = (() => {
-  const map = {};
-  countryPatternsData.forEach(({ cca3, name, officialName, nativeName }) => {
-    if (name)         map[normalizeStr(name)]         = cca3;
-    if (officialName) map[normalizeStr(officialName)] = cca3;
-    if (nativeName)   map[normalizeStr(nativeName)]   = cca3;
-  });
-  return map;
+const CTRY_TO_ISO_NORMALIZED = (() => {
+  const m = {};
+  Object.entries(CTRY_TO_ISO).forEach(([k, v]) => { m[normalizeStr(k)] = v; });
+  return m;
 })();
 
 const resolveCountryISO = (str) => {
   if (!str) return null;
+  const key  = str.trim().toLowerCase();
   const nkey = normalizeStr(str);
-  if (CTRY_TO_ISO[nkey]) return CTRY_TO_ISO[nkey];
-  // fallback parcial — prefere match mais curto
-  const found = Object.keys(CTRY_TO_ISO)
+  // 1. exact
+  if (CTRY_TO_ISO[key])            return CTRY_TO_ISO[key];
+  if (CTRY_TO_ISO_NORMALIZED[nkey]) return CTRY_TO_ISO_NORMALIZED[nkey];
+  // 2. partial — prefer shorter matches to avoid false positives
+  const found = Object.keys(CTRY_TO_ISO_NORMALIZED)
     .filter(k => k.includes(nkey) || nkey.includes(k))
     .sort((a, b) => a.length - b.length)[0];
-  return found ? CTRY_TO_ISO[found] : null;
+  return found ? CTRY_TO_ISO_NORMALIZED[found] : null;
 };
 
 const getHeatColor = (count, maxCount, isDark) => {
@@ -205,23 +317,34 @@ const WorldHeatmap = forwardRef(({ countriesCount, isDark }, svgExportRef) => {
   });
 
   useEffect(() => {
-    const countries = feature(worldTopology, worldTopology.objects.countries);
-    const proj = geoNaturalEarth1().scale(180).translate([470, 260]);
-    const path = geoPath().projection(proj);
-    const paths = countries.features.map(f => {
-    const iso = NUMERIC_TO_ISO_MAP[parseInt(f.id, 10)];
-      // VERIFICAÇÃO AQUI:
-    if (!iso) {
-      console.warn(`ID numérico ${f.id} não mapeado para ISO. Verifique countryPatternsData.`);
-    }
-    const d   = path(f);
-    if (!d) return null;
-    return { d, iso, id: f.id };
-    }).filter(Boolean);
-    setSvgPaths(paths);
+    const loadScript = (src) => new Promise((res, rej) => {
+      if (document.querySelector(`script[src="${src}"]`)) { res(); return; }
+      const s = document.createElement('script');
+      s.src = src; s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+    Promise.all([
+      loadScript('https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js'),
+      loadScript('https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js'),
+    ])
+      .then(() => fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json'))
+      .then(r => r.json())
+      .then(topology => {
+        const countries = window.topojson.feature(topology, topology.objects.countries);
+        const proj = window.d3.geoNaturalEarth1().scale(158).translate([490, 340]);
+        const path = window.d3.geoPath().projection(proj);
+        const paths = countries.features.map(f => {
+          const iso = NUMERIC_TO_ISO_MAP[parseInt(f.id, 10)];
+          const d = path(f);
+          if (!d) return null;
+          return { d, iso, id: f.id };
+        }).filter(Boolean);
+        setSvgPaths(paths);
+      })
+      .catch(() => setSvgPaths('error'));
   }, []);
 
-  const oceanColor  = isDark ? '#0c1829' : '#ffffff';
+  const oceanColor  = isDark ? '#0c1829' : '#dbeafe';
   const strokeColor = isDark ? '#0f172a' : '#ffffff';
 
   return (
@@ -232,8 +355,8 @@ const WorldHeatmap = forwardRef(({ countriesCount, isDark }, svgExportRef) => {
       ) : svgPaths === 'error' ? (
         <div className="flex items-center justify-center h-48 text-sm text-red-400">Erro ao carregar mapa</div>
       ) : (
-        <svg ref={svgExportRef} viewBox="0 0 1010 580" style={{ width:'100%', height:'auto', display:'block' }} xmlns="http://www.w3.org/2000/svg">
-          <rect width="1010" height="580" fill={oceanColor} rx="8" />
+        <svg ref={svgExportRef} viewBox="0 0 1010 700" style={{ width:'100%', height:'auto', display:'block' }} xmlns="http://www.w3.org/2000/svg">
+          <rect width="1010" height="700" fill={oceanColor} rx="8" />
           <g opacity={isDark ? 0.06 : 0.12} stroke="#94a3b8" strokeWidth="0.5" fill="none">
             {[-60,-30,0,30,60].map(lat => (
               <line key={lat} x1="20" y1={340 - lat * 3.3} x2="990" y2={340 - lat * 3.3} />
@@ -246,7 +369,7 @@ const WorldHeatmap = forwardRef(({ countriesCount, isDark }, svgExportRef) => {
             const count = isoCountMap[c.iso] || 0;
             const fill  = c.iso === hoveredISO
               // ↓ COR DE SELEÇÃO (hover) — altere aqui
-              ? (isDark ? '#4f46e5' : '#4f46e5')
+              ? (isDark ? 'rgba(251,191,36,0.9)' : 'rgba(234,88,12,0.8)')
               : getHeatColor(count, maxCount, isDark);
             return (
               <path key={i} d={c.d} fill={fill} stroke={strokeColor} strokeWidth="0.5"
@@ -268,9 +391,9 @@ const WorldHeatmap = forwardRef(({ countriesCount, isDark }, svgExportRef) => {
               <stop offset="100%" stopColor={isDark ? 'rgb(240,240,240)' : 'rgb(30,30,30)'} />
             </linearGradient>
           </defs>
-          <rect x="20" y="540" width="300" height="10" rx="5" fill="url(#heatScaleGrad)" />
-          <text x="20"  y="560" fill={isDark ? '#9ca3af' : '#6b7280'} fontSize="11" fontFamily="sans-serif">0</text>
-          <text x="322" y="560" fill={isDark ? '#9ca3af' : '#6b7280'} fontSize="11" fontFamily="sans-serif" textAnchor="end">{maxCount} pub.</text>
+          <rect x="20" y="674" width="300" height="10" rx="5" fill="url(#heatScaleGrad)" />
+          <text x="20"  y="670" fill={isDark ? '#9ca3af' : '#6b7280'} fontSize="11" fontFamily="sans-serif">0</text>
+          <text x="322" y="670" fill={isDark ? '#9ca3af' : '#6b7280'} fontSize="11" fontFamily="sans-serif" textAnchor="end">{maxCount} pub.</text>
         </svg>
       )}
 
@@ -289,129 +412,6 @@ const WorldHeatmap = forwardRef(({ countriesCount, isDark }, svgExportRef) => {
   );
 });
 WorldHeatmap.displayName = 'WorldHeatmap';
-
-// ─────────────────────────────────────────────────────────────────────────────
-// ContinentHeatmap
-// ─────────────────────────────────────────────────────────────────────────────
-
-const ISO_TO_CONTINENT = Object.fromEntries(
-  countryPatternsData.map(c => [c.cca3, c.continentName])
-);
-const CONTINENT_LABELS = [
-  "North America","South America","Europe","Asia","Africa","Oceania",
-];
-
-const ContinentHeatmap = forwardRef(({ countriesCount, isDark }, svgExportRef) => {
-  const [svgPaths,   setSvgPaths]   = useState(null);
-  const [tooltip,    setTooltip]    = useState(null);
-  const [hoveredCont,setHoveredCont]= useState(null);
-  const containerRef = useRef(null);
-
-  // Agrupa contagens por continente
-  const contCount = {};
-  (countriesCount || []).forEach(({ country, count }) => {
-    const iso  = resolveCountryISO(country);
-    const cont = iso ? ISO_TO_CONTINENT[iso] : null;
-    if (!cont) return;
-    contCount[cont] = (contCount[cont] || 0) + count;
-  });
-  const maxCount = Math.max(...Object.values(contCount), 0);
-
-  useEffect(() => {
-    const countries = feature(worldTopology, worldTopology.objects.countries);
-    const proj = geoNaturalEarth1().scale(180).translate([470, 260]);
-    const path = geoPath().projection(proj);
-    const paths = countries.features.map(f => {
-      const iso  = NUMERIC_TO_ISO_MAP[parseInt(f.id, 10)];
-      const cont = iso ? ISO_TO_CONTINENT[iso] : null;
-      const d    = path(f);
-      if (!d) return null;
-      return { d, iso, cont, id: f.id };
-    }).filter(Boolean);
-    setSvgPaths(paths);
-  }, []);
-
-  const oceanColor  = isDark ? '#0c1829' : '#ffffff';
-  const strokeColor = isDark ? '#0f172a' : '#ffffff';
-
-  return (
-    <div ref={containerRef} style={{ position: 'relative' }}>
-      {svgPaths === null ? (
-        <div className="flex items-center justify-center h-48 text-sm text-gray-400">Carregando mapa…</div>
-      ) : svgPaths === 'error' ? (
-        <div className="flex items-center justify-center h-48 text-sm text-red-400">Erro ao carregar mapa</div>
-      ) : (
-        <svg ref={svgExportRef} viewBox="0 0 1010 580" style={{ width:'100%', height:'auto', display:'block' }} xmlns="http://www.w3.org/2000/svg">
-          <rect width="1010" height="580" fill={oceanColor} rx="8" />
-          <g opacity={isDark ? 0.06 : 0.12} stroke="#94a3b8" strokeWidth="0.5" fill="none">
-            {[-60,-30,0,30,60].map(lat => (
-              <line key={lat} x1="20" y1={340 - lat * 3.3} x2="990" y2={340 - lat * 3.3} />
-            ))}
-            {[-150,-120,-90,-60,-30,0,30,60,90,120,150].map(lon => (
-              <line key={lon} x1={490 + lon * 2.6} y1="30" x2={490 + lon * 2.6} y2="630" />
-            ))}
-          </g>
-          {svgPaths.map((c, i) => {
-            const count = c.cont ? (contCount[c.cont] || 0) : 0;
-            const isHov = c.cont && c.cont === hoveredCont;
-            const fill  = isHov
-              // ↓ COR DE SELEÇÃO (hover) — altere aqui
-              ? (isDark ? '#4f46e5' : '#4f46e5')
-              : getHeatColor(count, maxCount, isDark);
-            return (
-              <path key={i} d={c.d} fill={fill} stroke={strokeColor} strokeWidth="0.5"
-                style={{ cursor: count > 0 ? 'pointer' : 'default', transition: 'fill 0.12s' }}
-                onMouseMove={e => {
-                  const rect = containerRef.current?.getBoundingClientRect();
-                  if (!rect || !c.cont) return;
-                  setTooltip({ x: e.clientX - rect.left, y: e.clientY - rect.top, cont: c.cont, count });
-                  setHoveredCont(c.cont);
-                }}
-                onMouseLeave={() => { setTooltip(null); setHoveredCont(null); }}
-              />
-            );
-          })}
-          {/* ── Legenda de continentes ── */}
-          {CONTINENT_LABELS.map((cont, i) => {
-            const count = contCount[cont] || 0;
-            const col   = getHeatColor(count, maxCount, isDark);
-            const x     = 70
-            const y     = 280 + i * 30;
-            return (
-              <g key={cont}>
-                <rect x={x} y={y-11} width={14} height={14} rx={3} fill={col} />
-                <text x={x + 18} y={y} fill={isDark ? '#9ca3af' : '#4b5563'} fontSize={11} fontFamily="sans-serif">
-                  {cont} {count > 0 ? `(${count})` : ''}
-                </text>
-              </g>
-            );
-          })}
-          {/* ── Escala de cores ── */}
-          <defs>
-            <linearGradient id="contScaleGrad" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%"   stopColor={isDark ? '#2d3748' : '#d1d5db'} />
-              <stop offset="100%" stopColor={isDark ? 'rgb(240,240,240)' : 'rgb(30,30,30)'} />
-            </linearGradient>
-          </defs>
-          <rect x="20" y="540" width="300" height="8" rx="4" fill="url(#contScaleGrad)" />
-          <text x="20"  y="560" fill={isDark ? '#6b7280' : '#9ca3af'} fontSize={10} fontFamily="sans-serif">0</text>
-          <text x="280" y="560" fill={isDark ? '#6b7280' : '#9ca3af'} fontSize={10} fontFamily="sans-serif">{maxCount} pub.</text>
-        </svg>
-      )}
-
-      {tooltip && (
-        <div style={{ position:'absolute', left: tooltip.x + 14, top: tooltip.y - 12, pointerEvents:'none', zIndex:20 }}
-          className="bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 shadow-xl text-white text-xs">
-          <div className="font-semibold text-sm mb-0.5">{tooltip.cont}</div>
-          <div className="text-gray-300">
-            {tooltip.count > 0 ? `${tooltip.count} publicaç${tooltip.count === 1 ? 'ão' : 'ões'}` : 'Sem dados'}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-});
-ContinentHeatmap.displayName = 'ContinentHeatmap';
 // ─────────────────────────────────────────────────────────────────────────────
 const ChartExport = ({ id, isOpen, onToggle, chartRef, data, svgOnly = false }) => {
   const getSvgEl = () => chartRef?.current?.tagName === 'svg'
@@ -524,7 +524,6 @@ const ChartInstance = ({ id, label, chartRef, data, openMenuId, onToggle, svgOnl
   </div>
 );
 
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Cores por database
 // ─────────────────────────────────────────────────────────────────────────────
@@ -604,11 +603,9 @@ const StatisticsSection = ({  articles, onUpdateStatus,  inclusionCriteria,  exc
 
   // Refs estáticos (seções sem slots)
   const filterRefs         = { filter1: useRef(null), filter2: useRef(null), filter3: useRef(null) };
-  const filterOriginRef         = { filter1: useRef(null), filter2: useRef(null), filter3: useRef(null) };
   const prismaRef          = useRef(null);
   const countriesRef       = useRef(null);
   const countriesMapRef    = useRef(null);
-  const continentMapRef    = useRef(null);
   const pubJournalRefs     = useRef(null);
   const criterionChartRefs = { Exclusão: useRef(null), Inclusão: useRef(null), Total: useRef(null) };
 
@@ -616,7 +613,6 @@ const StatisticsSection = ({  articles, onUpdateStatus,  inclusionCriteria,  exc
   const [openMenuId,    setOpenMenuId]    = useState(null);
   const [stroke,        setStroke]        = useState('#000');
   const [topNCountries, setTopNCountries] = useState(10);
-  const [countryView, setCountryView] = useState('bar'); // 'bar' | 'map' | 'continent'
   const [showCountriesMap, setShowCountriesMap] = useState(false);
   const [topNJournals,  setTopNJournals]  = useState(5);
   const [scoreBinSize,  setScoreBinSize]  = useState(5);
@@ -634,7 +630,6 @@ const StatisticsSection = ({  articles, onUpdateStatus,  inclusionCriteria,  exc
 
   // ── estados simples (sem slots) ───────────────────────────────────────────
   const [filterSelected,    setFilterSelected]    = useState(new Set(['filter1']));
-  const [filterOriginSelected,    setFilterOriginSelected]    = useState(new Set(['filter1']));
   const [criterionSelected, setCriterionSelected] = useState(new Set(['Exclusão','Inclusão','Total']));
   const [criterionsCount,   setCriterionsCount]   = useState({
     dataProcessing: [{name:'included',value:0},{name:'excluded',value:0},{name:'unclassified',value:0}],
@@ -642,8 +637,6 @@ const StatisticsSection = ({  articles, onUpdateStatus,  inclusionCriteria,  exc
     filter2: [{name:'included',value:0},{name:'excluded',value:0},{name:'unclassified',value:0}],
     filter3: [{name:'included',value:0},{name:'excluded',value:0},{name:'unclassified',value:0}],
   });
-   const [originCount,   setOriginCount]   = useState({ filter1: [], filter2: [], filter3: [] });
-
 
   // ── dados derivados ───────────────────────────────────────────────────────
   // Dicionários chaveados pelo label da fonte: { 'Scopus #1': [...], 'Total': [...] }
@@ -653,16 +646,12 @@ const StatisticsSection = ({  articles, onUpdateStatus,  inclusionCriteria,  exc
   const [journalCount,   setJournalCount]   = useState([]);
   const [criterionChartData, setCriterionChartData] = useState({ Exclusão:[], Inclusão:[], Total:[] });
 
-  // const [criterionChartData, setCriterionChartData] = useState({ Exclusão:[], Inclusão:[], Total:[] });
-
-
   // ── handleSource ──────────────────────────────────────────────────────────
   // "Total" → todos os artigos (sem duplicatas se deduplicate=true)
   // label de importação → artigos onde article.idData === importOption.id
   const handleSource = useCallback((sourceLabel, deduplicate = false, database = null) => {
     const ar = deduplicate ? articles.filter(a => !a.isDuplicate) : articles;
-    // const ar = articles.filter(a => a.filter3Status == 'included')
-    console.log(ar)
+
     if (sourceLabel === 'Total') {
       // "Total" global → todos
       if (!database) return ar;
@@ -679,10 +668,6 @@ const StatisticsSection = ({  articles, onUpdateStatus,  inclusionCriteria,  exc
   const publicationsByYear = (arts) =>
     Object.entries(arts.reduce((acc,a) => { acc[a.year]=(acc[a.year]||0)+1; return acc; }, {}))
       .map(([year, count]) => ({ year, count }));
-
-  const publicationsBySource = (arts) =>
-    Object.entries(arts.reduce((acc,a) => { acc[a.source]=(acc[a.source]||0)+1; return acc; }, {}))
-      .map(([source, count]) => ({ source, count }));
 
   const publicationsByScore = (arts, binSize = 1) => {
     const total = arts.length;
@@ -706,7 +691,7 @@ const StatisticsSection = ({  articles, onUpdateStatus,  inclusionCriteria,  exc
     });
   };
 
-  const publicationsByJournal = (array) => {
+  const publicationsByJounal = (array) => {
     const c={};
     array.filter(a=>a.journal?.length&&!a.journal.includes('Revista não informada'))
          .forEach(a=>{ const k=a.journal.trim().toLowerCase(); c[k]=(c[k]||0)+1; });
@@ -734,8 +719,8 @@ const StatisticsSection = ({  articles, onUpdateStatus,  inclusionCriteria,  exc
     });
 
     setPubYearData(yearData);
-    setCountriesCount(contarCountries(handleSource('Total',true)));
-    setJournalCount(publicationsByJournal(handleSource('Total')));
+    setCountriesCount(contarCountries(handleSource('Total')));
+    setJournalCount(publicationsByJounal(handleSource('Total')));
   }, [articles, importedData]);
 
   // pubScoreData — idem
@@ -755,76 +740,6 @@ const StatisticsSection = ({  articles, onUpdateStatus,  inclusionCriteria,  exc
 
   useEffect(() => { setStroke(theme==='dark'?'#fff':'#000'); }, [theme]);
 
-  useEffect(() => { 
-    
-    // 1. Converter HEX para HSL
-    const hexToHSL = (hex) => {
-      let r = parseInt(hex.slice(1, 3), 16) / 255;
-      let g = parseInt(hex.slice(3, 5), 16) / 255;
-      let b = parseInt(hex.slice(5, 7), 16) / 255;
-
-      let max = Math.max(r, g, b), min = Math.min(r, g, b);
-      let h, s, l = (max + min) / 2;
-
-      if (max === min) {
-        h = s = 0; 
-      } else {
-        let d = max - min;
-        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-        switch (max) {
-          case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-          case g: h = (b - r) / d + 2; break;
-          case b: h = (r - g) / d + 4; break;
-        }
-        h /= 6;
-      }
-      return { h, s, l };
-    };
-
-    // 2. Converter HSL de volta para HEX
-    const hslToHex = (h, s, l) => {
-      let r, g, b;
-      if (s === 0) {
-        r = g = b = l;
-      } else {
-        const hue2rgb = (p, q, t) => {
-          if (t < 0) t += 1;
-          if (t > 1) t -= 1;
-          if (t < 1/6) return p + (q - p) * 6 * t;
-          if (t < 1/2) return q;
-          if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
-          return p;
-        };
-        let q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-        let p = 2 * l - q;
-        r = hue2rgb(p, q, h + 1/3);
-        g = hue2rgb(p, q, h);
-        b = hue2rgb(p, q, h - 1/3);
-      }
-      const toHex = x => Math.round(x * 255).toString(16).padStart(2, '0');
-      return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-    };
-
-    // 3. Função para gerar o Array de tonalidades
-    const generatePalette = (hex, steps = 5) => {
-      const { h, s, l } = hexToHSL(hex);
-      const palette = [];
-
-      for (let i = 1; i <= steps; i++) {
-        // Espalha a luminosidade de 10% a 90%
-        const newL = i / (steps + 1);
-        palette.push(hslToHex(h, s, newL));
-      }
-      return palette;
-    };
-
-    const variationsScopus = generatePalette(DB_LINE_COLOR['Scopus'], importOptions.map(opt =>  opt.database == 'Scopus').length);
-    const variationsWOS = generatePalette(DB_BAR_COLOR['Web of Science'], importOptions.map(opt =>  opt.database == 'Web of Science').length);
-
-    setOriginColorsScopus(variationsScopus)
-    setOriginColorsWos(variationsWOS)
-  }, [importedData]);
-
   useEffect(() => {
     const mk=(key)=>[
       { name:'included',     value:statistics[key].included },
@@ -833,42 +748,6 @@ const StatisticsSection = ({  articles, onUpdateStatus,  inclusionCriteria,  exc
     ];
     setCriterionsCount({ dataProcessing:mk('dataProcessing'), filter1:mk('filter1'), filter2:mk('filter2'), filter3:mk('filter3') });
   }, [statistics]);
-
-  useEffect(() => {
-    const filters = Object.entries(statistics).filter(([key,value])=> key.includes('filter') && (value.included>0 || value.excluded>0)).map(fk => fk[0])
-    filters.map(fk => {
-      setFilterSelected(prev => {
-        const next=new Set(prev); 
-        next.has(fk)?next:next.add(fk); return next;
-      });
-      setFilterOriginSelected(prev => {
-        const next=new Set(prev); 
-        next.has(fk)?next:next.add(fk); return next;
-      });
-    })
-  }, [statistics]);
-
-  
-  
-  useEffect(() => {
-    // Para cada filtro, conta os artigos incluídos agrupados por importOption.label
-    const buildOriginData = (filterKey) => {
-      // articles.filter1 === 'included' (ajuste o campo conforme seu modelo)
-      const included = articles.filter(a => a[filterKey] === 'included');
-
-      return importOptions.map(opt => ({
-        id:    opt.label,           // "Scopus #1", "WoS #2", etc.
-        name:  opt.label,
-        value: included.filter(a => a.idData === opt.id).length,
-      })).filter(d => d.value > 0); // omite fontes com zero
-    };
-
-    setOriginCount({
-      filter1: buildOriginData('filter1Status'),
-      filter2: buildOriginData('filter2Status'),
-      filter3: buildOriginData('filter3Status'),
-    });
-  }, [articles, importedData]);
 
   const buildCriterionChartData = useCallback((category) => {
     const countMap={}, labelMap={};
@@ -916,8 +795,7 @@ const StatisticsSection = ({  articles, onUpdateStatus,  inclusionCriteria,  exc
 
   // Toggles sem slots
   const toggleFilter = (fk) => setFilterSelected(prev => {
-    const next=new Set(prev); 
-    if(next.has(fk)&&next.size===1)return next;
+    const next=new Set(prev); if(next.has(fk)&&next.size===1)return next;
     next.has(fk)?next.delete(fk):next.add(fk); return next;
   });
   const toggleCriterion = (ctr) => setCriterionSelected(prev => {
@@ -925,13 +803,6 @@ const StatisticsSection = ({  articles, onUpdateStatus,  inclusionCriteria,  exc
     next.has(ctr)?next.delete(ctr):next.add(ctr); return next;
   });
   const toggleMenu = (id) => setOpenMenuId(prev=>prev===id?null:id);
-  const toggleFilterOrigin = (fk) =>
-    setFilterOriginSelected(prev => {
-      const next = new Set(prev);
-      if (next.has(fk) && next.size === 1) return next; // mínimo 1
-      next.has(fk) ? next.delete(fk) : next.add(fk);
-      return next;
-  });
 
   // ── derived ───────────────────────────────────────────────────────────────
   const hasAny = importedData.length > 0 && articles.length > 0;
@@ -959,14 +830,6 @@ const StatisticsSection = ({  articles, onUpdateStatus,  inclusionCriteria,  exc
   const EXCLUSION_COLORS=['#f87171','#ef4444','#dc2626','#fca5a5','#fb7185','#f43f5e','#e11d48','#fda4af','#b91c1c','#ff6b6b'];
   const INCLUSION_COLORS=['#4ade80','#22c55e','#16a34a','#86efac','#34d399','#10b981','#059669','#6ee7b7','#15803d','#a7f3d0'];
   const TOTAL_COLORS    =['#6366f1','#f59e0b','#06b6d4','#8b5cf6','#14b8a6','#f97316','#ec4899','#3b82f6','#a855f7','#0ea5e9'];
-  const ORIGIN_COLORS = [ '#6366f1','#f59e0b','#06b6d4','#8b5cf6',  '#14b8a6','#f97316','#ec4899','#3b82f6'];
-
-
-  const [originColorsScopus, setOriginColorsScopus] = useState(['#6366f1'])
-  const [originColorsWOS, setOriginColorsWos] = useState(['#6366f1'])
-
-  const getOriginColors=(or)=>or.includes('Scop')?originColorsScopus:or.includes('WoS')?originColorsWOS:TOTAL_COLORS;
-
   const getCriterionColors=(ctr)=>ctr.includes('Exclus')?EXCLUSION_COLORS:ctr.includes('Inclus')?INCLUSION_COLORS:TOTAL_COLORS;
 
   const toTitleCase = (str) => String(str).replace(/\b\w/g,c=>c.toUpperCase());
@@ -1042,21 +905,6 @@ const StatisticsSection = ({  articles, onUpdateStatus,  inclusionCriteria,  exc
         {data.map((entry,i)=>(
           <div key={entry.id} className="flex items-start gap-1.5">
             <div className="w-2.5 h-2.5 rounded-full flex-shrink-0 mt-0.5" style={{ backgroundColor:cols[i%cols.length] }} />
-            <span className="text-xs text-gray-700 dark:text-gray-300 leading-tight">
-              <span className="font-semibold">{entry.id}:</span>
-              <span className="text-gray-300"> ({entry.value})</span>
-            </span>
-          </div>
-        ))}
-      </div>
-    );
-  };
-  const OriginLegend = ({ data, or }) => {
-    return (
-      <div className={data.length<=3?`flex justify-center flex-wrap gap-3 mt-2`:`grid gap-x-8 gap-y-1 mt-2 max-h-36 pr-1 mx-auto w-fit grid-cols-2`}>
-        {data.map((entry,i)=>(
-          <div key={entry.id} className="flex items-start gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full flex-shrink-0 mt-0.5" style={{ backgroundColor:getOriginColors(entry.id)[i % getOriginColors(entry.id).length] }} />
             <span className="text-xs text-gray-700 dark:text-gray-300 leading-tight">
               <span className="font-semibold">{entry.id}:</span>
               <span className="text-gray-300"> ({entry.value})</span>
@@ -1162,7 +1010,7 @@ const StatisticsSection = ({  articles, onUpdateStatus,  inclusionCriteria,  exc
       {/* ═══ ABA BIBLIOMETRIA ════════════════════════════════════════════════ */}
       {activeTab==='bibliometria' && (
         <>
-          {/* Publicações por ano */}
+          {/* 1. Publicações por ano */}
           {hasAny && renderSlotSection({
             title: 'Publicações por ano',
             slots: pubYearSlots,
@@ -1195,37 +1043,25 @@ const StatisticsSection = ({  articles, onUpdateStatus,  inclusionCriteria,  exc
             },
           })}
 
-          {/* Países */}
+          {/* 2. Países */}
           {hasAny && (
             <SectionWrapper
-              title={
-                countryView === 'bar'       ? `Publicações por país — Top ${topNCountries}` :
-                countryView === 'map'       ? 'Publicações por país — Mapa'                 :
-                                             'Publicações por continente — Mapa'
-              }
+              title={showCountriesMap ? 'Publicações por país — Mapa' : `Publicações por país — Top ${topNCountries}`}
               controls={
                 <div className="flex items-center gap-2">
-                  {/* Botão: mapa de países */}
+                  {/* Botão toggle mapa / gráfico */}
                   <button
-                    onClick={() => setCountryView(countryView === 'map' ? 'bar' : 'map')}
-                    title={countryView === 'map' ? 'Voltar ao gráfico' : 'Mapa por país'}
+                    onClick={() => setShowCountriesMap(v => !v)}
+                    title={showCountriesMap ? 'Ver gráfico de barras' : 'Ver mapa mundial'}
                     className={`rounded-full p-1.5 cursor-pointer transition-all duration-200 hover:scale-110 flex items-center justify-center border-none
-                      ${countryView === 'map' ? 'bg-indigo-600 dark:bg-indigo-500' : 'bg-gray-800 dark:bg-gray-600'}`}
+                      ${showCountriesMap
+                        ? 'bg-indigo-600 dark:bg-indigo-500'
+                        : 'bg-gray-800 dark:bg-gray-600'}`}
                   >
                     <Map size={12} color="white" />
                   </button>
-                  {/* Botão: mapa de continentes */}
-                  <button
-                    onClick={() => setCountryView(countryView === 'continent' ? 'bar' : 'continent')}
-                    title={countryView === 'continent' ? 'Voltar ao gráfico' : 'Mapa por continente'}
-                    className={`rounded-full p-1.5 cursor-pointer transition-all duration-200 hover:scale-110 flex items-center justify-center border-none
-                      ${countryView === 'continent' ? 'bg-indigo-600 dark:bg-indigo-500' : 'bg-gray-800 dark:bg-gray-600'}`}
-                    style={{ width: 24, height: 24, fontSize: 11 }}
-                  >
-                    <Earth size={12} color="white" />
-                  </button>
                   {/* Controle Top N (só visível no modo gráfico) */}
-                  {countryView === 'bar' && (
+                  {!showCountriesMap && (
                     <>
                       <span className="text-xs text-gray-500 dark:text-gray-400">Top</span>
                       <input type="range" min={1} max={Math.max(1,countriesCount.length)} value={topNCountries}
@@ -1240,13 +1076,9 @@ const StatisticsSection = ({  articles, onUpdateStatus,  inclusionCriteria,  exc
                 </div>
               }
             >
-              {countryView === 'map' ? (
-                <ChartInstance id="countries-map" label="" chartRef={countriesMapRef} data={countriesCount} openMenuId={openMenuId} onToggle={toggleMenu} >
+              {showCountriesMap ? (
+                <ChartInstance id="countries-map" label="" chartRef={countriesMapRef} data={null} openMenuId={openMenuId} onToggle={toggleMenu} svgOnly>
                   <WorldHeatmap ref={countriesMapRef} countriesCount={countriesCount} isDark={theme === 'dark'} />
-                </ChartInstance>
-              ) : countryView === 'continent' ? (
-                <ChartInstance id="continents-map" label="" chartRef={continentMapRef} data={null} openMenuId={openMenuId} onToggle={toggleMenu} svgOnly>
-                  <ContinentHeatmap ref={continentMapRef} countriesCount={countriesCount} isDark={theme === 'dark'} />
                 </ChartInstance>
               ) : (
                 <ChartInstance id="countries" label="" chartRef={countriesRef} data={visibleCountries} openMenuId={openMenuId} onToggle={toggleMenu}>
@@ -1265,7 +1097,7 @@ const StatisticsSection = ({  articles, onUpdateStatus,  inclusionCriteria,  exc
             </SectionWrapper>
           )}
 
-          {/* Veículos */}
+          {/* 3. Veículos */}
           {hasAny && (
             <SectionWrapper
               title={`Publicações por veículo — Top ${topNJournals}`}
@@ -1297,7 +1129,90 @@ const StatisticsSection = ({  articles, onUpdateStatus,  inclusionCriteria,  exc
               </ChartInstance>
             </SectionWrapper>
           )}
-          {/* Histograma do score */}
+        </>
+      )}
+
+      {/* ═══ ABA PROCESSO DE SELEÇÃO ═════════════════════════════════════════ */}
+      {activeTab==='processo' && (
+        <>
+          {/* 4. Panorama de Classificação */}
+          {filterTabs.length>0 && (
+            <SectionWrapper
+              title="Panorama de Classificação"
+              controls={
+                <MultiToggle
+                  options={filterTabs.map(k=>k.replace('filter','Filtro '))}
+                  selected={new Set([...filterSelected].map(k=>k.replace('filter','Filtro ')))}
+                  onToggle={label=>toggleFilter(label.replace('Filtro ','filter'))}
+                />
+              }
+            >
+              <div className={gridClass([...filterSelected].filter(fk=>filterTabs.includes(fk)).length)}>
+                {filterTabs.filter(fk=>filterSelected.has(fk)).map(fk=>(
+                  <ChartInstance key={fk} id={`filter-${fk}`} label={fk.replace('filter','Filtro ')}
+                                 chartRef={filterRefs[fk]} data={criterionsCount[fk]} openMenuId={openMenuId} onToggle={toggleMenu}>
+                    <div ref={filterRefs[fk]}>
+                      <PieChart style={{ width:'100%',aspectRatio:1,maxHeight:'50vh' }} responsive>
+                        <Pie data={criterionsCount[fk]} dataKey="value" label={renderCustomizedLabel}
+                             stroke="none" labelLine={false} isAnimationActive={false}>
+                          {criterionsCount[fk].map((e,i)=><Cell key={i} fill={pieColors[e.name]} />)}
+                        </Pie>
+                        <Legend verticalAlign="bottom" content={<CustomLegend data={criterionsCount[fk]} />} />
+                      </PieChart>
+                    </div>
+                  </ChartInstance>
+                ))}
+              </div>
+            </SectionWrapper>
+          )}
+
+          {/* 5. Panorama dos Critérios */}
+          {availableCriterions.length>0 && (
+            <SectionWrapper
+              title="Panorama dos Critérios"
+              controls={<MultiToggle options={availableCriterions} selected={criterionSelected} onToggle={toggleCriterion} />}
+            >
+              <div className={gridClass([...criterionSelected].filter(c=>availableCriterions.includes(c)).length)}>
+                {availableCriterions.filter(ctr=>criterionSelected.has(ctr)).map(ctr=>{
+                  const data=criterionChartData[ctr]??[], cols=getCriterionColors(ctr);
+                  return (
+                    <ChartInstance key={ctr} id={`criterion-${ctr}`} label={ctr}
+                                   chartRef={criterionChartRefs[ctr]} data={data} openMenuId={openMenuId} onToggle={toggleMenu}>
+                      {data.length===0
+                        ? <p className="text-xs text-gray-400 text-center py-6">Nenhum critério registrado</p>
+                        : <div ref={criterionChartRefs[ctr]}>
+                            <PieChart style={{ width:'100%',aspectRatio:1,maxHeight:'50vh' }} responsive>
+                              <Pie data={data} dataKey="value" label={renderCriterionLabel}
+                                   labelLine={false} stroke="none" isAnimationActive={false}>
+                                {data.map((_,i)=><Cell key={i} fill={cols[i%cols.length]} />)}
+                              </Pie>
+                              <Tooltip {...criterionTooltip} />
+                              <Legend verticalAlign="bottom" content={<CriterionLegend data={data} ctr={ctr} />} />
+                            </PieChart>
+                          </div>
+                      }
+                    </ChartInstance>
+                  );
+                })}
+              </div>
+            </SectionWrapper>
+          )}
+
+          {/* 6. Fluxograma PRISMA */}
+          <SectionWrapper
+            title="Fluxograma Prisma"
+            controls={<ChartExport id="prisma" isOpen={openMenuId==='prisma'} onToggle={toggleMenu} chartRef={prismaRef} data={null} svgOnly />}
+          >
+            <PrismaFlowchart
+              ref={prismaRef} statistics={statistics}
+              scopusCount={articles.filter(a=>a.source==='Scopus').length}
+              wosCount={articles.filter(a=>a.source==='Web of Science').length}
+              totalCount={articles.length}
+              isDark={theme==='dark'}
+            />
+          </SectionWrapper>
+
+          {/* 7. Histograma do score */}
           {hasAny && renderSlotSection({
             title: 'Histograma do score',
             slots: pubScoreSlots,
@@ -1341,40 +1256,13 @@ const StatisticsSection = ({  articles, onUpdateStatus,  inclusionCriteria,  exc
               );
             },
           })}
-        </>
-      )}
 
-      {/* ═══ ABA PROCESSO DE SELEÇÃO ═════════════════════════════════════════ */}
-      {activeTab==='processo' && (
-        <>
-          {/* Fluxograma PRISMA */}
-          <SectionWrapper
-            title="Fluxograma PRISMA"
-            controls={<ChartExport id="prisma" isOpen={openMenuId==='prisma'} onToggle={toggleMenu} chartRef={prismaRef} data={null} svgOnly />}
-          >
-            <PrismaFlowchart
-              ref={prismaRef} statistics={statistics}
-              scopusCount={articles.filter(a=>a.source==='Scopus').length}
-              wosCount={articles.filter(a=>a.source==='Web of Science').length}
-              totalCount={articles.length}
-              isDark={theme==='dark'}
-            />
-          </SectionWrapper>
-          {/* Panorama de Classificação */}
-          {filterTabs.length>0 && (
-            <SectionWrapper
-              title="Panorama de Classificação"
-              controls={
-                <MultiToggle
-                  options={filterTabs.map(k=>k.replace('filter','Filtro '))}
-                  selected={new Set([...filterSelected].map(k=>k.replace('filter','Filtro ')))}
-                  onToggle={label=>toggleFilter(label.replace('Filtro ','filter'))}
-                />
-              }
-            >
+          {/* 8. Fonte */}
+          {statistics.filter3.included>0 && (
+            <SectionWrapper title="Fonte">
               <div className={gridClass([...filterSelected].filter(fk=>filterTabs.includes(fk)).length)}>
                 {filterTabs.filter(fk=>filterSelected.has(fk)).map(fk=>(
-                  <ChartInstance key={fk} id={`filter-${fk}`} label={fk.replace('filter','Filtro ')}
+                  <ChartInstance key={fk} id={`fonte-${fk}`} label={fk.replace('filter','Filtro ')}
                                  chartRef={filterRefs[fk]} data={criterionsCount[fk]} openMenuId={openMenuId} onToggle={toggleMenu}>
                     <div ref={filterRefs[fk]}>
                       <PieChart style={{ width:'100%',aspectRatio:1,maxHeight:'50vh' }} responsive>
@@ -1390,105 +1278,6 @@ const StatisticsSection = ({  articles, onUpdateStatus,  inclusionCriteria,  exc
               </div>
             </SectionWrapper>
           )}
-
-          {/* Panorama dos Critérios */}
-          {availableCriterions.length>0 && (
-            <SectionWrapper
-              title="Panorama dos Critérios"
-              controls={<MultiToggle options={availableCriterions} selected={criterionSelected} onToggle={toggleCriterion} />}
-            >
-              <div className={gridClass([...criterionSelected].filter(c=>availableCriterions.includes(c)).length)}>
-                {availableCriterions.filter(ctr=>criterionSelected.has(ctr)).map(ctr=>{
-                  const data=criterionChartData[ctr]??[], cols=getCriterionColors(ctr);
-                  return (
-                    <ChartInstance key={ctr} id={`criterion-${ctr}`} label={ctr}
-                                   chartRef={criterionChartRefs[ctr]} data={data} openMenuId={openMenuId} onToggle={toggleMenu}>
-                      {data.length===0
-                        ? <p className="text-xs text-gray-400 text-center py-6">Nenhum critério registrado</p>
-                        : <div ref={criterionChartRefs[ctr]}>
-                            <PieChart style={{ width:'100%',aspectRatio:1,maxHeight:'50vh' }} responsive>
-                              <Pie data={data} dataKey="value" label={renderCriterionLabel}
-                                   labelLine={false} stroke="none" isAnimationActive={false}>
-                                {data.map((_,i)=><Cell key={i} fill={cols[i%cols.length]} />)}
-                              </Pie>
-                              <Tooltip {...criterionTooltip} />
-                              <Legend verticalAlign="bottom" content={<CriterionLegend data={data} ctr={ctr} />} />
-                            </PieChart>
-                          </div>
-                      }
-                    </ChartInstance>
-                  );
-                })}
-              </div>
-            </SectionWrapper>
-          )}
-          {/* Origem dos incluídos por filtro */}
-          {filterTabs.length > 0 && importOptions.length > 1 && (
-            <SectionWrapper
-              title="Origem dos Incluídos"
-              controls={
-                <MultiToggle
-                  options={filterTabs.map(k => k.replace('filter', 'Filtro '))}
-                  selected={new Set([...filterOriginSelected].map(k => k.replace('filter', 'Filtro ')))}
-                  onToggle={label => toggleFilterOrigin(label.replace('Filtro ', 'filter'))}
-                />
-              }
-            >
-              <div className={gridClass(
-                [...filterOriginSelected].filter(fk => filterTabs.includes(fk)).length
-              )}>
-                {filterTabs
-                  .filter(fk => filterOriginSelected.has(fk))
-                  .map(fk => {
-                    const data = originCount[fk] ?? [];
-                    return (
-                      <ChartInstance
-                        key={fk}
-                        id={`origin-${fk}`}
-                        label={fk.replace('filter', 'Filtro ')}
-                        chartRef={filterOriginRef[fk]}
-                        data={data}
-                        openMenuId={openMenuId}
-                        onToggle={toggleMenu}
-                      >
-                        {data.length === 0
-                          ? <p className="text-xs text-gray-400 text-center py-6">
-                              Nenhum artigo incluído
-                            </p>
-                          : <div ref={filterOriginRef[fk]}>
-                              <PieChart
-                                style={{ width:'100%', aspectRatio:1, maxHeight:'50vh' }}
-                                responsive
-                              >
-                                <Pie
-                                  data={data}
-                                  dataKey="value"
-                                  label={renderCriterionLabel}
-                                  labelLine={false}
-                                  stroke="none"
-                                  isAnimationActive={false}
-                                >
-                                  {data.map((or, i) => (
-                                    <Cell
-                                      key={i}
-                                      fill={getOriginColors(or.id)[i % getOriginColors(or.id).length]}
-                                    />
-                                  ))}
-                                </Pie>
-                                <Tooltip {...criterionTooltip} />
-                                <Legend
-                                  verticalAlign="bottom"
-                                  content={<OriginLegend data={data} or="Total" />}
-                                />
-                              </PieChart>
-                            </div>
-                        }
-                      </ChartInstance>
-                    );
-                  })}
-              </div>
-            </SectionWrapper>
-          )}        
         </>
       )}
     </div>

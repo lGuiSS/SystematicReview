@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { XCircle, CheckCircle, BookCopy, ListCollapse } from "lucide-react";
+import { XCircle, CheckCircle, BookCopy, ListCollapse, Link  } from "lucide-react";
 
 const ArticleModal = ({
   article,
@@ -174,14 +174,18 @@ const ArticleModal = ({
             <div className="text-gray-700 text-base dark:text-gray-300">
               <span className="font-semibold ">Ano:</span> {article.year}
             </div>
-            <div className="text-gray-700 text-base dark:text-gray-300">
+            <div className="flex flex-row text-gray-700 text-base dark:text-gray-300">
               <span className="font-semibold ">DOI:</span>{' '}
-              <span
-                onClick={() => window.open(`https://doi.org/${article.doi}`, '_blank')}
-                className="hover:text-blue-600 dark:hover:text-blue-400 hover:underline ml-1 cursor-pointer break-all"
-              >
-                {article.doi}
-              </span>
+              {article.doi?
+                    <div
+                      onClick={() => window.open(`https://doi.org/${article.doi}`, '_blank')}
+                      className="flex flex-row justify-start items-center gap-1 hover:text-blue-600 dark:hover:text-blue-400 hover:underline ml-1 cursor-pointer break-all"
+                    >
+                      <Link size={12}/>
+                      {article.doi}
+                    </div>
+                    :<span  className="ml-1"> Não identificado</span>
+              }
             </div>
             <div className="text-gray-700 text-base dark:text-gray-300">
               <span className="font-semibold">Score:</span> {article.score}

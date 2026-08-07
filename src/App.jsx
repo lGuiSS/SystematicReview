@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect, useMemo, useCallback } from 'react';
 import { Search, Filter, ChartArea, Download, Table, Upload, CheckCircle, Check, XCircle, BookCopy, List, ListCollapse, Clock, BarChart3, FileText, Users, Calendar, Database,DatabaseBackup,  Trash2, RefreshCw, Settings, BookOpen, Globe, Sun, Moon, Bell, ArrowUpDown, ChevronDown, Eye, PlusCircle, X, ChevronRight, CopyX, CopyCheck} from 'lucide-react';
+import { SvgIcon } from './icons/CustomIcon';
 import '@xyflow/react/dist/style.css';
 import * as htmlToImage from 'html-to-image';
 import { toSvg, toPng } from 'html-to-image';
@@ -313,22 +314,122 @@ const importedPubmedArticles = (pubmedContent, source = 'PubMed', numString = 1,
   return importedArticles.filter(article => !article.title.startsWith('Título não encontrado'));
 };
 
-const Overlay = ({ children, footer, onClose }) => (
-  <div
-    className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center sm:p-4 z-50"
-    // onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-  >
-    <div
-      className="bg-white dark:bg-gray-800 rounded-t-2xl sm:rounded-xl w-full sm:max-w-3xl flex flex-col transition-colors duration-200"
-      style={{ maxHeight: '92dvh' }}
-      onClick={(e) => e.stopPropagation()}
-    >
-      {children}
-      {footer}
-    </div>
-  </div>
-);
+// const Overlay = ({ children, footer, onClose }) => (
+//   <div
+//     className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center sm:p-4 z-50"
+//     onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+//   >
+//     <div
+//       className="bg-white dark:bg-gray-800 rounded-t-2xl sm:rounded-xl w-full sm:max-w-3xl flex flex-col transition-colors duration-200"
+//       style={{ maxHeight: '92dvh' }}
+//       onClick={(e) => e.stopPropagation()}
+//     >
+//       {children}
+//       {footer}
+//     </div>
+//   </div>
+// );
+const Overlay = ({ children, footer, onClose }) => {
+  const [visible,    setVisible]    = useState(false);
+  const [translateY, setTranslateY] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
 
+  const dragStartY = useRef(null);
+  const dragActive = useRef(false);
+
+  // ── Entrada ──────────────────────────────────────────────────────────────
+  useEffect(() => {
+    const t = requestAnimationFrame(() => setVisible(true));
+    return () => cancelAnimationFrame(t);
+  }, []);
+
+  // ── Fecha com animação de saída ──────────────────────────────────────────
+  const closeWithAnimation = useCallback(() => {
+    setVisible(false);
+    setTranslateY(window.innerHeight);
+    setTimeout(onClose, 300);
+  }, [onClose]);
+
+  // ── Drag-to-close — apenas no handle ────────────────────────────────────
+  const onHandleTouchStart = (e) => {
+    dragStartY.current = e.touches[0].clientY;
+    dragActive.current = false;
+    setIsDragging(false);
+  };
+
+  const onHandleTouchMove = (e) => {
+    if (dragStartY.current === null) return;
+    const delta = e.touches[0].clientY - dragStartY.current;
+    if (!dragActive.current && delta < 8) return;
+    dragActive.current = true;
+    e.preventDefault();
+    if (delta > 0) {
+      setIsDragging(true);
+      setTranslateY(delta);
+    }
+  };
+
+  const onHandleTouchEnd = () => {
+    setIsDragging(false);
+    if (translateY > 80) {
+      closeWithAnimation();
+    } else {
+      setTranslateY(0);
+    }
+    dragStartY.current = null;
+    dragActive.current = false;
+  };
+
+  // ── Estilos da sheet ─────────────────────────────────────────────────────
+  const sheetStyle = {
+    maxHeight:  '92dvh',
+    transform:  `translateY(${translateY}px)`,
+    transition: isDragging
+      ? 'none'
+      : visible
+        ? 'transform 0.35s cubic-bezier(0.32,0.72,0,1)'
+        : 'transform 0.28s ease-in',
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4"
+      onClick={() => closeWithAnimation()}
+      style={{
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        opacity:    visible ? 1 : 0,
+        transition: 'opacity 0.3s ease',
+      }}
+    >
+      <div
+        className="bg-white dark:bg-gray-800 rounded-t-2xl sm:rounded-xl w-full sm:max-w-3xl flex flex-col transition-colors duration-200"
+        style={sheetStyle}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Handle — mobile only */}
+        <div
+          className="sm:hidden flex justify-center items-center py-4 -mx-0 px-4 select-none"
+          style={{ cursor: isDragging ? 'grabbing' : 'grab', touchAction: 'none' }}
+          onTouchStart={onHandleTouchStart}
+          onTouchMove={onHandleTouchMove}
+          onTouchEnd={onHandleTouchEnd}
+        >
+          <div
+            className="rounded-full transition-all duration-150"
+            style={{
+              width:           isDragging ? '52px' : '40px',
+              height:          '4px',
+              backgroundColor: isDragging ? '#6366f1' : '#d1d5db',
+            }}
+          />
+        </div>
+
+        {children}
+        {footer}
+      </div>
+    </div>
+  );
+};
 // Modal para seleção de critérios
 const MultiSelect = ({ isOpen, onClose, options, onSelect, type, criteria, initialSelected = [], initialValues = [] }) => {
   const [isOpenDrop, setIsOpenDrop] = useState(false);
@@ -438,8 +539,6 @@ const MultiSelect = ({ isOpen, onClose, options, onSelect, type, criteria, initi
       >
         {/* Header */}
         <div className="flex-shrink-0 flex items-center justify-between px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          {/* Drag handle — mobile only */}
-          <div className="absolute left-1/2 -translate-x-1/2 top-2 w-10 h-1 bg-gray-300 dark:bg-gray-600 rounded-full sm:hidden" />
           <h2 className="text-base sm:text-xl font-semibold text-gray-900 dark:text-white mt-2 sm:mt-0">
             Selecionar Critérios
           </h2>
@@ -907,7 +1006,7 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
                 </div>
               </div>
               
-              <div>
+              {/* <div>
                 <h3 className="text-sm sm:text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">Palavras-chaves</h3>
                 <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                   <div className="overflow-hidden">
@@ -951,7 +1050,7 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
                     </button>
                   </div>
                 </div>
-              </div>
+              </div> */}
 
               <div>
                 <h3 className="text-sm sm:text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">
@@ -1463,12 +1562,27 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
       )}
 
       {/* Sistema de Pontuação */}
-      <div className="mt-8">
+     
+ 
+
+    {/* Coluna direita — Scoring */}
+    <div className="mt-8">
+      <ScoringSystemConfig
+        scoringSystem={protocol.scoringSystem}
+        onUpdate={onUpdateProtocol}
+        protocol={protocol}
+        addCriteria={addCriteria}
+        removeCriteria={removeCriteria}
+        handleCriteriaChange={handleCriteriaChange}
+      />
+    </div>
+
+      {/* <div className="mt-8">
         <ScoringSystemConfig 
             scoringSystem={protocol.scoringSystem} 
             onUpdate={onUpdateProtocol}
           />
-      </div>
+      </div> */}
       
       <div className="mt-8 p-4 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg transition-colors duration-200">
         <h4 className="font-semibold text-indigo-800 dark:text-indigo-300 mb-2">Status do Protocolo</h4>
@@ -1558,7 +1672,7 @@ const SearchStringModal = ({ isOpen, onClose, onConfirm, database }) => {
 };
 
 // Componente de configuração do sistema de pontuação
-const ScoringSystemConfig = ({ scoringSystem, onUpdate }) => {
+const ScoringSystemConfig = ({ scoringSystem, onUpdate, protocol, addCriteria, removeCriteria, handleCriteriaChange  }) => {
   const handleWeightChange = (field, value) => {
     const numValue = Math.max(0, Math.min(10, parseInt(value) || 0));
     onUpdate(prev => ({
@@ -1619,6 +1733,58 @@ const ScoringSystemConfig = ({ scoringSystem, onUpdate }) => {
 
       
         <div className="p-4 space-y-6">
+           {/* Duas colunas internas */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-indigo-100 dark:divide-indigo-800">
+
+          {/* Coluna esquerda — Keywords */}
+          <div className="p-4">
+            <div>
+              <h3 className="font-medium text-blue-700 dark:text-blue-300 mb-4">Palavras-chaves</h3>
+              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                <div className="overflow-hidden">
+                  <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    
+                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                      {protocol.keywords.map((criteria, index) => (
+                        <tr key={index} className="transition-colors duration-200">
+                          
+                          <td className="w-full">
+                            <input
+                              type="text"
+                              // flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-20
+                              className={index === 0 ? "w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-tl-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 text-sm" :"w-full px-3 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 text-sm"}
+                              value={criteria}
+                              onChange={(e) => handleCriteriaChange('keywords', index, e.target.value)}
+                              placeholder="Ex: Machine learning"
+                            />
+                          </td>
+                          <td className="px-4 py-2 text-right">
+                            <button
+                              disabled={protocol.keywords.length === 1}
+                              onClick={() => removeCriteria({type:'keywords', index:index})}
+                              className= "text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 p-1 rounded-full hover:bg-red-50 dark:hover:bg-red-900/50 transition-colors duration-200 disabled:cursor-not-allowed disabled:text-gray-500 disabled:hover:bg-transparent disabled:hover:text-gray-500"
+                            >
+                              <XCircle size={16} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className=" bg-gray-50 dark:bg-gray-900/50  rounded-bl-lg rounded-br-lg " >
+                  <button
+                    onClick={() => addCriteria('keywords')}
+                    className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm font-medium rounded-bl-lg rounded-br-lg rounded-tl-none rounded-tr-none transition-colors duration-200 flex items-center justify-center gap-2"
+                  >
+                    <PlusCircle size={16} />
+                    Adicionar Palavras-chaves
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="p-4">
           <div>
             <h5 className="font-medium text-blue-700 dark:text-blue-300 mb-4">Pesos por Campo</h5>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -1670,18 +1836,20 @@ const ScoringSystemConfig = ({ scoringSystem, onUpdate }) => {
                 }
               ].map(setting => (
                 <div key={setting.key} className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg">
-                  <label className="flex items-center justify-between cursor-pointer">
-                    <div className="relative">
+                  <label className="flex items-center gap-3 cursor-pointer overflow-hidden">
+                    <div className="relative flex-shrink-0">
                       <input
                         type="checkbox"
                         checked={scoringSystem[setting.key]}
                         onChange={(e) => handleConfigChange(setting.key, e.target.checked)}
                         className="peer sr-only"
                       />
-                      <div className="w-10 h-6 bg-gray-300 rounded-full peer-checked:bg-blue-500 transition-colors duration-200"></div>
-                      <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform duration-200 transform peer-checked:translate-x-4"></div>
+                      <div className="w-10 h-6 bg-gray-300 rounded-full peer-checked:bg-blue-500 transition-colors duration-200" />
+                      <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform duration-200 peer-checked:translate-x-4" />
                     </div>
-                    <span className="flex-1 ml-3 text-sm font-medium text-blue-700 dark:text-blue-400">{setting.label}</span>
+                    <span className="text-sm font-medium text-blue-700 dark:text-blue-400 leading-tight min-w-0 break-words">
+                      {setting.label}
+                    </span>
                   </label>
                   <p className="mt-1 text-xs text-blue-600 dark:text-blue-500">{setting.description}</p>
                 </div>
@@ -1699,7 +1867,7 @@ const ScoringSystemConfig = ({ scoringSystem, onUpdate }) => {
             </button>
           </div> */}
 
-          <div className="bg-blue-100 dark:bg-blue-800/50 p-3 rounded text-xs text-blue-700 dark:text-blue-300">
+          <div className="bg-blue-100 dark:bg-blue-800/50 p-3 rounded text-xs text-blue-700 dark:text-blue-300 mt-4">
             <p><strong>Como funciona:</strong></p>
             <ul className="list-disc list-inside mt-1 space-y-1">
               <li>Cada keyword encontrada soma pontos baseado no peso do campo</li>
@@ -1707,6 +1875,8 @@ const ScoringSystemConfig = ({ scoringSystem, onUpdate }) => {
               <li>Maior pontuação = indica maior relevância para a pesquisa</li>
             </ul>
           </div>
+        </div>
+        </div>
         </div>
       
     </div>
@@ -5441,9 +5611,15 @@ const SystematicReviewTool = () => {
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6 transition-colors duration-200">
           <div className="flex justify-between items-start mb-4 gap-3">
             <div className="min-w-0">
-              <h1 className="text-xl sm:text-3xl font-bold text-gray-800 dark:text-white leading-tight">
-                Sistema de Revisão Sistemática da Literatura
-              </h1>
+              <div className="flex justify-between items-start gap-3 align-items">
+                <div className="hidden sm:block w-[32px]">
+                  <SvgIcon className="w-full h-full" stroke={theme === 'light'?'#000':'#fff'} fill={theme === 'light'?'#fff':'#000'}/>
+                </div>
+                <h1 className="text-xl sm:text-3xl font-bold text-gray-800 dark:text-white leading-tight">
+                  Review System
+                  {/* Sistema de Revisão Sistemática da Literatura */}
+                </h1>
+              </div>
               <StatusIndicator />
             </div>
 
