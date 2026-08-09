@@ -15,7 +15,7 @@ import countryPatternsData from './countryPatterns/countryPatterns_v3.json';
 // ─────────────────────────────────────────────────────────────────────────────
 // PRISMA
 // ─────────────────────────────────────────────────────────────────────────────
-const PrismaFlowchart = forwardRef(({ statistics, scopusCount, wosCount, totalCount, isDark }, ref) => {
+const PrismaFlowchart = forwardRef(({ statistics, databases = [], totalCount, isDark }, ref) => {
   const nodeBg = isDark ? '#374151' : '#ffffff';
   const border = '#a8a29e';
   const txt    = isDark ? '#f3f4f6' : '#111827';
@@ -23,6 +23,13 @@ const PrismaFlowchart = forwardRef(({ statistics, scopusCount, wosCount, totalCo
   const line   = isDark ? '#6b7280' : '#9ca3af';
   const mainX = 280, sideX = 490, nW = 200, sW = 180, nH = 56, r = 6;
   const rows = { n1:50,n2:50,n3:150,n4:200,n5:250,n6:300,n7:350,n8:400,n9:450,n10:500,n11:550 };
+
+  // Caixas das bases distribuídas horizontalmente e centradas em mainX
+  const dbBoxes = databases.map((db, i) => {
+    const n = databases.length;
+    const cx = mainX + (i - (n - 1) / 2) * 200;
+    return { label: db.label, count: db.count, cx };
+  });
 
   const Box = ({ cx, cy, w, h = nH, label, count }) => {
     const lns = label.includes('\n') ? label.split('\n') : label.length > 24 ? [label.slice(0,24), label.slice(24)] : [label];
@@ -53,8 +60,6 @@ const PrismaFlowchart = forwardRef(({ statistics, scopusCount, wosCount, totalCo
           <path d="M0,0 L0,6 L8,3 z" fill={line} />
         </marker>
       </defs>
-      <Arrow x1={mainX-100} y1={rows.n1+nH/2} x2={mainX-30} y2={rows.n3-nH/2} />
-      <Arrow x1={mainX+100} y1={rows.n2+nH/2} x2={mainX+30} y2={rows.n3-nH/2} />
       <Arrow x1={mainX} y1={rows.n3+nH/2} x2={mainX} y2={rows.n5-nH/2} />
       <Arrow x1={mainX} y1={rows.n5+nH/2} x2={mainX} y2={rows.n7-nH/2} />
       <Arrow x1={mainX} y1={rows.n6}       x2={sideX-sW/2} y2={rows.n6} />
@@ -63,8 +68,12 @@ const PrismaFlowchart = forwardRef(({ statistics, scopusCount, wosCount, totalCo
       <Arrow x1={mainX} y1={rows.n9+nH/2} x2={mainX} y2={rows.n11-nH/2} />
       <Arrow x1={mainX} y1={rows.n10}      x2={sideX-sW/2} y2={rows.n10} />
       <Arrow x1={mainX} y1={rows.n4}       x2={sideX-sW/2} y2={rows.n4} />
-      <Box cx={mainX-100} cy={rows.n1}  w={160} label="Scopus"                    count={scopusCount} />
-      <Box cx={mainX+100} cy={rows.n2}  w={160} label="Web of Science"            count={wosCount} />
+      {dbBoxes.map(db => (
+        <g key={db.label}>
+          <Arrow x1={db.cx} y1={rows.n1+nH/2} x2={mainX} y2={rows.n3-nH/2} />
+          <Box cx={db.cx} cy={rows.n1}  w={160} label={db.label} count={db.count} />
+        </g>
+      ))}
       <Box cx={mainX}     cy={rows.n3}  w={nW}  label="Identificados"             count={totalCount} />
       <Box cx={sideX}     cy={rows.n4}  w={sW}  label="Duplicados"                count={statistics.dataProcessing.duplicate} />
       <Box cx={mainX}     cy={rows.n5}  w={nW}  label={"Após remoção\nde duplicados"} count={statistics.dataProcessing.included} />
@@ -528,8 +537,8 @@ const ChartInstance = ({ id, label, chartRef, data, openMenuId, onToggle, svgOnl
 // ─────────────────────────────────────────────────────────────────────────────
 // Cores por database
 // ─────────────────────────────────────────────────────────────────────────────
-const DB_LINE_COLOR = { 'Scopus': '#fb923c', 'Web of Science': '#d4d0e3' };
-const DB_BAR_COLOR  = { 'Scopus': '#3b2b2b', 'Web of Science': '#592aaa' };
+const DB_LINE_COLOR = { 'Scopus': '#fb923c', 'Web of Science': '#d4d0e3', 'ScienceDirect': '#fb923c', 'Periódicos CAPES': '#076a97' };
+const DB_BAR_COLOR  = { 'Scopus': '#3b2b2b', 'Web of Science': '#592aaa', 'ScienceDirect': '#3b2b2b', 'Periódicos CAPES': '#043a52' };
 const TOTAL_LINE = '#646464';
 const TOTAL_BAR  = '#3f3f3f';
 const getLineColor = (db) => DB_LINE_COLOR[db] ?? TOTAL_LINE;
@@ -820,9 +829,13 @@ const StatisticsSection = ({  articles, onUpdateStatus,  inclusionCriteria,  exc
 
     const variationsScopus = generatePalette(DB_LINE_COLOR['Scopus'], importOptions.map(opt =>  opt.database == 'Scopus').length);
     const variationsWOS = generatePalette(DB_BAR_COLOR['Web of Science'], importOptions.map(opt =>  opt.database == 'Web of Science').length);
+    const variationsScienceDirect = generatePalette(DB_LINE_COLOR['ScienceDirect'], importOptions.map(opt =>  opt.database == 'ScienceDirect').length);
+    const variationsPeriodicos = generatePalette(DB_LINE_COLOR['Periódicos CAPES'], importOptions.map(opt =>  opt.database == 'Periódicos CAPES').length);
 
     setOriginColorsScopus(variationsScopus)
     setOriginColorsWos(variationsWOS)
+    setOriginColorsScienceDirect(variationsScienceDirect)
+    setOriginColorsPeriodicos(variationsPeriodicos)
   }, [importedData]);
 
   useEffect(() => {
@@ -892,7 +905,7 @@ const StatisticsSection = ({  articles, onUpdateStatus,  inclusionCriteria,  exc
   // ── toggle helpers para slots ─────────────────────────────────────────────
   // ── makeSlotToggle atualizado ─────────────────────────────────────────────
   // Ordem canônica das bases
-  const DB_ORDER = ['Scopus', 'Web of Science', 'Total'];
+  const DB_ORDER = ['Scopus', 'Web of Science', 'ScienceDirect', 'Periódicos CAPES', 'Total'];
   const makeSlotToggle = (setSlots, prefix) => (database) =>
   setSlots(prev => {
     const exists = prev.find(s => s.database === database);
@@ -964,8 +977,10 @@ const StatisticsSection = ({  articles, onUpdateStatus,  inclusionCriteria,  exc
 
   const [originColorsScopus, setOriginColorsScopus] = useState(['#6366f1'])
   const [originColorsWOS, setOriginColorsWos] = useState(['#6366f1'])
+  const [originColorsScienceDirect, setOriginColorsScienceDirect] = useState(['#6366f1'])
+  const [originColorsPeriodicos, setOriginColorsPeriodicos] = useState(['#6366f1'])
 
-  const getOriginColors=(or)=>or.includes('Scop')?originColorsScopus:or.includes('WoS')?originColorsWOS:TOTAL_COLORS;
+  const getOriginColors=(or)=>or.includes('Scop')?originColorsScopus:or.includes('WoS')?originColorsWOS:or.includes('ScienceDirect')?originColorsScienceDirect:or.includes('CAPES')?originColorsPeriodicos:TOTAL_COLORS;
 
   const getCriterionColors=(ctr)=>ctr.includes('Exclus')?EXCLUSION_COLORS:ctr.includes('Inclus')?INCLUSION_COLORS:TOTAL_COLORS;
 
@@ -1354,8 +1369,10 @@ const StatisticsSection = ({  articles, onUpdateStatus,  inclusionCriteria,  exc
           >
             <PrismaFlowchart
               ref={prismaRef} statistics={statistics}
-              scopusCount={articles.filter(a=>a.source==='Scopus').length}
-              wosCount={articles.filter(a=>a.source==='Web of Science').length}
+              databases={availableDatabases.filter(db => db !== 'Total').map(db => ({
+                label: db,
+                count: articles.filter(a => a.source === db).length,
+              }))}
               totalCount={articles.length}
               isDark={theme==='dark'}
             />

@@ -4,7 +4,7 @@ import { Clock, X, Download } from "lucide-react";
 const CHECK_INTERVAL_MS = 30 * 1000;
 
 function formatTimeSince(date) {
-  if (!date) return null;
+  if (!date) return "ainda não salvo";
   const diffMin = Math.floor((Date.now() - new Date(date).getTime()) / 60000);
   if (diffMin < 1) return "menos de 1 minuto";
   if (diffMin === 1) return "1 minuto";
@@ -44,12 +44,16 @@ export function UnsavedWarningModal({ lastSaved, hasUnsavedChanges = false, file
 
   useEffect(() => {
     const check = () => {
-      if (!hasUnsavedChanges || !lastSaved) { setVisible(false); return; }
+      if (!hasUnsavedChanges) { setVisible(false); return; }
 
       // Não exibe se o arquivo foi aberto há menos de 10 minutos
       if (fileOpenedAt && Date.now() - fileOpenedAt < warnAfterMs) { setVisible(false); return; }
 
-      const elapsed = Date.now() - new Date(lastSaved).getTime();
+      // Nunca salvou: considera tempo infinito, então avisa assim que passar a carência
+      const elapsed = lastSaved
+        ? Date.now() - new Date(lastSaved).getTime()
+        : Infinity;
+
       const dismissedRecently = dismissedAtRef.current &&
         Date.now() - dismissedAtRef.current < warnAfterMs;
 
@@ -59,7 +63,7 @@ export function UnsavedWarningModal({ lastSaved, hasUnsavedChanges = false, file
     check();
     const id = setInterval(check, CHECK_INTERVAL_MS);
     return () => clearInterval(id);
-  }, [hasUnsavedChanges, lastSaved, fileOpenedAt]);
+  }, [hasUnsavedChanges, lastSaved, fileOpenedAt, warnAfterMs]);
 
   if (!visible) return null;
 
@@ -92,11 +96,23 @@ export function UnsavedWarningModal({ lastSaved, hasUnsavedChanges = false, file
               Alterações não salvas
             </p>
             <p id="uwm-desc" className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">
-              Último salvamento há{" "}
-              <span className="font-medium text-amber-600 dark:text-amber-400">
-                {formatTimeSince(lastSaved)}
-              </span>
-              . Salve para não perder o progresso.
+              {lastSaved ? (
+                <>
+                  Último salvamento há{" "}
+                  <span className="font-medium text-amber-600 dark:text-amber-400">
+                    {formatTimeSince(lastSaved)}
+                  </span>
+                  . Salve para não perder o progresso.
+                </>
+              ) : (
+                <>
+                  O projeto{" "}
+                  <span className="font-medium text-amber-600 dark:text-amber-400">
+                    ainda não foi salvo
+                  </span>
+                  . Salve para não perder o progresso.
+                </>
+              )}
             </p>
           </div>
 

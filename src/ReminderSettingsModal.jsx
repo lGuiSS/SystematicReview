@@ -23,38 +23,38 @@ export function ReminderSettingsModal({ currentMinutes = 10, onConfirm, onClose 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 dark:bg-black/50">
-      <div className="w-80 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 dark:bg-black/50 p-4">
+      <div className="w-80 sm:w-[26rem] md:w-[30rem] bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-700">
-          <div className="flex items-center gap-2">
-            <Bell className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
-            <p className="text-sm font-semibold text-gray-800 dark:text-white">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100 dark:border-gray-700">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Bell className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-600 dark:text-indigo-400" />
+            <p className="text-sm sm:text-base font-semibold text-gray-800 dark:text-white">
               Lembrete de salvamento
             </p>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:text-gray-300 dark:hover:bg-gray-700 transition-colors"
+            className="p-1 sm:p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:text-gray-300 dark:hover:bg-gray-700 transition-colors"
           >
-            <X className="h-4 w-4" />
+            <X className="h-4 w-4 sm:h-5 sm:w-5" />
           </button>
         </div>
 
         {/* Body */}
-        <div className="p-4 space-y-4">
-          <p className="text-xs text-gray-500 dark:text-gray-400">
+        <div className="p-4 sm:p-6 space-y-4 sm:space-y-5">
+          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
             Avisar após quanto tempo sem salvar:
           </p>
 
           {/* Presets */}
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-4 gap-2 sm:gap-3">
             {PRESET_OPTIONS.map((min) => (
               <button
                 key={min}
                 onClick={() => handlePreset(min)}
-                className={`py-2 rounded-lg text-xs font-medium border transition-colors duration-150
+                className={`py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium border transition-colors duration-150
                   ${selected === min
                     ? "bg-indigo-600 dark:bg-indigo-500 text-white border-indigo-600 dark:border-indigo-500"
                     : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600"
@@ -67,7 +67,7 @@ export function ReminderSettingsModal({ currentMinutes = 10, onConfirm, onClose 
 
           {/* Custom input */}
           <div>
-            <label className="text-xs text-gray-500 dark:text-gray-400 mb-1.5 block">
+            <label className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-1.5 sm:mb-2 block">
               Ou defina um valor personalizado:
             </label>
             <div className="flex items-center gap-2">
@@ -78,7 +78,7 @@ export function ReminderSettingsModal({ currentMinutes = 10, onConfirm, onClose 
                 value={custom}
                 onChange={handleCustomChange}
                 placeholder="ex: 20"
-                className={`flex-1 px-3 py-1.5 text-xs rounded-lg border transition-colors
+                className={`flex-1 px-3 py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg border transition-colors
                   bg-white dark:bg-gray-700 text-gray-800 dark:text-white
                   placeholder-gray-400 dark:placeholder-gray-500
                   focus:outline-none focus:ring-2 focus:ring-indigo-500
@@ -87,10 +87,10 @@ export function ReminderSettingsModal({ currentMinutes = 10, onConfirm, onClose 
                     : "border-gray-200 dark:border-gray-600"
                   }`}
               />
-              <span className="text-xs text-gray-500 dark:text-gray-400">min</span>
+              <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">min</span>
             </div>
             {custom && !isValid && (
-              <p className="text-xs text-red-500 dark:text-red-400 mt-1">
+              <p className="text-xs sm:text-sm text-red-500 dark:text-red-400 mt-1">
                 Digite um valor entre 1 e 60 minutos.
               </p>
             )}
@@ -98,17 +98,17 @@ export function ReminderSettingsModal({ currentMinutes = 10, onConfirm, onClose 
 
           {/* Preview */}
           {isValid && (
-            <p className="text-xs text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg px-3 py-2">
+            <p className="text-xs sm:text-sm text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg px-3 sm:px-4 py-2 sm:py-2.5">
               Você será avisado após <strong>{effectiveValue} minuto{effectiveValue > 1 ? "s" : ""}</strong> sem salvar.
             </p>
           )}
         </div>
 
         {/* Footer */}
-        <div className="flex gap-2 px-4 pb-4">
+        <div className="flex gap-2 sm:gap-3 px-4 sm:px-6 pb-4 sm:pb-6">
           <button
             onClick={onClose}
-            className="flex-1 px-3 py-1.5 text-xs font-medium rounded-lg
+            className="flex-1 px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg
               bg-gray-100 hover:bg-gray-200 text-gray-700
               dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-300
               transition-colors duration-150"
@@ -118,7 +118,7 @@ export function ReminderSettingsModal({ currentMinutes = 10, onConfirm, onClose 
           <button
             disabled={!isValid}
             onClick={() => isValid && onConfirm(effectiveValue)}
-            className="flex-1 px-3 py-1.5 text-xs font-medium rounded-lg
+            className="flex-1 px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg
               bg-indigo-600 hover:bg-indigo-700 text-white
               dark:bg-indigo-500 dark:hover:bg-indigo-600
               disabled:opacity-40 disabled:cursor-not-allowed

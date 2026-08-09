@@ -18,10 +18,10 @@ function FloatingTooltip({ visible, content, x, y, place }) {
 
   const off = 14;
   const posStyle = {
-    top:    { position: "fixed", left: x, top: y - off,   transform: "translateX(-50%)" },
-    bottom: { position: "fixed", left: x, top: y + off,   transform: "translateX(-50%)" },
-    left:   { position: "fixed", left: x - off, top: y,   transform: "translate(-100%, -50%)" },
-    right:  { position: "fixed", left: x + off, top: y,   transform: "translateY(-50%)" },
+    top: { position: "fixed", left: x, top: y - off, transform: "translateX(-50%)" },
+    bottom: { position: "fixed", left: x, top: y + off, transform: "translateX(-50%)" },
+    left: { position: "fixed", left: x - off, top: y, transform: "translate(-100%, -50%)" },
+    right: { position: "fixed", left: x + off, top: y, transform: "translateY(-50%)" },
   }[place] || {};
 
   const isRich = typeof content !== "string";
@@ -69,24 +69,16 @@ export function TooltipProvider({ children }) {
   );
 }
 
-/**
- * Envolva qualquer elemento com <Tip> para adicionar tooltip.
- *
- * Props:
- *   content  — string ou JSX
- *   place    — "top" | "bottom" | "left" | "right"  (padrão: "top")
- *   delay    — delay em ms antes de exibir           (padrão: 0)
- */
 export function Tip({ children, content, place = "top", delay = 0 }) {
   const { show, hide } = useContext(TooltipContext);
   const ref = useRef(null);
 
   const getXY = () => {
     const r = ref.current.getBoundingClientRect();
-    if (place === "top")    return [r.left + r.width / 2, r.top];
+    if (place === "top") return [r.left + r.width / 2, r.top];
     if (place === "bottom") return [r.left + r.width / 2, r.bottom];
-    if (place === "left")   return [r.left, r.top + r.height / 2];
-    if (place === "right")  return [r.right, r.top + r.height / 2];
+    if (place === "left") return [r.left, r.top + r.height / 2];
+    if (place === "right") return [r.right, r.top + r.height / 2];
   };
 
   return cloneElement(children, {

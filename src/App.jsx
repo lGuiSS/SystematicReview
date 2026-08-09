@@ -1,23 +1,25 @@
 import React, { useRef, useState, useEffect, useMemo, useCallback } from 'react';
-import { Search, Filter, ChartArea, Download, Table, Upload, CheckCircle, Check, XCircle, BookCopy, List, ListCollapse, Clock, BarChart3, FileText, Users, Calendar, Database,DatabaseBackup,  Trash2, RefreshCw, Settings, BookOpen, Globe, Sun, Moon, Bell, ArrowUpDown, ChevronDown, Eye, PlusCircle, X, ChevronRight, CopyX, CopyCheck} from 'lucide-react';
+import { Search, Filter, ChartArea, Download, Table, Upload, CheckCircle, Check, XCircle, BookCopy, List, ListCollapse, Clock, BarChart3, FileText, Users, Calendar, Database, DatabaseBackup, Trash2, RefreshCw, Settings, BookOpen, Globe, Sun, Moon, Bell, ArrowUpDown, ChevronDown, Eye, PlusCircle, X, ChevronRight, CopyX, CopyCheck, HeartHandshake, MoreVertical } from 'lucide-react';
 import { SvgIcon } from './icons/SysReviewIcon.jsx';
 import '@xyflow/react/dist/style.css';
 import * as htmlToImage from 'html-to-image';
 import { toSvg, toPng } from 'html-to-image';
 import { TooltipProvider, TooltipContext, Tip } from "./Tooltip";
 import ArticleModal from "./ArticleModal.jsx"
-import { Tooltip as ReactTooltip} from 'react-tooltip'
+import { Tooltip as ReactTooltip } from 'react-tooltip'
 // import { ReactFlow } from '@xyflow/react';
 import StatisticsSection from "./StatisticsSection.jsx"
 import { UnsavedWarningModal } from "./UnsavedWarningModal";
 import { ReminderSettingsModal } from "./ReminderSettingsModal";
+import { SupportModal } from "./SupportModal";
+import { SupportRequestModal } from "./SupportRequestModal";
 
-import { 
-  saveProjectToFile, 
-  loadProjectFromFile, 
-  setupAutoSave, 
-  loadAutoSave, 
-  clearAutoSave 
+import {
+  saveProjectToFile,
+  loadProjectFromFile,
+  setupAutoSave,
+  loadAutoSave,
+  clearAutoSave
 } from './fileSystem.js';
 
 import countryPatternsData from './countryPatterns/countryPatterns_v2.json';
@@ -29,18 +31,15 @@ import { useCurrentPng, useGenerateImage } from "recharts-to-png";
 // Hook personalizado para gerenciar o tema
 const useTheme = () => {
   const [theme, setTheme] = useState(() => {
-    // Usar padrão claro já que localStorage não está disponível
-    return 'light';
+    const saved = localStorage.getItem('theme');
+    return saved || 'light';
   });
 
   useEffect(() => {
     const root = document.documentElement;
-    
-    // Remover classes anteriores
     root.classList.remove('light', 'dark');
-    
-    // Adicionar a classe do tema atual
     root.classList.add(theme);
+    localStorage.setItem('theme', theme);
   }, [theme]);
 
   const toggleTheme = () => {
@@ -68,20 +67,42 @@ const ThemeToggle = ({ theme, toggleTheme }) => {
   );
 };
 
-
 function getField(bibtex, field) {
-  // Regex mais robusta para capturar campos BibTeX
-  const regex = new RegExp(`${field}\\s*=\\s*[{"](.*?)["}]`, "is");
-  const match = bibtex.match(regex);
-  
-  if (match) {
-    return match[1]
-      .replace(/\{|\}/g, '') // Remove chaves extras
-      .replace(/\s+/g, ' ')   // Normaliza espaços
-      .trim();
+  // Localiza "field =" precedido de início de linha, vírgula ou chave de entrada
+  const headerRegex = new RegExp(`(?:^|[\\n,{])\\s*${field}\\s*=\\s*`, "i");
+  const headerMatch = bibtex.match(headerRegex);
+  if (!headerMatch) return null;
+
+  const start = headerMatch.index + headerMatch[0].length;
+  let value;
+
+  if (bibtex[start] === '{') {
+    // Parser com chaves balanceadas (suporta {} aninhados, ex.: {Lamperti Tornaghi})
+    let depth = 0;
+    let i = start;
+    for (; i < bibtex.length; i++) {
+      if (bibtex[i] === '{') depth++;
+      else if (bibtex[i] === '}') {
+        depth--;
+        if (depth === 0) { i++; break; }
+      }
+    }
+    value = bibtex.slice(start + 1, i - 1);
+  } else if (bibtex[start] === '"') {
+    const end = bibtex.indexOf('"', start + 1);
+    value = bibtex.slice(start + 1, end < 0 ? undefined : end);
+  } else {
+    // Valor sem chaves/aspas (ex.: números) até a vírgula
+    const bare = bibtex.slice(start).match(/^[^,\n]+/);
+    value = bare ? bare[0] : '';
   }
-  
-  return null;
+
+  const cleaned = value
+    .replace(/[{}]/g, '') // Remove chaves extras
+    .replace(/\s+/g, ' ')   // Normaliza espaços
+    .trim();
+
+  return cleaned || null;
 }
 function getPubMedField(record, field, multi = false) {
   // Captura a linha da tag + todas as linhas de continuação (6 espaços)
@@ -111,7 +132,7 @@ const validateBibtexFormat = (content) => {
   // Verificar se contém entradas BibTeX válidas
   const hasValidEntries = /@(article|book|inproceedings|conference|misc|techreport|mastersthesis|phdthesis)\s*\{/i.test(content);
   const hasRequiredFields = /title\s*=/i.test(content);
-  
+
   return hasValidEntries && hasRequiredFields;
 };
 
@@ -119,27 +140,27 @@ const validateBibtexFormat = (content) => {
 function splitBibtexEntries(bibtexContent) {
   const entries = [];
   const entryRegex = /@(\w+)\s*\{/g;
-  
+
   let match;
   let lastIndex = 0;
   const matches = [];
-  
+
   // Encontra todas as posições de @tipo{
   while ((match = entryRegex.exec(bibtexContent)) !== null) {
     matches.push(match.index);
   }
-  
+
   // Divide o conteúdo nas posições encontradas
   for (let i = 0; i < matches.length; i++) {
     const start = matches[i];
     const end = matches[i + 1] || bibtexContent.length;
     const entry = bibtexContent.substring(start, end).trim();
-    
+
     if (entry) {
       entries.push(entry);
     }
   }
-  
+
   return entries;
 }
 
@@ -165,15 +186,15 @@ function splitPubmedEntries(pubmedContent) {
 
 
 
-const extractCountriesFromAffiliation =  (affiliation) => {
+const extractCountriesFromAffiliation = (affiliation) => {
   if (!affiliation) return [];
-  
+
   const affiliationLines = affiliation.split(/\n|;/).filter(line => line.trim());
-  
+
   const countryPatterns = countryPatternsData.map(item => ({
-  regex: new RegExp(`\\b${item.name}\\b|${item.officialName}|${item.nativeName}`, "i"),
-  country: item.name
-}));
+    regex: new RegExp(`\\b${item.name}\\b|${item.officialName}|${item.nativeName}`, "i"),
+    country: item.name
+  }));
 
 
   const countries = new Set();
@@ -188,15 +209,30 @@ const extractCountriesFromAffiliation =  (affiliation) => {
   return Array.from(countries);
 };
 
-const importedBibtexArticles = (bibtexContent, source = 'Scopus', numString=1, articlesLength) => {
+const splitKeywords = (value) => {
+  if (!value) return [];
+  // ScienceDirect usa vírgula; Scopus/WoS usam ponto e vírgula
+  return value
+    .split(/[;,]+/)
+    .map(k => k.trim())
+    .filter(k => k && !/type your keywords here/i.test(k));
+};
+
+const normalizeDoi = (doi) => {
+  if (!doi) return null;
+  // ScienceDirect exporta o DOI como URL completa (https://doi.org/...)
+  return doi.replace(/^https?:\/\/(dx\.)?doi\.org\//i, '').trim() || null;
+};
+
+const importedBibtexArticles = (bibtexContent, source = 'Scopus', numString = 1, articlesLength) => {
   // Dividir o conteúdo em entradas individuais
   const entries = splitBibtexEntries(bibtexContent);
 
   const importedArticles = entries.map((fullEntry, index) => {
     const affiliations = getField(fullEntry, "affiliations") || getField(fullEntry, "Affiliation") || 'Afiliação não informada';
-    const countries = affiliations !== 'Afiliação não informada' 
-                      ? extractCountriesFromAffiliation(affiliations) 
-                      : 'País não informado'
+    const countries = affiliations !== 'Afiliação não informada'
+      ? extractCountriesFromAffiliation(affiliations)
+      : 'País não informado'
     return {
       id: `${source.toLowerCase().replace(/\s+/g, '_')}_${articlesLength + index + 1}`,
       title: getField(fullEntry, "title") || getField(fullEntry, "Title") || `Título não encontrado ${index + 1}`,
@@ -207,9 +243,9 @@ const importedBibtexArticles = (bibtexContent, source = 'Scopus', numString=1, a
       year: parseInt(getField(fullEntry, "year")) || parseInt(getField(fullEntry, "Year")) || 'Ano não informado',
       score: null,
       abstract: getField(fullEntry, "abstract") || getField(fullEntry, "Abstract") || 'Resumo não disponível',
-      keywords: getField(fullEntry, "keywords")?.split(";").map(k => k.trim()) || getField(fullEntry, "Keywords")?.split(";").map(k => k.trim()) || [],
+      keywords: splitKeywords(getField(fullEntry, "keywords")) || splitKeywords(getField(fullEntry, "Keywords")) || [],
       studyType: getField(fullEntry, "type") || getField(fullEntry, "Type") || 'Não especificado',
-      doi: getField(fullEntry, "doi") || getField(fullEntry, "DOI"),
+      doi: normalizeDoi(getField(fullEntry, "doi") || getField(fullEntry, "DOI")),
       language: getField(fullEntry, "language") || getField(fullEntry, "Language") || 'Não informado',
       source: source,
       numString: numString,
@@ -239,8 +275,8 @@ const importedPubmedArticles = (pubmedContent, source = 'PubMed', numString = 1,
 
   const importedArticles = entries.map((fullEntry, index) => {
     // Autores: FAU = nome completo, AU = abreviado
-    const authorsArray = getPubMedField(fullEntry, "FAU", true) || 
-                         getPubMedField(fullEntry, "AU",  true);
+    const authorsArray = getPubMedField(fullEntry, "FAU", true) ||
+      getPubMedField(fullEntry, "AU", true);
     const authors = authorsArray?.join("; ") || 'Autor não informado';
 
     // Afiliações: AD repete na mesma ordem que FAU
@@ -262,8 +298,8 @@ const importedPubmedArticles = (pubmedContent, source = 'PubMed', numString = 1,
     const doi = doiEntry?.replace(/\s*\[doi\]/, "").trim() || null;
 
     // Keywords: OT = autor, MH = MeSH
-    const keywordsArray = getPubMedField(fullEntry, "OT", true) || 
-                          getPubMedField(fullEntry, "MH", true) || [];
+    const keywordsArray = getPubMedField(fullEntry, "OT", true) ||
+      getPubMedField(fullEntry, "MH", true) || [];
 
     // Tipo de publicação (ex: "Journal Article", "Review")
     const pubTypeArray = getPubMedField(fullEntry, "PT", true) || [];
@@ -271,35 +307,35 @@ const importedPubmedArticles = (pubmedContent, source = 'PubMed', numString = 1,
 
     return {
       id: `${source.toLowerCase().replace(/\s+/g, '_')}_${articlesLength + index + 1}`,
-      title:        getPubMedField(fullEntry, "TI")   || `Título não encontrado ${index + 1}`,
+      title: getPubMedField(fullEntry, "TI") || `Título não encontrado ${index + 1}`,
       authors,
       affiliations,
       countries,
-      journal:      getPubMedField(fullEntry, "JT")   || 
-                    getPubMedField(fullEntry, "TA")    || 'Revista não informada',
+      journal: getPubMedField(fullEntry, "JT") ||
+        getPubMedField(fullEntry, "TA") || 'Revista não informada',
       year,
-      score:        null,
-      abstract:     getPubMedField(fullEntry, "AB")   || 'Resumo não disponível',
-      keywords:     keywordsArray,
+      score: null,
+      abstract: getPubMedField(fullEntry, "AB") || 'Resumo não disponível',
+      keywords: keywordsArray,
       studyType,
       doi,
-      language:     getPubMedField(fullEntry, "LA")   || 'Não informado',
-      pmid:         getPubMedField(fullEntry, "PMID")  || null,
+      language: getPubMedField(fullEntry, "LA") || 'Não informado',
+      pmid: getPubMedField(fullEntry, "PMID") || null,
       source,
       numString,
-      isDuplicate:          false,
-      duplicateOf:          null,
+      isDuplicate: false,
+      duplicateOf: null,
       dataProcessingStatus: 'pending',
-      filter1Status:        'pending',
-      filter2Status:        'pending',
-      filter3Status:        'pending',
-      inclusionCriterion:   [],
-      exclusionCriterion:   [],
-      qualityCriteria:      [],
-      extractionCriteria:   [],
-      searchString:         null,
-      importDate:           new Date(),
-      lastModified:         new Date()
+      filter1Status: 'pending',
+      filter2Status: 'pending',
+      filter3Status: 'pending',
+      inclusionCriterion: [],
+      exclusionCriterion: [],
+      qualityCriteria: [],
+      extractionCriteria: [],
+      searchString: null,
+      importDate: new Date(),
+      lastModified: new Date()
     };
   });
 
@@ -322,7 +358,7 @@ const importedPubmedArticles = (pubmedContent, source = 'PubMed', numString = 1,
 //   </div>
 // );
 const Overlay = ({ children, footer, onClose }) => {
-  const [visible,    setVisible]    = useState(false);
+  const [visible, setVisible] = useState(false);
   const [translateY, setTranslateY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -374,8 +410,8 @@ const Overlay = ({ children, footer, onClose }) => {
 
   // ── Estilos da sheet ─────────────────────────────────────────────────────
   const sheetStyle = {
-    maxHeight:  '92dvh',
-    transform:  `translateY(${translateY}px)`,
+    maxHeight: '92dvh',
+    transform: `translateY(${translateY}px)`,
     transition: isDragging
       ? 'none'
       : visible
@@ -389,7 +425,7 @@ const Overlay = ({ children, footer, onClose }) => {
       onClick={() => closeWithAnimation()}
       style={{
         backgroundColor: 'rgba(0,0,0,0.5)',
-        opacity:    visible ? 1 : 0,
+        opacity: visible ? 1 : 0,
         transition: 'opacity 0.3s ease',
       }}
     >
@@ -409,8 +445,8 @@ const Overlay = ({ children, footer, onClose }) => {
           <div
             className="rounded-full transition-all duration-150"
             style={{
-              width:           isDragging ? '52px' : '40px',
-              height:          '4px',
+              width: isDragging ? '52px' : '40px',
+              height: '4px',
               backgroundColor: isDragging ? '#6366f1' : '#d1d5db',
             }}
           />
@@ -468,9 +504,9 @@ const MultiSelect = ({ isOpen, onClose, options, onSelect, type, criteria, initi
     const initialResults = criteria.map(criterion => {
       const saved = initialValues?.find(v => v.id === criterion.id);
       return {
-        id:       criterion.id,
-        label:    criterion.value,
-        type:     criterion.type,
+        id: criterion.id,
+        label: criterion.value,
+        type: criterion.type,
         response: saved?.response ?? (criterion.type === 'text' ? '' : []),
       };
     });
@@ -485,8 +521,8 @@ const MultiSelect = ({ isOpen, onClose, options, onSelect, type, criteria, initi
   };
 
   const removeOption = (id) => setSelected(prev => prev.filter(s => s.id !== id));
-  const selectAll    = () => setSelected(options);
-  const clearAll     = () => setSelected([]);
+  const selectAll = () => setSelected(options);
+  const clearAll = () => setSelected([]);
 
   const handleCriteriaChange = useCallback((index, value, isCheckbox = false) => {
     if (isCheckbox) {
@@ -547,11 +583,10 @@ const MultiSelect = ({ isOpen, onClose, options, onSelect, type, criteria, initi
 
           {/* Search Input */}
           <div
-            className={`border-2 rounded-lg p-3 cursor-text transition mb-4 ${
-              isOpenDrop
-                ? 'border-blue-500 ring-2 ring-blue-200 dark:ring-blue-900'
-                : 'border-gray-300 dark:border-gray-600 hover:border-gray-400'
-            } bg-white dark:bg-gray-700`}
+            className={`border-2 rounded-lg p-3 cursor-text transition mb-4 ${isOpenDrop
+              ? 'border-blue-500 ring-2 ring-blue-200 dark:ring-blue-900'
+              : 'border-gray-300 dark:border-gray-600 hover:border-gray-400'
+              } bg-white dark:bg-gray-700`}
             onClick={() => { setIsOpenDrop(true); inputRef.current?.focus(); }}
           >
             {selected.length > 0 && (
@@ -559,11 +594,10 @@ const MultiSelect = ({ isOpen, onClose, options, onSelect, type, criteria, initi
                 {selected.map(item => (
                   <span
                     key={item.id}
-                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-medium ${
-                      item.category === 'inclusion' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' :
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-medium ${item.category === 'inclusion' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' :
                       item.category === 'exclusion' ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' :
-                      'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
-                    }`}
+                        'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+                      }`}
                   >
                     {item.label}
                     <button
@@ -617,7 +651,7 @@ const MultiSelect = ({ isOpen, onClose, options, onSelect, type, criteria, initi
                     {idx > 0 && <div className="border-t border-gray-200 dark:border-gray-700" />}
                     <div className="px-4 py-2.5 bg-gray-50 dark:bg-gray-900 font-semibold text-sm text-gray-700 dark:text-gray-300">
                       {category === 'inclusion' ? 'Critérios de Inclusão' :
-                       category === 'exclusion' ? 'Critérios de Exclusão' : 'Critérios de Qualidade'}
+                        category === 'exclusion' ? 'Critérios de Exclusão' : 'Critérios de Qualidade'}
                     </div>
                     {items.map((option, optIdx) => {
                       const isSelected = selected.find(s => s.id === option.id);
@@ -626,11 +660,10 @@ const MultiSelect = ({ isOpen, onClose, options, onSelect, type, criteria, initi
                           {optIdx > 0 && <div className="border-t border-gray-100 dark:border-gray-800" />}
                           <div
                             onClick={() => toggleOption(option)}
-                            className={`px-4 py-3 cursor-pointer flex items-center justify-between transition-colors touch-manipulation ${
-                              isSelected
-                                ? 'bg-blue-50 dark:bg-blue-900/20'
-                                : 'bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700'
-                            }`}
+                            className={`px-4 py-3 cursor-pointer flex items-center justify-between transition-colors touch-manipulation ${isSelected
+                              ? 'bg-blue-50 dark:bg-blue-900/20'
+                              : 'bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700'
+                              }`}
                           >
                             <span className="text-sm font-medium text-gray-900 dark:text-white">{option.label}</span>
                             {isSelected && <Check size={16} className="text-blue-600 dark:text-blue-400 flex-shrink-0" />}
@@ -653,10 +686,9 @@ const MultiSelect = ({ isOpen, onClose, options, onSelect, type, criteria, initi
               <div className="space-y-2">
                 {selected.map(item => (
                   <div key={item.id} className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300">
-                    <div className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${
-                      item.category === 'inclusion' ? 'bg-green-500' :
+                    <div className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${item.category === 'inclusion' ? 'bg-green-500' :
                       item.category === 'exclusion' ? 'bg-red-500' : 'bg-blue-500'
-                    }`} />
+                      }`} />
                     <span className="font-medium flex-shrink-0">{item.id}</span>
                     <span className="flex-shrink-0">-</span>
                     <span className="flex-1 break-words">{item.label}</span>
@@ -793,10 +825,10 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
   const [selectedInExCriteria, setSelectedInExCriteria] = useState(null);
 
   const x = useCallback((field, value) => {
-    
-    
+
+
   }, [onUpdateProtocol]);
-  
+
   // console.log(selectedExCriteria)
   const handleProtocolChange = useCallback((field, value) => {
     onUpdateProtocol(prev => ({
@@ -806,112 +838,113 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
   }, [onUpdateProtocol]);
 
   const handleCriteriaChange = useCallback((type, index, value, atr, subIndex) => {
-    if(type === 'extractionCriteria'){
-      if(atr === 'items'){
+    if (type === 'extractionCriteria') {
+      if (atr === 'items') {
         onUpdateProtocol(prev => ({
-        ...prev,
-        [type]: prev[type].map((item, i) => 
-          i === index 
-            ? {
+          ...prev,
+          [type]: prev[type].map((item, i) =>
+            i === index
+              ? {
                 ...item,
                 [atr]: item[atr].map((subItem, j) =>
                   j === subIndex ? value : subItem
                 )
               }
-            : item
-        )
-        }));
-      }else{
-        onUpdateProtocol(prev => ({
-        ...prev,
-        [type]: prev[type].map((item, i) =>  i === index ? 
-          {...item, [atr]: value}
-          : item
-        )
-      }));
-      }
-    }else if (type === 'inclusionCriteria' || type === 'exclusionCriteria' || type === 'qualityCriteria'){
-      onUpdateProtocol(prev => ({
-        ...prev,
-        [type]: prev[type].map((item, i) =>  i === index ? 
-          {...item, [atr]: value}
-          : item
-        )
-      }));
-    }
-    else{
-      onUpdateProtocol(prev => ({
-      ...prev,
-      [type]: prev[type].map((item, i) => i === index ? value : item)
-    }));
-    }
-    
-  }, [onUpdateProtocol]);
-  const addCriteria = useCallback((type, atr, index,length) => {
-    if(type === 'extractionCriteria'){
-      if(atr === 'items'){
-        onUpdateProtocol(prev => ({
-        ...prev,
-        [type]: prev[type].map((item, i) => 
-          i === index 
-            ? {
-                ...item,
-                items: [...item.items, '']  // Adiciona '' no final do array items
-              }
-            : item
-        )
-        }));
-        }else{
-          onUpdateProtocol(prev => ({
-            ...prev,
-            [type]: [...prev[type], {id:`EX${length+1}`, value:'', type:'text', items: ['']}]
-          }))
-        }
-      }else if (type === 'inclusionCriteria' || type === 'exclusionCriteria' || type === 'qualityCriteria'){
-        let ind
-        ind = type === 'inclusionCriteria'? 'I': type === 'exclusionCriteria'? 'E': 'Q'
-        onUpdateProtocol(prev => ({
-          ...prev,
-          [type]: [...prev[type], {id:`${ind}${length+1}`, value:''}]
-        }))
-      }else{
-        onUpdateProtocol(prev => ({
-          ...prev,
-          [type]: [...prev[type], '']
-      }))}
-  }, [onUpdateProtocol]);
-
-  const removeCriteria = useCallback(({type, index, atr, subIndex, length}) => {
-    if(type === 'extractionCriteria'){
-      if(atr === 'items'){
-        onUpdateProtocol(prev => ({
-          ...prev,
-          [type]: prev[type].map((item, i) => 
-            i === index 
-              ? {
-                  ...item,
-                  items: item.items.filter((_, j) => j !== subIndex)  // Remove o item no subIndex
-                }
               : item
           )
         }));
-      }else{
+      } else {
         onUpdateProtocol(prev => ({
-        ...prev,
-        [type]: prev[type].filter((_, i) => i !== index)
-      }));
+          ...prev,
+          [type]: prev[type].map((item, i) => i === index ?
+            { ...item, [atr]: value }
+            : item
+          )
+        }));
       }
-    }else{
+    } else if (type === 'inclusionCriteria' || type === 'exclusionCriteria' || type === 'qualityCriteria') {
+      onUpdateProtocol(prev => ({
+        ...prev,
+        [type]: prev[type].map((item, i) => i === index ?
+          { ...item, [atr]: value }
+          : item
+        )
+      }));
+    }
+    else {
+      onUpdateProtocol(prev => ({
+        ...prev,
+        [type]: prev[type].map((item, i) => i === index ? value : item)
+      }));
+    }
+
+  }, [onUpdateProtocol]);
+  const addCriteria = useCallback((type, atr, index, length) => {
+    if (type === 'extractionCriteria') {
+      if (atr === 'items') {
+        onUpdateProtocol(prev => ({
+          ...prev,
+          [type]: prev[type].map((item, i) =>
+            i === index
+              ? {
+                ...item,
+                items: [...item.items, '']  // Adiciona '' no final do array items
+              }
+              : item
+          )
+        }));
+      } else {
+        onUpdateProtocol(prev => ({
+          ...prev,
+          [type]: [...prev[type], { id: `EX${length + 1}`, value: '', type: 'text', items: [''] }]
+        }))
+      }
+    } else if (type === 'inclusionCriteria' || type === 'exclusionCriteria' || type === 'qualityCriteria') {
+      let ind
+      ind = type === 'inclusionCriteria' ? 'I' : type === 'exclusionCriteria' ? 'E' : 'Q'
+      onUpdateProtocol(prev => ({
+        ...prev,
+        [type]: [...prev[type], { id: `${ind}${length + 1}`, value: '' }]
+      }))
+    } else {
+      onUpdateProtocol(prev => ({
+        ...prev,
+        [type]: [...prev[type], '']
+      }))
+    }
+  }, [onUpdateProtocol]);
+
+  const removeCriteria = useCallback(({ type, index, atr, subIndex, length }) => {
+    if (type === 'extractionCriteria') {
+      if (atr === 'items') {
+        onUpdateProtocol(prev => ({
+          ...prev,
+          [type]: prev[type].map((item, i) =>
+            i === index
+              ? {
+                ...item,
+                items: item.items.filter((_, j) => j !== subIndex)  // Remove o item no subIndex
+              }
+              : item
+          )
+        }));
+      } else {
+        onUpdateProtocol(prev => ({
+          ...prev,
+          [type]: prev[type].filter((_, i) => i !== index)
+        }));
+      }
+    } else {
       onUpdateProtocol(prev => ({
         ...prev,
         [type]: prev[type].filter((_, i) => i !== index)
       }));
     }
-    
-    
+
+
   }, [onUpdateProtocol]);
-  
-  
+
+
   const handleSeExCriteria = useCallback((criteria, index) => {
     setSelectedExCriteria(criteria)
     setSelectedInExCriteria(index)
@@ -940,7 +973,7 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Informações básicas */}
         <div className="space-y-6">
-          <div>            
+          <div>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm sm:text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -954,7 +987,7 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
                   placeholder="Ex: Eficácia do Machine Learning em Diagnósticos Médicos"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Pergunta de Pesquisa
@@ -967,7 +1000,7 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
                   placeholder="Descreva a pergunta da pesquisa"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Período de Publicação
@@ -976,7 +1009,7 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
                   <input
                     type="number"
                     min="1900"
-                    max= {new Date().getFullYear()}
+                    max={new Date().getFullYear()}
                     className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 text-sm"
                     value={protocol.yearRange.start}
                     onChange={(e) => handleProtocolChange('yearRange', {
@@ -987,7 +1020,7 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
                   <input
                     type="number"
                     min="1900"
-                    max=  {new Date().getFullYear()}
+                    max={new Date().getFullYear()}
                     className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 text-sm"
                     value={protocol.yearRange.end}
                     onChange={(e) => handleProtocolChange('yearRange', {
@@ -997,7 +1030,7 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
                   />
                 </div>
               </div>
-              
+
               {/* <div>
                 <h3 className="text-sm sm:text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">Palavras-chaves</h3>
                 <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
@@ -1079,27 +1112,27 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
                   Bases de Dados
                 </h3>
                 <div className="space-y-2">
-                  {['Scopus', 'Web of Science', 'PubMed'].map(db => (
+                  {['Scopus', 'Web of Science', 'PubMed', 'ScienceDirect', 'Periódicos CAPES'].map(db => (
                     <label key={db} className="flex items-center space-x-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors duration-200">
-                          <div className="relative">
-                            <input
-                              type="checkbox"
-                              checked={protocol.databases.includes(db)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  handleProtocolChange('databases', [...protocol.databases, db]);
-                                } else {
-                                  handleProtocolChange('databases', protocol.databases.filter(d => d !== db));
-                                }
-                              }}
-                              className="peer sr-only"
-                            />
-                            <div className="relative w-5 h-5 border-2 border-gray-300 dark:border-gray-600 rounded peer-checked:bg-indigo-500 peer-checked:border-indigo-500 transition-all duration-200">
-                            </div>
-                            <Check className="absolute inset-0 m-auto w-3 h-3 text-white hidden peer-checked:block" />
-                          </div>
-                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{db}</span>
-                        </label>
+                      <div className="relative">
+                        <input
+                          type="checkbox"
+                          checked={protocol.databases.includes(db)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              handleProtocolChange('databases', [...protocol.databases, db]);
+                            } else {
+                              handleProtocolChange('databases', protocol.databases.filter(d => d !== db));
+                            }
+                          }}
+                          className="peer sr-only"
+                        />
+                        <div className="relative w-5 h-5 border-2 border-gray-300 dark:border-gray-600 rounded peer-checked:bg-indigo-500 peer-checked:border-indigo-500 transition-all duration-200">
+                        </div>
+                        <Check className="absolute inset-0 m-auto w-3 h-3 text-white hidden peer-checked:block" />
+                      </div>
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{db}</span>
+                    </label>
                   ))}
                 </div>
               </div>
@@ -1113,13 +1146,13 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
             <h3 className="text-sm sm:text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">Critérios de Inclusão</h3>
             <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
               <div className="overflow-hidden">
-                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">   
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                   <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                     {protocol.inclusionCriteria.map((criteria, index) => (
                       <tr key={index} className="transition-colors duration-200">
                         <td className="">
                           <span className="px-4 py-2 text-gray-500 font-bold dark:text-gray-400 text-sm">{`I${index + 1}`}</span>
-                           
+
                         </td>
                         <td className="w-full h-px">
                           <textarea
@@ -1132,7 +1165,7 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
                         <td className="px-4 py-2 text-right">
                           <button
                             disabled={protocol.inclusionCriteria.length === 1}
-                            onClick={() => removeCriteria({type:'inclusionCriteria', index:index})}
+                            onClick={() => removeCriteria({ type: 'inclusionCriteria', index: index })}
                             className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 p-1 rounded-full hover:bg-red-50 dark:hover:bg-red-900/50 transition-colors duration-200 disabled:cursor-not-allowed disabled:text-gray-500 disabled:hover:bg-transparent disabled:hover:text-gray-500"
                           >
                             <XCircle size={16} />
@@ -1145,7 +1178,7 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
               </div>
               <div className=" bg-gray-50 dark:bg-gray-900/50  rounded-bl-lg rounded-br-lg " >
                 <button
-                  onClick={() => addCriteria('inclusionCriteria','','',protocol.inclusionCriteria.length)}
+                  onClick={() => addCriteria('inclusionCriteria', '', '', protocol.inclusionCriteria.length)}
                   className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 text-sm font-medium rounded-bl-lg rounded-br-lg rounded-tl-none rounded-tr-none transition-colors duration-200 flex items-center justify-center gap-2"
                 >
                   <PlusCircle size={16} />
@@ -1159,13 +1192,13 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
             <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
               <div className="overflow-hidden">
                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                  
+
                   <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                     {protocol.exclusionCriteria.map((criteria, index) => (
                       <tr key={index} className="transition-colors duration-200">
                         <td className="">
                           <span className="px-4 py-2 text-gray-500 font-bold dark:text-gray-400">{`E${index + 1}`}</span>
-                           
+
                         </td>
                         <td className="w-full h-px">
                           <textarea
@@ -1178,7 +1211,7 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
                         <td className="px-4 py-2 text-right">
                           <button
                             disabled={protocol.exclusionCriteria.length === 1}
-                            onClick={() => removeCriteria({type:'exclusionCriteria', index:index})}
+                            onClick={() => removeCriteria({ type: 'exclusionCriteria', index: index })}
                             className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 p-1 rounded-full hover:bg-red-50 dark:hover:bg-red-900/50 transition-colors duration-200 disabled:cursor-not-allowed disabled:text-gray-500 disabled:hover:bg-transparent disabled:hover:text-gray-500"
                           >
                             <XCircle size={16} />
@@ -1191,7 +1224,7 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
               </div>
               <div className=" bg-gray-50 dark:bg-gray-900/50  rounded-bl-lg rounded-br-lg " >
                 <button
-                  onClick={() => addCriteria('exclusionCriteria','','',protocol.exclusionCriteria.length)}
+                  onClick={() => addCriteria('exclusionCriteria', '', '', protocol.exclusionCriteria.length)}
                   className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 text-sm font-medium rounded-bl-lg rounded-br-lg rounded-tl-none rounded-tr-none transition-colors duration-200 flex items-center justify-center gap-2"
                 >
                   <PlusCircle size={16} />
@@ -1205,7 +1238,7 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
             <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
               <div className="overflow-hidden">
                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                  
+
                   <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                     {protocol.qualityCriteria.map((criteria, index) => (
                       <tr key={index} className="transition-colors duration-200">
@@ -1223,7 +1256,7 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
                         <td className="px-4 py-2 text-right">
                           <button
                             disabled={protocol.qualityCriteria.length === 1}
-                            onClick={() => removeCriteria({type:'qualityCriteria', index:index})}
+                            onClick={() => removeCriteria({ type: 'qualityCriteria', index: index })}
                             className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 p-1 rounded-full hover:bg-red-50 dark:hover:bg-red-900/50 transition-colors duration-200 disabled:cursor-not-allowed disabled:text-gray-500 disabled:hover:bg-transparent disabled:hover:text-gray-500"
                           >
                             <XCircle size={16} />
@@ -1236,7 +1269,7 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
               </div>
               <div className=" bg-gray-50 dark:bg-gray-900/50  rounded-bl-lg rounded-br-lg " >
                 <button
-                  onClick={() => addCriteria('qualityCriteria','','',protocol.qualityCriteria.length)}
+                  onClick={() => addCriteria('qualityCriteria', '', '', protocol.qualityCriteria.length)}
                   className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm font-medium rounded-bl-lg rounded-br-lg rounded-tl-none rounded-tr-none transition-colors duration-200 flex items-center justify-center gap-2"
                 >
                   <PlusCircle size={16} />
@@ -1411,18 +1444,26 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
                             placeholder="Ex: Qual a metodologia utilizada?"
                           />
                         </td>
-                        <td className="px-4 py-2 text-right">
-                          <button
-                            disabled={
-                              (criteria.type !== 'Pick on List' && criteria.type !== 'Pick on Many') ||
-                              criteria.value === ''
-                            }
-                            onClick={() => handleSeExCriteria(criteria, index)}
-                            className="text-black-600 dark:text-white-400 hover:text-white-800 dark:hover:text-white-300 p-1 rounded-full hover:bg-white-50 dark:hover:bg-white-900/50 transition-colors duration-200 disabled:cursor-not-allowed disabled:text-gray-500"
-                          >
-                            <List size={16} />
-                          </button>
-                        </td>
+
+                        {!(criteria.type !== 'Pick on List' && criteria.type !== 'Pick on Many' || criteria.value === '') && (
+                          <td className="px-4 py-2 text-right">
+
+
+                            <button
+                              disabled={
+                                (criteria.type !== 'Pick on List' && criteria.type !== 'Pick on Many') ||
+                                criteria.value === ''
+                              }
+                              onClick={() => handleSeExCriteria(criteria, index)}
+                              className="text-black-600 dark:text-white-400 hover:text-white-800 dark:hover:text-white-300 p-1 rounded-full hover:bg-white-50 dark:hover:bg-white-900/50 transition-colors duration-200 disabled:cursor-not-allowed disabled:text-gray-500"
+                            >
+
+
+                              <List size={16} />
+                            </button>
+
+                          </td>
+                        )}
                         <td className="px-4 py-2 text-right">
                           <button
                             disabled={protocol.extractionCriteria.length === 1}
@@ -1469,19 +1510,19 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
                 </button>
               </div>
             </div>
-              <div className="p-6">
-                <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+            <div className="p-6">
+              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                 <div className="overflow-hidden">
                   <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                    
+
                     <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                       {selectedExCriteria.items.map((criteria, index) => (
                         <tr key={index} className="transition-colors duration-200">
-                          
+
                           <td className="w-full">
                             <input
                               type="text"
-                              className={index === 0 ? "w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-tl-lg focus:ring-2 focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 text-sm" :"w-full px-3 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 text-sm"}
+                              className={index === 0 ? "w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-tl-lg focus:ring-2 focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 text-sm" : "w-full px-3 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 text-sm"}
                               value={criteria}
                               onChange={(e) => handleCriteriaChange('extractionCriteria', selectedInExCriteria, e.target.value, 'items', index)}
                               placeholder="Ex:  Randomização adequada"
@@ -1489,9 +1530,9 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
                           </td>
                           <td className="px-4 py-2 text-right">
                             <button
-                            // (type, index, typeEx, subIndex)
+                              // (type, index, typeEx, subIndex)
                               disabled={selectedExCriteria.items.length === 1}
-                              onClick={() => removeCriteria({type: 'extractionCriteria', index:selectedInExCriteria, atr:'items', subIndex:index})}
+                              onClick={() => removeCriteria({ type: 'extractionCriteria', index: selectedInExCriteria, atr: 'items', subIndex: index })}
                               className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 p-1 rounded-full hover:bg-red-50 dark:hover:bg-red-900/50 transition-colors duration-200 disabled:cursor-not-allowed disabled:text-gray-500 disabled:hover:bg-transparent disabled:hover:text-gray-500"
                             >
                               <XCircle size={16} />
@@ -1511,7 +1552,7 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
                     Adicionar Possível Resposta
                   </button>
                 </div>
-            </div>
+              </div>
               <div className="grid grid-cols-2 gap-4 mb-4">
                 {/* <div className="text-gray-700 dark:text-gray-300"><strong>Autores:</strong> {selectedArticle.authors}</div>
                 <div className="text-gray-700 dark:text-gray-300"><strong>Fonte:</strong> {selectedArticle.source}</div>
@@ -1535,7 +1576,7 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
                 <strong className="text-gray-700 dark:text-gray-300">Resumo:</strong>
                 <p className="mt-2 text-gray-700 dark:text-gray-300">{selectedArticle.abstract}</p>
               </div> */}
-              
+
               {/* {selectedArticle.inclusionCriterion && (
                 <div className="mb-4">
                   <strong className="text-green-700 dark:text-green-300">Critério de Inclusão:</strong>
@@ -1554,33 +1595,33 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
       )}
 
       {/* Sistema de Pontuação */}
-     
- 
 
-    {/* Coluna direita — Scoring */}
-    <div className="mt-8">
-      <ScoringSystemConfig
-        scoringSystem={protocol.scoringSystem}
-        onUpdate={onUpdateProtocol}
-        protocol={protocol}
-        addCriteria={addCriteria}
-        removeCriteria={removeCriteria}
-        handleCriteriaChange={handleCriteriaChange}
-      />
-    </div>
-      
+
+
+      {/* Coluna direita — Scoring */}
+      <div className="mt-8">
+        <ScoringSystemConfig
+          scoringSystem={protocol.scoringSystem}
+          onUpdate={onUpdateProtocol}
+          protocol={protocol}
+          addCriteria={addCriteria}
+          removeCriteria={removeCriteria}
+          handleCriteriaChange={handleCriteriaChange}
+        />
+      </div>
+
       <div className="mt-8 p-4 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg transition-colors duration-200">
         <h4 className="font-semibold text-indigo-800 dark:text-indigo-300 mb-2">Status do Protocolo</h4>
         <p className="text-sm text-indigo-700 dark:text-indigo-400">
-          {protocol.title ? '✓ Título definido' : '⚠ Título pendente'} | 
-          {protocol.researchQuestion? ' ✓ Pergunta da pesquisa definida' : ' ⚠ Pergunta da pesquisa pendente'} | 
-          {protocol.keywords.some(c => c.trim()) ? ' ✓ Palavras-chaves definidas' : ' ⚠ Palavras-chaves pendentes'} | 
-          {protocol.inclusionCriteria.length > 1  ? ' ✓ Critérios de inclusão definidos' : ' ⚠ Critérios de inclusão pendentes'} | 
-          {protocol.exclusionCriteria.length > 1  ? ' ✓ Critérios de exclusão definidos' : ' ⚠ Critérios de exclusão pendentes'} | 
-          {protocol.extractionCriteria.length > 1 ? ' ✓ Critérios de extração definidos' : ' ⚠ Critérios de extração pendentes'} | 
-          {protocol.qualityCriteria.length > 1  ? ' ✓ Critérios de qualidade definidos' : ' ⚠ Critérios de qualidade pendentes'} | 
+          {protocol.title ? '✓ Título definido' : '⚠ Título pendente'} |
+          {protocol.researchQuestion ? ' ✓ Pergunta da pesquisa definida' : ' ⚠ Pergunta da pesquisa pendente'} |
+          {protocol.keywords.some(c => c.trim()) ? ' ✓ Palavras-chaves definidas' : ' ⚠ Palavras-chaves pendentes'} |
+          {protocol.inclusionCriteria.length > 1 ? ' ✓ Critérios de inclusão definidos' : ' ⚠ Critérios de inclusão pendentes'} |
+          {protocol.exclusionCriteria.length > 1 ? ' ✓ Critérios de exclusão definidos' : ' ⚠ Critérios de exclusão pendentes'} |
+          {protocol.extractionCriteria.length > 1 ? ' ✓ Critérios de extração definidos' : ' ⚠ Critérios de extração pendentes'} |
+          {protocol.qualityCriteria.length > 1 ? ' ✓ Critérios de qualidade definidos' : ' ⚠ Critérios de qualidade pendentes'} |
           {protocol.databases.length > 0 ? ' ✓ Bases selecionadas' : ' ⚠ Bases pendentes'}
-            
+
 
           {/* title: '',
     researchQuestion: '',
@@ -1601,7 +1642,7 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
 // Modal para string de busca
 const SearchStringModal = ({ isOpen, onClose, onConfirm, database }) => {
   const [searchString, setSearchString] = useState('');
-  
+
   if (!isOpen) return null;
 
   const handleConfirm = () => {
@@ -1657,7 +1698,7 @@ const SearchStringModal = ({ isOpen, onClose, onConfirm, database }) => {
 };
 
 // Componente de configuração do sistema de pontuação
-const ScoringSystemConfig = ({ scoringSystem, onUpdate, protocol, addCriteria, removeCriteria, handleCriteriaChange  }) => {
+const ScoringSystemConfig = ({ scoringSystem, onUpdate, protocol, addCriteria, removeCriteria, handleCriteriaChange }) => {
   const handleWeightChange = (field, value) => {
     const numValue = Math.max(0, Math.min(10, parseInt(value) || 0));
     onUpdate(prev => ({
@@ -1716,9 +1757,9 @@ const ScoringSystemConfig = ({ scoringSystem, onUpdate, protocol, addCriteria, r
         </p>
       </div>
 
-      
-        <div className="p-4 space-y-6">
-           {/* Duas colunas internas */}
+
+      <div className="p-4 space-y-6">
+        {/* Duas colunas internas */}
         <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-indigo-100 dark:divide-indigo-800">
 
           {/* Coluna esquerda — Keywords */}
@@ -1728,16 +1769,16 @@ const ScoringSystemConfig = ({ scoringSystem, onUpdate, protocol, addCriteria, r
               <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                 <div className="overflow-hidden">
                   <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                    
+
                     <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                       {protocol.keywords.map((criteria, index) => (
                         <tr key={index} className="transition-colors duration-200">
-                          
+
                           <td className="w-full">
                             <input
                               type="text"
                               // flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-20
-                              className={index === 0 ? "w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-tl-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 text-sm" :"w-full px-3 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 text-sm"}
+                              className={index === 0 ? "w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-tl-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 text-sm" : "w-full px-3 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 text-sm"}
                               value={criteria}
                               onChange={(e) => handleCriteriaChange('keywords', index, e.target.value)}
                               placeholder="Ex: Machine learning"
@@ -1746,8 +1787,8 @@ const ScoringSystemConfig = ({ scoringSystem, onUpdate, protocol, addCriteria, r
                           <td className="px-4 py-2 text-right">
                             <button
                               disabled={protocol.keywords.length === 1}
-                              onClick={() => removeCriteria({type:'keywords', index:index})}
-                              className= "text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 p-1 rounded-full hover:bg-red-50 dark:hover:bg-red-900/50 transition-colors duration-200 disabled:cursor-not-allowed disabled:text-gray-500 disabled:hover:bg-transparent disabled:hover:text-gray-500"
+                              onClick={() => removeCriteria({ type: 'keywords', index: index })}
+                              className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 p-1 rounded-full hover:bg-red-50 dark:hover:bg-red-900/50 transition-colors duration-200 disabled:cursor-not-allowed disabled:text-gray-500 disabled:hover:bg-transparent disabled:hover:text-gray-500"
                             >
                               <XCircle size={16} />
                             </button>
@@ -1770,79 +1811,79 @@ const ScoringSystemConfig = ({ scoringSystem, onUpdate, protocol, addCriteria, r
             </div>
           </div>
           <div className="p-4">
-          <div>
-            <h5 className="font-medium text-blue-700 dark:text-blue-300 mb-4">Pesos por Campo</h5>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {[
-                { label: 'Título', key: 'title' },
-                { label: 'Resumo', key: 'abstract' },
-                { label: 'Palavras-chave', key: 'keywords' }
-              ].map(field => (
-                <div key={field.key} className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg">
-                  <div className="flex justify-between items-center mb-2">
-                    <label className="text-sm font-medium text-blue-600 dark:text-blue-400">
-                      {field.label}
-                    </label>
-                    <span className="text-sm font-bold text-blue-700 dark:text-blue-300">
-                      {scoringSystem.weights[field.key]} pts
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="10"
-                    value={scoringSystem.weights[field.key]}
-                    onChange={(e) => handleWeightChange(field.key, e.target.value)}
-                    className="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600 dark:accent-blue-400"
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="border-t border-blue-200 dark:border-blue-800 pt-6">
-            <h5 className="font-medium text-blue-700 dark:text-blue-300 mb-4">Configurações de Busca</h5>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {[
-                {
-                  key: 'caseInsensitive',
-                  label: 'Ignorar maiúsculas/minúsculas',
-                  description: 'Não diferencia entre maiúsculas e minúsculas na busca'
-                },
-                {
-                  key: 'exactMatch',
-                  label: 'Busca exata',
-                  description: 'Encontra apenas palavras completas'
-                },
-                {
-                  key: 'multipleOccurrences',
-                  label: 'Múltiplas ocorrências',
-                  description: 'Conta cada vez que uma keyword aparece'
-                }
-              ].map(setting => (
-                <div key={setting.key} className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg">
-                  <label className="flex items-center gap-3 cursor-pointer overflow-hidden">
-                    <div className="relative flex-shrink-0">
-                      <input
-                        type="checkbox"
-                        checked={scoringSystem[setting.key]}
-                        onChange={(e) => handleConfigChange(setting.key, e.target.checked)}
-                        className="peer sr-only"
-                      />
-                      <div className="w-10 h-6 bg-gray-300 rounded-full peer-checked:bg-blue-500 transition-colors duration-200" />
-                      <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform duration-200 peer-checked:translate-x-4" />
+            <div>
+              <h5 className="font-medium text-blue-700 dark:text-blue-300 mb-4">Pesos por Campo</h5>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {[
+                  { label: 'Título', key: 'title' },
+                  { label: 'Resumo', key: 'abstract' },
+                  { label: 'Palavras-chave', key: 'keywords' }
+                ].map(field => (
+                  <div key={field.key} className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg">
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                        {field.label}
+                      </label>
+                      <span className="text-sm font-bold text-blue-700 dark:text-blue-300">
+                        {scoringSystem.weights[field.key]} pts
+                      </span>
                     </div>
-                    <span className="text-sm font-medium text-blue-700 dark:text-blue-400 leading-tight min-w-0 break-words">
-                      {setting.label}
-                    </span>
-                  </label>
-                  <p className="mt-1 text-xs text-blue-600 dark:text-blue-500">{setting.description}</p>
-                </div>
-              ))}
+                    <input
+                      type="range"
+                      min="0"
+                      max="10"
+                      value={scoringSystem.weights[field.key]}
+                      onChange={(e) => handleWeightChange(field.key, e.target.value)}
+                      className="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600 dark:accent-blue-400"
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
 
-          {/* <div className="pt-3 border-t border-blue-200 dark:border-blue-700">
+            <div className="border-t border-blue-200 dark:border-blue-800 pt-6">
+              <h5 className="font-medium text-blue-700 dark:text-blue-300 mb-4">Configurações de Busca</h5>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {[
+                  {
+                    key: 'caseInsensitive',
+                    label: 'Ignorar maiúsculas/minúsculas',
+                    description: 'Não diferencia entre maiúsculas e minúsculas na busca'
+                  },
+                  {
+                    key: 'exactMatch',
+                    label: 'Busca exata',
+                    description: 'Encontra apenas palavras completas'
+                  },
+                  {
+                    key: 'multipleOccurrences',
+                    label: 'Múltiplas ocorrências',
+                    description: 'Conta cada vez que uma keyword aparece'
+                  }
+                ].map(setting => (
+                  <div key={setting.key} className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg">
+                    <label className="flex items-center gap-3 cursor-pointer overflow-hidden">
+                      <div className="relative flex-shrink-0">
+                        <input
+                          type="checkbox"
+                          checked={scoringSystem[setting.key]}
+                          onChange={(e) => handleConfigChange(setting.key, e.target.checked)}
+                          className="peer sr-only"
+                        />
+                        <div className="w-10 h-6 bg-gray-300 rounded-full peer-checked:bg-blue-500 transition-colors duration-200" />
+                        <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform duration-200 peer-checked:translate-x-4" />
+                      </div>
+                      <span className="text-sm font-medium text-blue-700 dark:text-blue-400 leading-tight min-w-0 break-words">
+                        {setting.label}
+                      </span>
+                    </label>
+                    <p className="mt-1 text-xs text-blue-600 dark:text-blue-500">{setting.description}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* <div className="pt-3 border-t border-blue-200 dark:border-blue-700">
             <button
               onClick={() => window.recalculateAllScores && window.recalculateAllScores()}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors duration-200"
@@ -1852,68 +1893,68 @@ const ScoringSystemConfig = ({ scoringSystem, onUpdate, protocol, addCriteria, r
             </button>
           </div> */}
 
-          <div className="bg-blue-100 dark:bg-blue-800/50 p-3 rounded text-xs text-blue-700 dark:text-blue-300 mt-4">
-            <p><strong>Como funciona:</strong></p>
-            <ul className="list-disc list-inside mt-1 space-y-1">
-              <li>Cada keyword encontrada soma pontos baseado no peso do campo</li>
-              <li>Pontuação total = soma de todas as keywords × pesos dos campos</li>
-              <li>Maior pontuação = indica maior relevância para a pesquisa</li>
-            </ul>
+            <div className="bg-blue-100 dark:bg-blue-800/50 p-3 rounded text-xs text-blue-700 dark:text-blue-300 mt-4">
+              <p><strong>Como funciona:</strong></p>
+              <ul className="list-disc list-inside mt-1 space-y-1">
+                <li>Cada keyword encontrada soma pontos baseado no peso do campo</li>
+                <li>Pontuação total = soma de todas as keywords × pesos dos campos</li>
+                <li>Maior pontuação = indica maior relevância para a pesquisa</li>
+              </ul>
+            </div>
           </div>
         </div>
-        </div>
-        </div>
-      
+      </div>
+
     </div>
   );
 };
 
 // Componente para importação de dados
-const ImportSection = ({articles, setArticles, onImport, isLoading, importedData, protocol, setImportedData, detectDuplicates, numStringSc, setNumStringSc, statistics }) => {
+const ImportSection = ({ articles, setArticles, onImport, isLoading, importedData, protocol, setImportedData, detectDuplicates, numStringSc, setNumStringSc, statistics }) => {
   const [showSearchStringModal, setShowSearchStringModal] = useState(null);
   const [pendingImport, setPendingImport] = useState(null);
   const [isLoadingState, setIsLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [inputFileSelected, setInputFileSelected] = useState(null);
-  
-  
-   
+
+
+
   const detectDuplicatesImport = (articles, database) => {
-      const duplicatesByDOI = new Map();
-      const duplicatesByTitle = new Map();
-      const duplicatesByAuthorsYear = new Map();
-      
-      articles.forEach(article => {
-        if (article.isDuplicate) return; // Pular se já é marcado como duplicata
-        
-        // Detectar por DOI
-        if (article.doi && duplicatesByDOI.has(article.doi)) {
-          article.isDuplicate = true;
-          article.dataProcessingStatus = 'duplicate'
-          article.duplicateOf = duplicatesByDOI.get(article.doi);
-        } else if (article.doi) {
-          duplicatesByDOI.set(article.doi, article.id);
-        }
-        
-        // Detectar por título 
-        const normalizedTitle = article.title.toLowerCase().trim();
-        if (duplicatesByTitle.has(normalizedTitle)) {
-          article.isDuplicate = true;
-          article.dataProcessingStatus = 'duplicate'
-          article.duplicateOf = duplicatesByTitle.get(normalizedTitle);
-        } else {
-          duplicatesByTitle.set(normalizedTitle, article.id);
-        }
-        
-        // Detectar por autores + ano
-        // const authorYearKey = `${article.authors.toLowerCase()}_${article.year}`;
-        // if (duplicatesByAuthorsYear.has(authorYearKey)) {
-        //   article.isDuplicate = true;
-        //   article.duplicateOf = duplicatesByAuthorsYear.get(authorYearKey);
-        // } else {
-        //   duplicatesByAuthorsYear.set(authorYearKey, article.id);
-        // }
-      });
+    const duplicatesByDOI = new Map();
+    const duplicatesByTitle = new Map();
+    const duplicatesByAuthorsYear = new Map();
+
+    articles.forEach(article => {
+      if (article.isDuplicate) return; // Pular se já é marcado como duplicata
+
+      // Detectar por DOI
+      if (article.doi && duplicatesByDOI.has(article.doi)) {
+        article.isDuplicate = true;
+        article.dataProcessingStatus = 'duplicate'
+        article.duplicateOf = duplicatesByDOI.get(article.doi);
+      } else if (article.doi) {
+        duplicatesByDOI.set(article.doi, article.id);
+      }
+
+      // Detectar por título 
+      const normalizedTitle = article.title.toLowerCase().trim();
+      if (duplicatesByTitle.has(normalizedTitle)) {
+        article.isDuplicate = true;
+        article.dataProcessingStatus = 'duplicate'
+        article.duplicateOf = duplicatesByTitle.get(normalizedTitle);
+      } else {
+        duplicatesByTitle.set(normalizedTitle, article.id);
+      }
+
+      // Detectar por autores + ano
+      // const authorYearKey = `${article.authors.toLowerCase()}_${article.year}`;
+      // if (duplicatesByAuthorsYear.has(authorYearKey)) {
+      //   article.isDuplicate = true;
+      //   article.duplicateOf = duplicatesByAuthorsYear.get(authorYearKey);
+      // } else {
+      //   duplicatesByAuthorsYear.set(authorYearKey, article.id);
+      // }
+    });
   };
   // useEffect(() => {
 
@@ -1923,16 +1964,16 @@ const ImportSection = ({articles, setArticles, onImport, isLoading, importedData
   const handleImportRequest = (target, database) => {
     const file = target.files[0]
     if (!file) return;
-    if (file.name.endsWith('.bib') || file.name.endsWith('.bibtex') || file.name.endsWith('.txt')){
+    if (file.name.endsWith('.bib') || file.name.endsWith('.bibtex') || file.name.endsWith('.txt')) {
       setInputFileSelected(target)
       setPendingImport({ file, database });
-      setShowSearchStringModal(database);      
-    }else{
+      setShowSearchStringModal(database);
+    } else {
       alert('Erro ao processar o arquivo. Verifique o formato.');
       throw new Error('Formato de arquivo não corresponde à base de dados selecionada.');
     }
   };
-  
+
   const detectType = (text) => {
     // Regras simples para identificar WOS vs Scopus
     // WoS costuma ter campos como: "Publisher = {Web of Science}", "ResearcherID", "Unique-ID"
@@ -1945,7 +1986,7 @@ const ImportSection = ({articles, setArticles, onImport, isLoading, importedData
     }
     return type;     // <-- essencial
   };
-  
+
   const handleConfirmImport = async (searchString) => {
     if (!pendingImport) return;
     const { file, database } = pendingImport;
@@ -1959,63 +2000,63 @@ const ImportSection = ({articles, setArticles, onImport, isLoading, importedData
       // Determinar o tipo de arquivo e processar
       let importedArticles;
       if (file.name.endsWith('.bib') || file.name.endsWith('.bibtex') || file.name.endsWith('.txt')) {
-        
+
         // console.log('Detected type:', detectedType);
         // console.log('database:', database);
         // if(detectedType === database){
-          if(database === 'Scopus' || database === 'Web of Science'){
-            importedArticles = importedBibtexArticles(fileContent, database, numStringSc, articles.length);
-          }else{
-            importedArticles = importedPubmedArticles(fileContent, database, numStringSc, articles.length);
-          }
-            // Adicionar string de busca
-          importedArticles = importedArticles.map(article => ({
-            ...article,
-            searchString: searchString
-          }));
-          
-          // Calcular pontuações se habilitado
-          if ( protocol.keywords?.length > 0) {
-            const validKeywords = protocol.keywords.filter(k => k.trim());
-            if (validKeywords.length > 0) {
-              importedArticles = importedArticles.map(article => ({
-                ...article,
-                score: window.calculateArticleScore ? 
-                  window.calculateArticleScore(article, validKeywords, protocol.scoringSystem) : 0
-              }));
-            }
-          }
+        if (database === 'Scopus' || database === 'Web of Science' || database === 'ScienceDirect' || database === 'Periódicos CAPES') {
+          importedArticles = importedBibtexArticles(fileContent, database, numStringSc, articles.length);
+        } else {
+          importedArticles = importedPubmedArticles(fileContent, database, numStringSc, articles.length);
+        }
+        // Adicionar string de busca
+        importedArticles = importedArticles.map(article => ({
+          ...article,
+          searchString: searchString
+        }));
 
-          
-          
-          // const idData = importedData.length+1
-         
-          const idData = importedData.reduce((max, data) => (data.id > max ? data.id : max), 0) +1;
+        // Calcular pontuações se habilitado
+        if (protocol.keywords?.length > 0) {
+          const validKeywords = protocol.keywords.filter(k => k.trim());
+          if (validKeywords.length > 0) {
+            importedArticles = importedArticles.map(article => ({
+              ...article,
+              score: window.calculateArticleScore ?
+                window.calculateArticleScore(article, validKeywords, protocol.scoringSystem) : 0
+            }));
+          }
+        }
 
-          const newImportData = {
-            id: idData,
-            database,
-            searchString,
-            articles: importedArticles,
-            importDate: new Date(),
-            fileName: file.name
-          };
-          importedArticles = importedArticles.map(article => ({
-            ...article,
-            idData: idData
-          }));
-          setImportedData(prev => [...prev, newImportData]);
-          
-          onImport(importedArticles, database);
-          setNumStringSc(prev => prev + 1);
+
+
+        // const idData = importedData.length+1
+
+        const idData = importedData.reduce((max, data) => (data.id > max ? data.id : max), 0) + 1;
+
+        const newImportData = {
+          id: idData,
+          database,
+          searchString,
+          articles: importedArticles,
+          importDate: new Date(),
+          fileName: file.name
+        };
+        importedArticles = importedArticles.map(article => ({
+          ...article,
+          idData: idData
+        }));
+        setImportedData(prev => [...prev, newImportData]);
+
+        onImport(importedArticles, database);
+        setNumStringSc(prev => prev + 1);
         // }else{
         //   throw new Error('Formato de arquivo não corresponde à base de dados selecionada.');
         // }
-      } else{
+      } else {
         throw new Error('Formato de arquivo não corresponde à base de dados selecionada.');
       }
-      
-    
+
+
     } catch (error) {
       console.error('Erro ao processar arquivo:', error);
       alert('Erro ao processar o arquivo. Verifique o formato.');
@@ -2025,14 +2066,14 @@ const ImportSection = ({articles, setArticles, onImport, isLoading, importedData
       setPendingImport(null);
       setIsLoading(false);
       inputFileSelected.value = ""
-          
+
       console.log(importedData)
 
     }
   };
   const handleExcludeData = (data) => {
 
-    setImportedData(prev => 
+    setImportedData(prev =>
       prev.filter(prevdata => prevdata.id !== data.id)
     );
     setArticles(prevArticles => {
@@ -2120,7 +2161,7 @@ const ImportSection = ({articles, setArticles, onImport, isLoading, importedData
                   Formatos: BibTeX
                 </p>
               </div>
-             
+
               {importedData.filter(data => data.database === 'Scopus').length > 0 && (
                 <div className="bg-orange-50 dark:bg-orange-900/30 p-4 rounded-lg transition-colors duration-200">
                   <div className="flex items-center justify-between mb-2">
@@ -2288,6 +2329,138 @@ const ImportSection = ({articles, setArticles, onImport, isLoading, importedData
             </div>
           </div>
         )}
+
+        {/* ScienceDirect */}
+        {protocol.databases.includes('ScienceDirect') && (
+          <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-6 bg-white dark:bg-gray-800 transition-colors duration-200">
+            <div className="flex items-center mb-4">
+              <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center mr-4">
+                <Database className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+              </div>
+              <div>
+                <h3 className="text-sm sm:text-lg font-semibold text-gray-800 dark:text-white">ScienceDirect</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Importar BibTeX</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Upload do arquivo ScienceDirect
+                </label>
+                <input
+                  type="file"
+                  accept=".bib,.bibtex,.txt"
+                  onChange={(e) => handleImportRequest(e.target, 'ScienceDirect')}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 dark:hover:text-white dark:hover:bg-indigo-500 hover:text-black hover:bg-gray-200 file:hidden"
+                  disabled={isLoadingState}
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Formatos: BibTeX
+                </p>
+              </div>
+
+              {importedData.filter(data => data.database === 'ScienceDirect').length > 0 && (
+                <div className="bg-orange-50 dark:bg-orange-900/30 p-4 rounded-lg transition-colors duration-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-medium text-orange-800 dark:text-orange-300">Status</span>
+                    <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                  </div>
+                  {importedData.filter(data => data.database === 'ScienceDirect').map((data, index) => (
+                    <div key={index} className="space-y-1 text-sm mb-3 last:mb-0">
+                      <div className="flex justify-between">
+                        <span className="text-orange-700 dark:text-orange-400">String {index + 1}:</span>
+                        <span className="font-medium text-orange-800 dark:text-orange-300">{data.articles.length} artigos</span>
+                      </div>
+                      <div className="text-xs text-orange-600 dark:text-orange-500 break-all">
+                        {data.searchString.length > 80 ? data.searchString.substring(0, 80) + '...' : data.searchString}
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-orange-600 dark:text-orange-400">Duplicatas:</span>
+                        <span className="font-medium text-red-600 dark:text-red-400">
+                          {statistics.importSection['duplicate' + data.id]}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {isLoadingState && (
+                <div className="flex items-center justify-center py-4">
+                  <RefreshCw className="h-5 w-5 animate-spin text-orange-600 dark:text-orange-400 mr-2" />
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Processando...</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Periódicos CAPES */}
+        {protocol.databases.includes('Periódicos CAPES') && (
+          <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-6 bg-white dark:bg-gray-800 transition-colors duration-200">
+            <div className="flex items-center mb-4">
+              <div className="w-12 h-12 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg flex items-center justify-center mr-4">
+                <Database className="h-6 w-6 text-cyan-700 dark:text-cyan-400" />
+              </div>
+              <div>
+                <h3 className="text-sm sm:text-lg font-semibold text-gray-800 dark:text-white">Periódicos CAPES</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Importar BibTeX</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Upload do arquivo Periódicos CAPES
+                </label>
+                <input
+                  type="file"
+                  accept=".bib,.bibtex,.txt"
+                  onChange={(e) => handleImportRequest(e.target, 'Periódicos CAPES')}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 dark:hover:text-white dark:hover:bg-indigo-500 hover:text-black hover:bg-gray-200 file:hidden"
+                  disabled={isLoadingState}
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Formatos: BibTeX
+                </p>
+              </div>
+
+              {importedData.filter(data => data.database === 'Periódicos CAPES').length > 0 && (
+                <div className="bg-cyan-50 dark:bg-cyan-900/30 p-4 rounded-lg transition-colors duration-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-medium text-cyan-800 dark:text-cyan-300">Status</span>
+                    <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                  </div>
+                  {importedData.filter(data => data.database === 'Periódicos CAPES').map((data, index) => (
+                    <div key={index} className="space-y-1 text-sm mb-3 last:mb-0">
+                      <div className="flex justify-between">
+                        <span className="text-cyan-700 dark:text-cyan-400">String {index + 1}:</span>
+                        <span className="font-medium text-cyan-800 dark:text-cyan-300">{data.articles.length} artigos</span>
+                      </div>
+                      <div className="text-xs text-cyan-600 dark:text-cyan-500 break-all">
+                        {data.searchString.length > 80 ? data.searchString.substring(0, 80) + '...' : data.searchString}
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-cyan-600 dark:text-cyan-400">Duplicatas:</span>
+                        <span className="font-medium text-red-600 dark:text-red-400">
+                          {statistics.importSection['duplicate' + data.id]}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {isLoadingState && (
+                <div className="flex items-center justify-center py-4">
+                  <RefreshCw className="h-5 w-5 animate-spin text-cyan-600 dark:text-cyan-400 mr-2" />
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Processando...</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Tabela de dados importados */}
@@ -2299,7 +2472,7 @@ const ImportSection = ({articles, setArticles, onImport, isLoading, importedData
               Visualização detalhada dos artigos importados organizados por string de busca e base de dados
             </p>
           </div>
-          
+
           <div className="overflow-x-auto">
             <table className="w-full ">
               <thead className="bg-gray-50 dark:bg-gray-900">
@@ -2323,7 +2496,7 @@ const ImportSection = ({articles, setArticles, onImport, isLoading, importedData
                     Data Import.
                   </th>
                   <th className="py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                   
+
                   </th>
                 </tr>
               </thead>
@@ -2331,12 +2504,13 @@ const ImportSection = ({articles, setArticles, onImport, isLoading, importedData
                 {importedData.map((data, index) => (
                   <tr key={index} className="hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        data.database === 'Scopus' ? 'bg-orange-100 dark:bg-orange-900/50 text-orange-800 dark:text-orange-300' :
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${data.database === 'Scopus' ? 'bg-orange-100 dark:bg-orange-900/50 text-orange-800 dark:text-orange-300' :
                         data.database === 'Web of Science' ? 'bg-violet-100 dark:bg-violet-900/50 text-violet-800 dark:text-violet-300' :
-                        data.database === 'PubMed' ? 'bg-sky-100 dark:bg-sky-900/50 text-sky-800 dark:text-sky-300' :
-                        'bg-gray-100 dark:bg-gray-900/50 text-gray-800 dark:text-gray-300'
-                      }`}>
+                          data.database === 'PubMed' ? 'bg-sky-100 dark:bg-sky-900/50 text-sky-800 dark:text-sky-300' :
+                            data.database === 'ScienceDirect' ? 'bg-orange-100 dark:bg-orange-900/50 text-orange-800 dark:text-orange-300' :
+                              data.database === 'Periódicos CAPES' ? 'bg-cyan-100 dark:bg-cyan-900/50 text-cyan-800 dark:text-cyan-300' :
+                                'bg-gray-100 dark:bg-gray-900/50 text-gray-800 dark:text-gray-300'
+                        }`}>
                         {data.database}
                       </span>
                     </td>
@@ -2386,7 +2560,7 @@ const ImportSection = ({articles, setArticles, onImport, isLoading, importedData
       {/* Resumo geral da importação */}
       <div className="mt-8 bg-gray-100 dark:bg-gray-900/50 p-6 rounded-lg transition-colors duration-200">
         <h4 className="font-semibold text-gray-800 dark:text-white mb-4">Resumo da Importação</h4>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-7 gap-4">
           <div className="text-center">
             <p className="text-lg sm:text-2xl font-bold text-orange-600 dark:text-orange-400">
               {importedData.filter(d => d.database === 'Scopus').reduce((acc, d) => acc + d.articles.length, 0)}
@@ -2406,8 +2580,20 @@ const ImportSection = ({articles, setArticles, onImport, isLoading, importedData
             <p className="text-sm text-gray-600 dark:text-gray-400">PubmMed</p>
           </div>
           <div className="text-center">
+            <p className="text-lg sm:text-2xl font-bold text-orange-600 dark:text-orange-400">
+              {importedData.filter(d => d.database === 'ScienceDirect').reduce((acc, d) => acc + d.articles.length, 0)}
+            </p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">ScienceDirect</p>
+          </div>
+          <div className="text-center">
+            <p className="text-lg sm:text-2xl font-bold text-cyan-600 dark:text-cyan-400">
+              {importedData.filter(d => d.database === 'Periódicos CAPES').reduce((acc, d) => acc + d.articles.length, 0)}
+            </p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Periódicos CAPES</p>
+          </div>
+          <div className="text-center">
             <p className="text-lg sm:text-2xl font-bold text-gray-600 dark:text-gray-400">
-              {importedData.filter(d => d.database !== 'Scopus' && d.database !== 'Web of Science'  && d.database !== 'PubMed').reduce((acc, d) => acc + d.articles.length, 0)}
+              {importedData.filter(d => d.database !== 'Scopus' && d.database !== 'Web of Science' && d.database !== 'PubMed' && d.database !== 'ScienceDirect' && d.database !== 'Periódicos CAPES').reduce((acc, d) => acc + d.articles.length, 0)}
             </p>
             <p className="text-sm text-gray-600 dark:text-gray-400">Outras Bases</p>
           </div>
@@ -2436,7 +2622,7 @@ const ImportSection = ({articles, setArticles, onImport, isLoading, importedData
 
 // Componente para Tratamento de Dados
 const DataProcessingSection = ({ articles, currentFilter, setArticles, onUpdateStatus, detectDuplicates, statistics }) => {
-    
+
   const [duplicateDetection, setDuplicateDetection] = useState({
     byTitle: true,
     byDOI: true,
@@ -2444,7 +2630,7 @@ const DataProcessingSection = ({ articles, currentFilter, setArticles, onUpdateS
     similarityThreshold: 1
   });
   const [duplicates, setDuplicates] = useState(0)
-  
+
   // useEffect(() => {
   //   setDuplicates(articles.filter(a => a.isDuplicate == true))
   // }, [articles]);
@@ -2454,15 +2640,15 @@ const DataProcessingSection = ({ articles, currentFilter, setArticles, onUpdateS
 
   const handleClassifyDuplicates = () => {
     const statusField = 'dataProcessingStatus';
-    
+
     // Marcar todas as duplicatas como excluídas
     articles.forEach(article => {
-      if(article.isDuplicate){
+      if (article.isDuplicate) {
         handleDuplicate(article.id)
         // onUpdateStatus(article.id, statusField, 'duplicate', null);
         console.log(article)
-      } 
-      
+      }
+
     })
 
     // Mostrar mensagem de confirmação
@@ -2473,15 +2659,15 @@ const DataProcessingSection = ({ articles, currentFilter, setArticles, onUpdateS
 
   const handleExcludeScore = () => {
     const statusField = 'dataProcessingStatus';
-    
+
     // Marcar todas as duplicatas como excluídas
 
-    const pendingArticles = articles.filter((article)=>article.dataProcessingStatus=="pending")
+    const pendingArticles = articles.filter((article) => article.dataProcessingStatus == "pending")
 
     pendingArticles.forEach(article => {
-      if(article.score === 0){
+      if (article.score === 0) {
         onUpdateStatus(article.id, statusField, 'excluded', null);
-      }       
+      }
     })
 
     const zeroScore = pendingArticles.filter(a => a.score === 0);
@@ -2493,13 +2679,13 @@ const DataProcessingSection = ({ articles, currentFilter, setArticles, onUpdateS
 
   const handleIncludePendents = () => {
     const statusField = 'dataProcessingStatus';
-    
+
     // Marcar todas as duplicatas como excluídas
 
-    const pendingArticles = articles.filter((article)=>article.dataProcessingStatus=="pending")
+    const pendingArticles = articles.filter((article) => article.dataProcessingStatus == "pending")
 
     pendingArticles.forEach(article => {
-        onUpdateStatus(article.id, statusField, 'included', null);
+      onUpdateStatus(article.id, statusField, 'included', null);
     })
 
     // Mostrar mensagem de confirmação
@@ -2515,7 +2701,7 @@ const DataProcessingSection = ({ articles, currentFilter, setArticles, onUpdateS
         <Database className="h-6 w-6 text-purple-600 dark:text-purple-400" />
         Seção 3: Tratamento de Dados
       </h2>
-      
+
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
         <div className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg transition-colors duration-200">
           <h3 className="font-semibold text-blue-800 dark:text-blue-300 mb-2">Artigos Importados</h3>
@@ -2534,7 +2720,7 @@ const DataProcessingSection = ({ articles, currentFilter, setArticles, onUpdateS
           <p className="text-lg sm:text-2xl font-bold text-red-900 dark:text-red-200">{statistics.dataProcessing.excluded}</p>
         </div>
       </div>
-      
+
       <div className="grid grid-cols-2 lg:grid-cols-2 gap-6">
         {/* <div>
           <div className="space-y-1 mb-1">
@@ -2566,7 +2752,7 @@ const DataProcessingSection = ({ articles, currentFilter, setArticles, onUpdateS
             <h3 className="text-sm sm:text-lg font-semibold text-gray-700 dark:text-gray-300 ">Exclusão automática por meio do valor do score</h3>
             <span className='block text-sm font-medium text-gray-700 dark:text-gray-300 '>Os trabalhos com score igual a 0 são automaticamente excluídos</span>
           </div>
-          
+
           <div className="mt-3">
             <button
               onClick={handleExcludeScore}
@@ -2575,13 +2761,13 @@ const DataProcessingSection = ({ articles, currentFilter, setArticles, onUpdateS
               <CopyX className="h-4 w-4" />
               Remoção dos trabalhos com score 0
             </button>
-            
+
           </div>
           <div className="space-y-1 mb-1">
             <h3 className="text-sm sm:text-lg font-semibold text-gray-700 dark:text-gray-300 ">Aceite automática dos trabalhos pendentes</h3>
             <span className='block text-sm font-medium text-gray-700 dark:text-gray-300 '></span>
           </div>
-          
+
           <div className="mt-3">
             <button
               onClick={handleIncludePendents}
@@ -2590,11 +2776,11 @@ const DataProcessingSection = ({ articles, currentFilter, setArticles, onUpdateS
               <CopyCheck className="h-4 w-4" />
               Aceite automática dos trabalhos pendentes
             </button>
-            
+
           </div>
         </div>
-       
-        
+
+
         <div>
           {/* <h3 className="text-sm sm:text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Status do Tratamento</h3>
           <div className="space-y-3">
@@ -2611,8 +2797,8 @@ const DataProcessingSection = ({ articles, currentFilter, setArticles, onUpdateS
               <span className="font-semibold text-red-700 dark:text-red-300">{statistics.dataProcessing.excluded}</span>
             </div>
           </div> */}
-          
-          
+
+
         </div>
       </div>
     </div>
@@ -2621,7 +2807,7 @@ const DataProcessingSection = ({ articles, currentFilter, setArticles, onUpdateS
 
 // Componente para Filtro 1
 const Filter1Section = ({ articles, onUpdateStatus, inclusionCriteria, exclusionCriteria, statistics }) => {
-  const filter1Articles = articles.filter(a => 
+  const filter1Articles = articles.filter(a =>
     a.dataProcessingStatus === 'included' && !a.isDuplicate && a.dataProcessingStatus !== 'duplicate'
   );
 
@@ -2631,7 +2817,7 @@ const Filter1Section = ({ articles, onUpdateStatus, inclusionCriteria, exclusion
         <Filter className="h-6 w-6 text-green-600 dark:text-green-400" />
         Seção 4: Filtro 1 - Triagem por título, palavras-chave e resumo
       </h2>
-      
+
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
         <div className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg transition-colors duration-200">
           <h3 className="font-semibold text-blue-800 dark:text-blue-300 mb-2">Do Tratamento</h3>
@@ -2654,9 +2840,9 @@ const Filter1Section = ({ articles, onUpdateStatus, inclusionCriteria, exclusion
         <div className="bg-green-50 dark:bg-green-900/30 p-4 rounded-lg transition-colors duration-200">
           <h4 className="font-semibold text-green-800 dark:text-green-300 mb-2">Critérios de inclusão</h4>
           <ul className="text-sm text-green-700 dark:text-green-400 space-y-1">
-              {
-                inclusionCriteria.filter(c => c.value.trim()).map((criterion, index) => (
-                  <li key={index}>• {criterion.id + ' - ' + criterion.value}</li>
+            {
+              inclusionCriteria.filter(c => c.value.trim()).map((criterion, index) => (
+                <li key={index}>• {criterion.id + ' - ' + criterion.value}</li>
               ))}
           </ul>
         </div>
@@ -2671,7 +2857,7 @@ const Filter1Section = ({ articles, onUpdateStatus, inclusionCriteria, exclusion
         </div>
       </div>
 
-      
+
     </div>
   );
 };
@@ -2679,20 +2865,20 @@ const Filter1Section = ({ articles, onUpdateStatus, inclusionCriteria, exclusion
 // Componente para Filtro 2
 const Filter2Section = ({ articles, onUpdateStatus, inclusionCriteria, exclusionCriteria, statistics }) => {
   const filter2Articles = articles.filter(a => a.filter1Status === 'included');
-  
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6 transition-colors duration-200">
       <h2 className="text-lg sm:text-2xl font-bold text-gray-800 dark:text-white mb-6 flex items-center gap-2">
         <Filter className="h-6 w-6 text-blue-600 dark:text-blue-400" />
         Seção 5: Filtro 2 - Triagem por introdução e conclusão
       </h2>
-      
+
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
         <div className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg transition-colors duration-200">
           <h3 className="font-semibold text-blue-800 dark:text-blue-300 mb-2">Do Filtro 1</h3>
           <p className="text-lg sm:text-2xl font-bold text-blue-900 dark:text-blue-200">{filter2Articles.length}</p>
         </div>
-         <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg transition-colors duration-200">
+        <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg transition-colors duration-200">
           <h3 className="font-semibold text-gray-800 dark:text-gray-300 mb-2">Pendentes</h3>
           <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-gray-200">{statistics.filter2.pending}</p>
         </div>
@@ -2705,14 +2891,14 @@ const Filter2Section = ({ articles, onUpdateStatus, inclusionCriteria, exclusion
           <p className="text-lg sm:text-2xl font-bold text-red-900 dark:text-red-200">{statistics.filter2.excluded}</p>
         </div>
       </div>
-      
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <div className="bg-green-50 dark:bg-green-900/30 p-4 rounded-lg transition-colors duration-200">
           <h4 className="font-semibold text-green-800 dark:text-green-300 mb-2">Critérios de inclusão</h4>
           <ul className="text-sm text-green-700 dark:text-green-400 space-y-1">
-              {
-                inclusionCriteria.filter(c => c.value.trim()).map((criterion, index) => (
-                  <li key={index}>• {criterion.id + ' - ' + criterion.value}</li>
+            {
+              inclusionCriteria.filter(c => c.value.trim()).map((criterion, index) => (
+                <li key={index}>• {criterion.id + ' - ' + criterion.value}</li>
               ))}
           </ul>
         </div>
@@ -2733,14 +2919,14 @@ const Filter2Section = ({ articles, onUpdateStatus, inclusionCriteria, exclusion
 // Componente para Filtro 3
 const Filter3Section = ({ articles, onUpdateStatus, inclusionCriteria, exclusionCriteria, extractionCriteria, statistics }) => {
   const filter3Articles = articles.filter(a => a.filter2Status === 'included');
-  
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6 transition-colors duration-200">
       <h2 className="text-lg sm:text-2xl font-bold text-gray-800 dark:text-white mb-6 flex items-center gap-2">
         <Filter className="h-6 w-6 text-purple-600 dark:text-purple-400" />
         Seção 6: Filtro 3 - Triagem por texto completo
       </h2>
-      
+
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
         <div className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg transition-colors duration-200">
           <h3 className="font-semibold text-blue-800 dark:text-blue-300 mb-2">Do Filtro 2</h3>
@@ -2759,14 +2945,14 @@ const Filter3Section = ({ articles, onUpdateStatus, inclusionCriteria, exclusion
           <p className="text-lg sm:text-2xl font-bold text-red-900 dark:text-red-200">{statistics.filter3.excluded}</p>
         </div>
       </div>
-      
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <div className="bg-green-50 dark:bg-green-900/30 p-4 rounded-lg transition-colors duration-200">
           <h4 className="font-semibold text-green-800 dark:text-green-300 mb-2">Critérios de inclusão</h4>
           <ul className="text-sm text-green-700 dark:text-green-400 space-y-1">
-              {
-                inclusionCriteria.filter(c => c.value.trim()).map((criterion, index) => (
-                  <li key={index}>• {criterion.id + ' - ' + criterion.value}</li>
+            {
+              inclusionCriteria.filter(c => c.value.trim()).map((criterion, index) => (
+                <li key={index}>• {criterion.id + ' - ' + criterion.value}</li>
               ))}
           </ul>
         </div>
@@ -2813,14 +2999,14 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
   const currentPage = pagination[currentFilter] || 1;
   const janelaRef = useRef(null);
   useEffect(() => {
-      const allEmpty = protocol.extractionCriteria.every(
-        criterion => criterion.value === ''
-      );
-      setOptionExtraction(allEmpty);
+    const allEmpty = protocol.extractionCriteria.every(
+      criterion => criterion.value === ''
+    );
+    setOptionExtraction(allEmpty);
   }, [protocol]);
 
   const getStatusField = (filter) => {
-    switch(filter) {
+    switch (filter) {
       case 'dataprocessing': return 'dataProcessingStatus';
       case 'filter1': return 'filter1Status';
       case 'filter2': return 'filter2Status';
@@ -2836,22 +3022,22 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
       [currentFilter]: page
     }));
   };
-  
+
 
   // Filtrar artigos baseado na seção atual
   const filteredArticles = useMemo(() => {
     let filtered = [];
-    
-    switch(currentFilter) {
+
+    switch (currentFilter) {
       case 'dataprocessing':
         filtered = articles;
         // filtered = articles.filter(a => !a.isDuplicate);
         break;
       case 'filter1':
-        filtered = articles.filter(a => 
+        filtered = articles.filter(a =>
           a.dataProcessingStatus === 'included' && !a.isDuplicate && a.dataProcessingStatus !== 'duplicate'
         );
-      break;
+        break;
       case 'filter2':
         filtered = articles.filter(a => a.filter1Status === 'included');
         break;
@@ -2887,12 +3073,12 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
       filtered.sort((a, b) => {
         let aValue = a[sortConfig.key];
         let bValue = b[sortConfig.key];
-        
+
         if (typeof aValue === 'string') {
           aValue = aValue.toLowerCase();
           bValue = bValue.toLowerCase();
         }
-        
+
         if (aValue < bValue) {
           return sortConfig.direction === 'asc' ? -1 : 1;
         }
@@ -2902,16 +3088,16 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
         return 0;
       });
     }
-    
+
     return filtered;
   }, [articles, currentFilter, searchTerm, statusFilter, sortConfig]);
 
-  
+
   const paginatedArticles = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     return filteredArticles.slice(startIndex, startIndex + itemsPerPage);
   }, [filteredArticles, currentPage, itemsPerPage]);
-  
+
   const totalPages = Math.ceil(filteredArticles.length / itemsPerPage);
   const totalArticles = filteredArticles.length
   // Resetar paginação quando os filtros mudarem
@@ -2928,8 +3114,8 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
   };
   const getDownstreamFields = (statusField) => ({
     dataProcessingStatus: ['filter1Status', 'filter2Status', 'filter3Status'],
-    filter1Status:        ['filter2Status', 'filter3Status'],
-    filter2Status:        ['filter3Status'],
+    filter1Status: ['filter2Status', 'filter3Status'],
+    filter2Status: ['filter3Status'],
   }[statusField] ?? []);
 
   const resetDownstream = (articleId, statusField) => {
@@ -2965,7 +3151,7 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
 
   const handleContextMenu = (e, article) => {
     e.preventDefault();
-    
+
     // Não mostrar menu de contexto na seção de tratamento de dados
     if (currentFilter === 'dataprocessing') {
       return;
@@ -3001,7 +3187,7 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
       document.addEventListener('click', handleClickOutside);
       document.addEventListener('scroll', handleScroll, true); // true para capturar em qualquer elemento
       window.addEventListener('scroll', handleScroll);
-      
+
       return () => {
         document.removeEventListener('click', handleClickOutside);
         document.removeEventListener('scroll', handleScroll, true);
@@ -3011,7 +3197,7 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
   }, [contextMenu]);
 
   const getSectionTitle = () => {
-    switch(currentFilter) {
+    switch (currentFilter) {
       case 'dataprocessing': return 'Tratamento de Dados';
       case 'filter1': return 'Filtro 1';
       case 'filter2': return 'Filtro 2';
@@ -3032,9 +3218,9 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
   useEffect(() => {
     setSelectedArticle(filteredArticles[currentArticle]);
   }, [currentArticle]);
-  
+
   useEffect(() => {
-    if(selectedArticle !== null){
+    if (selectedArticle !== null) {
       if (janelaRef.current) {
         janelaRef.current.scrollTo({
           top: 0,
@@ -3044,21 +3230,10 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
   }, [currentArticle]);
 
   useEffect(() => {
-    if(selectedArticle !== null){
+    if (selectedArticle !== null) {
       setSelectedArticle(filteredArticles[currentArticle])
     }
   }, [articles]);
-
-  
-
-  // const statusArtSelected = useMemo(() => {
-  //     console.log(selectedArticle)
-  //     console.log(selectedArticle[getStatusField(currentFilter)])
-  //   // selectedArticle !== null? getStatusField(currentFilter) : null;
-  // }, [selectedArticle]);
-
-  // console.log(statusArtSelected)
-  // console.log(selectedArticle)
 
   useEffect(() => {
     const scores = articles.map(article => article.score);
@@ -3066,23 +3241,23 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
     const minScore = Math.min(...scores);
     setInterval(maxScore - minScore);
   }, [articles]);
-  
+
   useEffect(() => {
-    const criterias  = []
-    protocol.inclusionCriteria.filter(c => c.value.trim()).map((criteria)=>{
-      criterias.push({id:criteria.id, label:criteria.value, category: 'inclusion'})
+    const tempCriterias = []
+    protocol.inclusionCriteria.filter(c => c.value.trim()).map((criteria) => {
+      tempCriterias.push({ id: criteria.id, label: criteria.value, category: 'inclusion' })
     })
-    protocol.exclusionCriteria.filter(c => c.value.trim()).map((criteria)=>{
-      criterias.push({id:criteria.id, label:criteria.value, category: 'exclusion'})
+    protocol.exclusionCriteria.filter(c => c.value.trim()).map((criteria) => {
+      tempCriterias.push({ id: criteria.id, label: criteria.value, category: 'exclusion' })
     })
-    protocol.qualityCriteria.filter(c => c.value.trim()).map((criteria)=>{
-      criterias.push({id:criteria.id, label:criteria.value, category: 'quality'})
+    protocol.qualityCriteria.filter(c => c.value.trim()).map((criteria) => {
+      tempCriterias.push({ id: criteria.id, label: criteria.value, category: 'quality' })
     })
-    setCriterias(criterias)
+    setCriterias(tempCriterias)
   }, [protocol]);
 
-  const quadrants = (quadrant, score) => {  
-    const ver = score > quadrant*(interval/10) ? true : false;
+  const quadrants = (quadrant, score) => {
+    const ver = score > quadrant * (interval / 10) ? true : false;
     return ver;
   };
 
@@ -3091,10 +3266,10 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
       <div className="p-6 border-b border-gray-200 dark:border-gray-700">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-base sm:text-xl font-semibold text-gray-800 dark:text-white">
-            Artigos {statusFilter==="pending"?'pendentes':statusFilter==="included"?'incluídos':statusFilter==="excluded"?'excluídos':statusFilter==="duplicate"?'duplicados':''} no {getSectionTitle()} ({filteredArticles.length} total)
+            Artigos {statusFilter === "pending" ? 'pendentes' : statusFilter === "included" ? 'incluídos' : statusFilter === "excluded" ? 'excluídos' : statusFilter === "duplicate" ? 'duplicados' : ''} no {getSectionTitle()} ({filteredArticles.length} total)
           </h3>
         </div>
-        
+
         {/* Barra de busca e filtros */}
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1">
@@ -3109,7 +3284,7 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
               />
             </div>
           </div>
-          
+
           <div className="min-w-[180px]">
             <select
               value={statusFilter}
@@ -3120,13 +3295,13 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
               <option value="pending">Pendentes</option>
               <option value="included">Incluídos</option>
               <option value="excluded">Excluídos</option>
-              <option value="duplicate">Duplicatas</option> {/* ✅ NOVO */}
+              <option value="duplicate">Duplicatas</option>
             </select>
           </div>
         </div>
 
       </div>
-      
+
       <div className="overflow-x-auto ">
         <table className="w-full ">
           <thead className="bg-gray-50 dark:bg-gray-900">
@@ -3140,15 +3315,6 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
                   <ArrowUpDown className="h-3 w-3" />
                 </button>
               </th>
-              {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                <button
-                  onClick={() => handleSort('title')}
-                  className="flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-200"
-                >
-                  Autores
-                  <ArrowUpDown className="h-3 w-3" />
-                </button>
-              </th> */}
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                 <button
                   onClick={() => handleSort('source')}
@@ -3184,11 +3350,11 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
             {paginatedArticles.map((article) => {
               const statusField = getStatusField(currentFilter);
               const status = article[statusField];
-              
+
               return (
-               
-                <tr 
-                  key={article.id} 
+
+                <tr
+                  key={article.id}
                   className="hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
                   onContextMenu={(e) => handleContextMenu(e, article)}
                 >
@@ -3218,12 +3384,13 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
                     </div>
                   </td> */}
                   <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400 ">
-                    <span className={`px-2 py-1 rounded-full text-xs ${
-                      article.source === 'Scopus' ? 'bg-orange-100 dark:bg-orange-900/50 text-orange-800 dark:text-orange-300' :
+                    <span className={`px-2 py-1 rounded-full text-xs ${article.source === 'Scopus' ? 'bg-orange-100 dark:bg-orange-900/50 text-orange-800 dark:text-orange-300' :
                       article.source === 'Web of Science' ? 'bg-violet-100 dark:bg-violet-900/50 text-violet-800 dark:text-violet-300' :
-                      article.source === 'PubMed' ? 'bg-sky-100 dark:bg-sky-900/50 text-sky-800 dark:text-sky-300' :
-                      'bg-gray-100 dark:bg-gray-900/50 text-gray-800 dark:text-gray-300'
-                    }`}>
+                        article.source === 'PubMed' ? 'bg-sky-100 dark:bg-sky-900/50 text-sky-800 dark:text-sky-300' :
+                          article.source === 'ScienceDirect' ? 'bg-orange-100 dark:bg-orange-900/50 text-orange-800 dark:text-orange-300' :
+                            article.source === 'Periódicos CAPES' ? 'bg-cyan-100 dark:bg-cyan-900/50 text-cyan-800 dark:text-cyan-300' :
+                              'bg-gray-100 dark:bg-gray-900/50 text-gray-800 dark:text-gray-300'
+                      }`}>
                       {article.source}
                     </span>
                   </td>
@@ -3231,26 +3398,24 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
                     {article.year}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400 ">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        quadrants(8, article.score || 0) ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300' :
-                        quadrants(5, article.score || 0) ? 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300' :
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${quadrants(8, article.score || 0) ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300' :
+                      quadrants(5, article.score || 0) ? 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300' :
                         quadrants(2, article.score || 0) ? 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-300' :
-                        'bg-gray-100 dark:bg-gray-900/50 text-gray-600 dark:text-gray-400'
+                          'bg-gray-100 dark:bg-gray-900/50 text-gray-600 dark:text-gray-400'
                       }`}>
-                        {article.score === null? '-' : article.score}
-                      </span>
+                      {article.score === null ? '-' : article.score}
+                    </span>
                   </td>
                   <td className="px-6 py-4 ">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      status === 'included' ? 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300' :
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${status === 'included' ? 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300' :
                       status === 'excluded' ? 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300' :
-                      status === 'duplicate' ? 'bg-orange-100 dark:bg-orange-900/50 text-orange-800 dark:text-orange-300' : // ✅ NOVO
-                      'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-300'
-                    }`}>
-                      {status === 'included' ? 'Incluído' : 
-                      status === 'excluded' ? 'Excluído' : 
-                      status === 'duplicate' ? 'Duplicata' : // ✅ NOVO
-                      'Pendente'}
+                        status === 'duplicate' ? 'bg-orange-100 dark:bg-orange-900/50 text-orange-800 dark:text-orange-300' :
+                          'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-300'
+                      }`}>
+                      {status === 'included' ? 'Incluído' :
+                        status === 'excluded' ? 'Excluído' :
+                          status === 'duplicate' ? 'Duplicata' :
+                            'Pendente'}
                     </span>
                   </td>
                   <td className="px-1 py-4 text-sm font-medium">
@@ -3285,31 +3450,22 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
                         <XCircle size={16} />
                       </button>
                       <button
-                        onClick={() => {handleDuplicate(article)}}
+                        onClick={() => { handleDuplicate(article) }}
                         className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 p-1 transition-colors duration-200"
 
                         title="Duplicata"
                       >
-                            <BookCopy size={16} />
+                        <BookCopy size={16} />
                       </button>
-                      
+
                       <button
-                          onClick={() => getCurrentArticle(article)}
-                          className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300 p-1 transition-colors duration-200"
-                          title="Ver detalhes"
-                        >
-                          <Eye size={16} />
+                        onClick={() => getCurrentArticle(article)}
+                        className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300 p-1 transition-colors duration-200"
+                        title="Ver detalhes"
+                      >
+                        <Eye size={16} />
                       </button>
-                    
-                      {/* {currentFilter === "filter3" && (
-                        <button
-                          onClick={() => setSelectedArticle(article)}
-                          className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300 p-1 transition-colors duration-200"
-                          title="Ver detalhes"
-                        >
-                          <ListCollapse size={16} />
-                        </button>
-                      )}              */}
+
                     </div>
                   </td>
                 </tr>
@@ -3318,7 +3474,7 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
           </tbody>
         </table>
       </div>
-      
+
       {/* Paginação */}
       {totalPages > 1 && (
         <div className="px-6 py-3 border-t border-gray-200 dark:border-gray-700">
@@ -3361,10 +3517,10 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
             handleExclude(showCriterionModal.article, criterion);
           } else if (status === 'extracted') {
             handleExtraction(showCriterionModal.article, criterion);
-          } 
+          }
         }}
-        criteria={showCriterionModal?.type === 'include' ? protocol.inclusionCriteria : showCriterionModal?.type === 'exclude'? protocol.exclusionCriteria: protocol.extractionCriteria}
-        type={showCriterionModal?.type === 'include' ? 'inclusion' : showCriterionModal?.type === 'exclude'? 'exclusion': 'extraction'}
+        criteria={showCriterionModal?.type === 'include' ? protocol.inclusionCriteria : showCriterionModal?.type === 'exclude' ? protocol.exclusionCriteria : protocol.extractionCriteria}
+        type={showCriterionModal?.type === 'include' ? 'inclusion' : showCriterionModal?.type === 'exclude' ? 'exclusion' : 'extraction'}
         initialSelected={[
           ...(showCriterionModal?.article.inclusionCriterion ?? []),
           ...(showCriterionModal?.article.exclusionCriterion ?? []),
@@ -3389,156 +3545,6 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
           optionExtraction={optionExtraction}
           janelaRef={janelaRef}
         />
-        // <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-49">
-        //   <div className="bg-white dark:bg-gray-800 rounded-lg max-w-6xl w-full max-h-[95vh]  transition-colors scroll-smooth duration-200">
-        //     <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-        //       <div className="flex justify-between items-start">
-        //         <h3 className="text-sm sm:text-lg font-semibold text-gray-900 dark:text-white">{selectedArticle.title}</h3>
-        //         <button
-        //           onClick={() => setSelectedArticle(null)}
-        //           className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors duration-200"
-        //         >
-        //           <XCircle size={24} />
-        //         </button>
-        //       </div>
-        //       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-        //           selectedArticle[getStatusField(currentFilter)] === 'included' ? 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300' :
-        //           selectedArticle[getStatusField(currentFilter)] === 'excluded' ? 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300' :
-        //           selectedArticle[getStatusField(currentFilter)] === 'duplicate' ? 'bg-orange-100 dark:bg-orange-900/50 text-orange-800 dark:text-orange-300' : // ✅ NOVO
-        //           'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-300'
-        //         }`}>
-        //           {selectedArticle[getStatusField(currentFilter)] === 'included' ? 'Incluído' : 
-        //           selectedArticle[getStatusField(currentFilter)] === 'excluded' ? 'Excluído' : 
-        //           selectedArticle[getStatusField(currentFilter)] === 'duplicate' ? 'Duplicata' : // ✅ NOVO
-        //           'Pendente'}
-        //       </span>
-        //     </div>
-        //     <div className="p-6 overflow-y-auto max-h-[60vh] scroll-smooth" ref={janelaRef}>
-        //       <div className="grid grid-cols-2 gap-3 mb-4">
-        //         <div className="text-gray-700 dark:text-gray-300"><strong>Autores:</strong> {selectedArticle.authors}</div>
-        //         <div className="text-gray-700 dark:text-gray-300"><strong>Fonte:</strong> {selectedArticle.source}</div>
-        //         <div className="text-gray-700 dark:text-gray-300"><strong>Revista:</strong> {selectedArticle.journal}</div>
-        //         <div className="text-gray-700 dark:text-gray-300"><strong>Ano:</strong> {selectedArticle.year}</div>
-        //         <div className="text-gray-700 dark:text-gray-300"> <strong>DOI:</strong> 
-        //           <span
-        //               onClick={() => window.open(`https://doi.org/${selectedArticle.doi}`, '_blank') }
-        //               className="hover:text-blue-600 hover:dark:text-blue-400 hover:underline ml-1 cursor-pointer"
-        //           > 
-        //               {selectedArticle.doi} 
-        //           </span>
-        //         </div>
-        //           <div className="text-gray-700 dark:text-gray-300"><strong>Score:</strong> {selectedArticle.score}</div>
-        //         {/* <div className="text-gray-700 dark:text-gray-300"><strong>Idioma:</strong> {selectedArticle.language}</div> */}
-        //       </div>
-        //       <div className="mb-2">
-        //         <strong className="text-gray-700 dark:text-gray-300">Palavras-chave:</strong>
-        //         <div className="mt-2 flex flex-wrap gap-2">
-        //           {selectedArticle.keywords.map((keyword, index) => (
-        //             <span key={index} className="px-2 py-1 bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 text-xs rounded-full">
-        //               {keyword}
-        //             </span>
-        //           ))}
-        //         </div>
-        //       </div>
-        //       <div className="mb-2">
-        //         <strong className="text-gray-700 dark:text-gray-300">Resumo:</strong>
-        //         <p className="mt-2 text-gray-700 dark:text-gray-300">{selectedArticle.abstract}</p>
-        //       </div>
-              
-              
-              
-        //       {/* {selectedArticle.inclusionCriterion && (
-        //         <div className="mb-4">
-        //           <strong className="text-green-700 dark:text-green-300">Critério de Inclusão:</strong>
-        //           <p className="mt-1 text-green-600 dark:text-green-400 text-sm">{selectedArticle.inclusionCriterion}</p>
-        //         </div>
-        //       )}
-        //       {selectedArticle.exclusionCriterion && (
-        //         <div className="mb-4">
-        //           <strong className="text-red-700 dark:text-red-300">Critério de Exclusão:</strong>
-        //           <p className="mt-1 text-red-600 dark:text-red-400 text-sm">{selectedArticle.exclusionCriterion}</p>
-        //         </div>
-        //       )} */}
-        //     </div>
-        //     <div className="flex flex-row gap-1 max-w-m justify-center items-center mt-2 mb-2">
-        //       <div className="flex flex-col gap-1 max-w-m justify-center items-center">
-        //         <div className="flex gap-1 max-w-m justify-center ">
-        //           <button
-        //             onClick={() => {
-        //               if (currentFilter === 'dataprocessing') {
-        //                 // incluir direto no filtro 1 sem abrir modal
-        //                 handleInclude(selectedArticle);
-        //               } else {
-        //                 setShowCriterionModal({ type: 'include', article: selectedArticle });
-        //               }
-        //             }}
-        //             className="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300 p-1 transition-colors duration-200"
-        //             title="Incluir"
-        //           >
-        //             <CheckCircle size={16} />
-        //           </button>
-
-        //           <button
-        //             onClick={() => {
-        //               if (currentFilter === 'dataprocessing') {
-        //                 handleExclude(selectedArticle);
-        //                 setSelectedArticle(selectedArticle)
-        //               } else {
-        //                 console.log(selectedArticle)
-        //                 setShowCriterionModal({ type: 'exclude', article: selectedArticle });
-        //               }
-        //             }}
-        //             className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 p-1 transition-colors duration-200"
-        //             title="Excluir"
-        //           >
-        //             <XCircle size={16} />
-        //           </button>
-        //           <button
-        //             onClick={() => {handleDuplicate(selectedArticle)}}
-        //             className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 p-1 transition-colors duration-200"
-
-        //             title="Duplicata"
-        //           >
-        //                 <BookCopy size={16} />
-        //           </button>
-        //             {currentFilter === "filter3" && (
-                     
-        //               <button
-        //                 onClick={() => {   setShowCriterionModal({ type: 'extraction', article: selectedArticle }) }}
-        //                 className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300 p-1 transition-colors duration-200 disabled:cursor-not-allowed disabled:text-gray-500"
-        //                 title="Extração"
-        //                 disabled={optionExtraction}
-        //               >
-        //                 <ListCollapse size={16} />
-        //               </button>
-        //               )}   
-        //           </div>  
-                     
-                    
-        //       </div>
-        //       <div className="flex gap-2">
-        //         <button
-        //           onClick={() => setCurrentArticle(Math.max(0, currentArticle - 1))}
-        //           disabled={currentArticle === 0}
-        //           className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded disabled:opacity-50 hover:bg-gray-100 dark:hover:bg-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 transition-colors duration-200"
-        //         >
-        //           Anterior
-        //         </button>
-        //         <span className="px-3 py-1 text-gray-700 dark:text-gray-300">
-        //           {currentArticle +1} / {totalArticles}
-        //         </span>
-        //         <button
-        //           onClick={() => setCurrentArticle(Math.min(totalArticles-1, currentArticle + 1))}
-        //           disabled={currentArticle === totalArticles-1}
-        //           className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded disabled:opacity-50 hover:bg-gray-100 dark:hover:bg-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 transition-colors duration-200"
-        //         >
-        //           Próximo
-        //         </button>
-        //       </div> 
-        //     </div>
-        //   </div>
-          
-        // </div>
       )}
 
       {/* Menu de contexto */}
@@ -3559,12 +3565,11 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
               </div>
               <ChevronDown className="h-3 w-3 text-gray-400 transform -rotate-90" />
             </div>
-            
+
             {/* Submenu de critérios de inclusão */}
-            <div 
-              className={`absolute bottom-0 ml-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg py-2 min-w-[200px] max-w-[250px] max-h-[300px] overflow-y-auto opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 ${
-                contextMenu.x > window.innerWidth - 350 ? 'right-full mr-1 ml-0' : 'left-full'
-              }`}
+            <div
+              className={`absolute bottom-0 ml-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg py-2 min-w-[200px] max-w-[250px] max-h-[300px] overflow-y-auto opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 ${contextMenu.x > window.innerWidth - 350 ? 'right-full mr-1 ml-0' : 'left-full'
+                }`}
             >
               <div className="px-3 py-1 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase border-b border-gray-200 dark:border-gray-600 mb-1 sticky top-0 bg-white dark:bg-gray-800">
                 Critérios de Inclusão
@@ -3596,12 +3601,11 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
               </div>
               <ChevronDown className="h-3 w-3 text-gray-400 transform -rotate-90" />
             </div>
-            
+
             {/* Submenu de critérios de exclusão */}
-            <div 
-              className={`absolute bottom-0 ml-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg py-2 min-w-[200px] max-w-[250px] max-h-[300px] overflow-y-auto opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 ${
-                contextMenu.x > window.innerWidth - 350 ? 'right-full mr-1 ml-0' : 'left-full'
-              }`}
+            <div
+              className={`absolute bottom-0 ml-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg py-2 min-w-[200px] max-w-[250px] max-h-[300px] overflow-y-auto opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 ${contextMenu.x > window.innerWidth - 350 ? 'right-full mr-1 ml-0' : 'left-full'
+                }`}
             >
               <div className="px-3 py-1 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase border-b border-gray-200 dark:border-gray-600 mb-1 sticky top-0 bg-white dark:bg-gray-800">
                 Critérios de Exclusão
@@ -3622,8 +3626,8 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
           </div>
         </div>
       )}
-      
-      
+
+
     </div>
   );
 };
@@ -3646,10 +3650,10 @@ const SystematicReviewTool = () => {
     yearRange: { start: 2015, end: new Date().getFullYear() },
     languages: ['English'],
     keywords: [''],
-    inclusionCriteria: [{id:'I1', value:''}],
-    exclusionCriteria: [{id: 'E1',value:''}],
-    extractionCriteria: [{id: 'EX1', value:'', type:'text', items: ['']}],
-    qualityCriteria: [{id:'Q1', value:''}],
+    inclusionCriteria: [{ id: 'I1', value: '' }],
+    exclusionCriteria: [{ id: 'E1', value: '' }],
+    extractionCriteria: [{ id: 'EX1', value: '', type: 'text', items: [''] }],
+    qualityCriteria: [{ id: 'Q1', value: '' }],
     databases: ['Scopus', 'Web of Science'],
     scoringSystem: {
       enabled: true,
@@ -3669,11 +3673,19 @@ const SystematicReviewTool = () => {
   const [lastSaved, setLastSaved] = useState(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showFileMenu, setShowFileMenu] = useState(false);
-  const fileOpenedAtRef = useRef(null);
+  const fileOpenedAtRef = useRef(Date.now());
+  const isRestoringRef = useRef(false);
   const RECALCULATE_DEBOUNCE_MS = 500;
 
   const [warnAfterMin, setWarnAfterMin] = useState(10);
   const [showReminderSettings, setShowReminderSettings] = useState(false);
+
+  const [showSupport, setShowSupport] = useState(false);
+  const [showSupportRequest, setShowSupportRequest] = useState(false);
+  const supportInteractedRef = useRef(false);
+  const supportFirstSaveDoneRef = useRef(false);
+  const SUPPORT_REQUEST_INTERVAL_MS = 60 * 60 * 1000; // 1h
+
   // Auto-save setup
   useEffect(() => {
     const getState = () => ({
@@ -3691,7 +3703,7 @@ const SystematicReviewTool = () => {
       const shouldRestore = window.confirm(
         `Backup automático encontrado de ${new Date(autoSaveResult.data.metadata?.autoSavedAt || Date.now()).toLocaleString()}. Restaurar?`
       );
-      
+
       if (shouldRestore) {
         restoreState(autoSaveResult.data);
       }
@@ -3712,17 +3724,41 @@ const SystematicReviewTool = () => {
     const completeDatabases = protocol.databases.length > 0
     const completeKeywords = protocol.keywords.some(c => c.trim())
 
-    
-    if(protocol.title && protocol.researchQuestion && completeInclusion && completeExclusion && completeQuality && completeDatabases && completeKeywords){
+
+    if (protocol.title && protocol.researchQuestion && completeInclusion && completeExclusion && completeQuality && completeDatabases && completeKeywords) {
       setCompleteProtocol(true)
-    }else{
+    } else {
       setCompleteProtocol(false)
     }
 
   }, [protocol]);
-  
+
   // Detectar mudanças
+  const prevDataRef = useRef(null);
+
   useEffect(() => {
+    const current = { articles, protocol, currentSection, importedData };
+
+    // Ignora o render inicial (também o double-mount do StrictMode)
+    if (prevDataRef.current === null) {
+      prevDataRef.current = current;
+      return;
+    }
+
+    const { articles: pA, protocol: pP, currentSection: pS, importedData: pI } = prevDataRef.current;
+    prevDataRef.current = current;
+
+    // Re-render sem mudança de dados (ex: double-mount do StrictMode)
+    if (pA === articles && pP === protocol && pS === currentSection && pI === importedData) {
+      return;
+    }
+
+    // Mudanças vindas de carregar/abrir/novo projeto não contam como não salvas
+    if (isRestoringRef.current) {
+      isRestoringRef.current = false;
+      return;
+    }
+
     setHasUnsavedChanges(true);
   }, [articles, protocol, currentSection, importedData]);
 
@@ -3748,24 +3784,34 @@ const SystematicReviewTool = () => {
     }
   }, [showFileMenu]);
 
+  // Repete o pedido de apoio em intervalos longos enquanto o app estiver aberto
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!supportInteractedRef.current && !showSupportRequest) {
+        setShowSupportRequest(true);
+      }
+    }, SUPPORT_REQUEST_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [showSupportRequest]);
+
   // Função para calcular pontuação de um artigo
   const calculateArticleScore = useCallback((article, protocolKeywords, scoringConfig) => {
     if (!protocolKeywords.length) return 0;
-    
+
     let totalScore = 0;
     const { weights, caseInsensitive, exactMatch, multipleOccurrences } = scoringConfig;
-    
+
     protocolKeywords.forEach(keyword => {
       if (!keyword.trim()) return;
-      
+
       const searchKeyword = caseInsensitive ? keyword.toLowerCase() : keyword;
       let keywordScore = 0;
-      
+
       const countOccurrences = (text, searchTerm) => {
         if (!text) return 0;
-        
+
         const searchText = caseInsensitive ? text.toLowerCase() : text;
-        
+
         if (exactMatch) {
           const regex = new RegExp(`\\b${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'g');
           const matches = searchText.match(regex);
@@ -3780,11 +3826,11 @@ const SystematicReviewTool = () => {
           }
         }
       };
-      
+
       const titleCount = countOccurrences(article.title, searchKeyword);
       const abstractCount = countOccurrences(article.abstract, searchKeyword);
       const keywordsCount = countOccurrences(article.keywords?.join(' '), searchKeyword);
-      
+
       if (multipleOccurrences) {
         keywordScore += titleCount * weights.title;
         keywordScore += abstractCount * weights.abstract;
@@ -3794,10 +3840,10 @@ const SystematicReviewTool = () => {
         keywordScore += (abstractCount > 0 ? 1 : 0) * weights.abstract;
         keywordScore += (keywordsCount > 0 ? 1 : 0) * weights.keywords;
       }
-      
+
       totalScore += keywordScore;
     });
-    
+
     return totalScore;
   }, []);
 
@@ -3809,7 +3855,7 @@ const SystematicReviewTool = () => {
   // Disponibilizar função globalmente
   useEffect(() => {
     window.removeDuplicateArticles = removeDuplicateArticles;
-    
+
     return () => {
       delete window.removeDuplicateArticles;
     };
@@ -3818,31 +3864,31 @@ const SystematicReviewTool = () => {
 
   // Função para recalcular todas as pontuações
   const recalculateAllScores = useCallback(() => {
-       
+
     const validKeywords = protocol.keywords.filter(k => k.trim());
     if (validKeywords.length === 0) return;
-    
+
     setArticles(prev => prev.map(article => ({
       ...article,
       score: calculateArticleScore(article, validKeywords, protocol.scoringSystem)
     })));
   }, [protocol.keywords, protocol.scoringSystem, calculateArticleScore]);
 
-// useEffect para recálculo automático de pontuações
+  // useEffect para recálculo automático de pontuações
   useEffect(() => {
     // Disponibilizar funções globalmente
     window.recalculateAllScores = recalculateAllScores;
     window.calculateArticleScore = calculateArticleScore;
-    
+
     // Auto-recalcular quando keywords ou configurações mudarem
-    if (articles.length > 0 ) {
+    if (articles.length > 0) {
       const timeoutId = setTimeout(() => {
         recalculateAllScores();
       }, RECALCULATE_DEBOUNCE_MS); // Debounce de 500ms
-      
+
       return () => clearTimeout(timeoutId);
     }
-    
+
     return () => {
       delete window.recalculateAllScores;
       delete window.calculateArticleScore;
@@ -3852,12 +3898,18 @@ const SystematicReviewTool = () => {
   const handleSaveProject = async () => {
     const state = { protocol, articles, statistics, currentSection, importedData, warnAfterMin };
     const result = await saveProjectToFile(state);
-    
+
     if (result.success) {
       setLastSaved(new Date());
       setHasUnsavedChanges(false);
       clearAutoSave();
       alert(`Projeto salvo: ${result.filename}`);
+
+      // Primeiro salvamento do dia: exibe o pedido de apoio
+      if (!supportInteractedRef.current && !supportFirstSaveDoneRef.current) {
+        supportFirstSaveDoneRef.current = true;
+        setShowSupportRequest(true);
+      }
     } else {
       alert(`Erro: ${result.error}`);
     }
@@ -3881,8 +3933,8 @@ const SystematicReviewTool = () => {
           restoreState(result.data);
           setHasUnsavedChanges(false);
           clearAutoSave();
-          
-          const message = result.migrated 
+
+          const message = result.migrated
             ? `Projeto carregado e migrado da versão ${result.originalVersion}`
             : 'Projeto carregado com sucesso!';
           alert(message);
@@ -3900,16 +3952,17 @@ const SystematicReviewTool = () => {
       return;
     }
 
+    isRestoringRef.current = true;
     setProtocol({
       title: '',
       researchQuestion: '',
       yearRange: { start: 2015, end: 2024 },
       keywords: [''],
       languages: ['English'],
-      inclusionCriteria: [{id:'I1', value:''}],
-      exclusionCriteria: [{id: 'E1',value:''}],
-      extractionCriteria: [{id: 'EX1', value:'', type:'text', items: ['']}],
-      qualityCriteria: [{id:'Q1', value:''}],
+      inclusionCriteria: [{ id: 'I1', value: '' }],
+      exclusionCriteria: [{ id: 'E1', value: '' }],
+      extractionCriteria: [{ id: 'EX1', value: '', type: 'text', items: [''] }],
+      qualityCriteria: [{ id: 'Q1', value: '' }],
       databases: ['Scopus', 'Web of Science'],
       scoringSystem: {
         enabled: true,
@@ -3933,71 +3986,213 @@ const SystematicReviewTool = () => {
 
   const handleExportXLSX = async () => {
 
-      const colorHeader = 'BFBFBF'
-      const colors = ['F2F2F2', 'FFFFFF'];
+    const colorHeader = 'BFBFBF'
+    const colors = ['F2F2F2', 'FFFFFF'];
 
-      const copyProtocol = [{
-        title: protocol.title,
-        researchQuestion: protocol.researchQuestion,
-        yearRange: `${protocol.yearRange.start} - ${protocol.yearRange.end}`,
-        languages: protocol.languages.join("; "),
-      }];
+    const copyProtocol = [{
+      title: protocol.title,
+      researchQuestion: protocol.researchQuestion,
+      yearRange: `${protocol.yearRange.start} - ${protocol.yearRange.end}`,
+      languages: protocol.languages.join("; "),
+    }];
 
-      const headerProtocol = {
-        title: "Title",
-        researchQuestion: "Research Question",
-        yearRange: "Year Range",
-        languages: "Languages",
+    const headerProtocol = {
+      title: "Title",
+      researchQuestion: "Research Question",
+      yearRange: "Year Range",
+      languages: "Languages",
+    };
+
+    protocol.inclusionCriteria.forEach((criterion, index) => {
+      copyProtocol[0][`I${index + 1}`] = criterion.value || "";
+      headerProtocol[`I${index + 1}`] = `Inclusion Criterion ${index + 1}`;
+    });
+
+    protocol.exclusionCriteria.forEach((criterion, index) => {
+      copyProtocol[0][`E${index + 1}`] = criterion.value || "";
+      headerProtocol[`E${index + 1}`] = `Exclusion Criterion ${index + 1}`;
+    });
+
+    protocol.qualityCriteria.forEach((criterion, index) => {
+      copyProtocol[0][`Q${index + 1}`] = criterion.value || "";
+      headerProtocol[`Q${index + 1}`] = `Quality Criterion ${index + 1}`;
+    });
+
+    protocol.extractionCriteria.forEach((criterion, index) => {
+      copyProtocol[0][`EX${index + 1}`] = criterion.value || "";
+      headerProtocol[`EX${index + 1}`] = `Extraction Criterion ${index + 1}`;
+    });
+    const workbook = new ExcelJS.Workbook();
+    const wsProtocol = workbook.addWorksheet("Protocolo");
+    // Colunas (header + key)
+    wsProtocol.columns = Object.keys(headerProtocol).map(key => ({
+      header: headerProtocol[key],
+      key,
+      width: 30,
+    }));
+
+    // Linha de dados
+    wsProtocol.addRow(copyProtocol[0]);
+
+    const row = wsProtocol.getRow(2);
+
+    row.eachCell({ includeEmpty: true }, cell => {
+      cell.alignment = { vertical: "middle" };
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: colors[0] },
       };
+      cell.border = {
+        left: { style: 'thin' },
+        right: { style: 'thin' }
+      };
+    });
 
-      protocol.inclusionCriteria.forEach((criterion, index) => {
-        copyProtocol[0][`I${index + 1}`] = criterion.value || "";
-        headerProtocol[`I${index + 1}`] = `Inclusion Criterion ${index + 1}`;
+    // Estilo do header
+    wsProtocol.getRow(1).eachCell(cell => {
+      cell.font = { bold: true };
+      cell.alignment = { vertical: "middle", horizontal: "center" };
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: colorHeader },
+      };
+      cell.border = {
+        left: { style: 'thin' },
+        right: { style: 'thin' }
+      };
+    });
+
+
+    const getArticles = (filter, status) => {
+      const copyArticles = status != 'total' ? articles.filter(a => a[filter] === status) : articles
+
+      const filterArticles = copyArticles.map(article => {
+        const {
+          quality,
+          numString,
+          duplicateOf,
+          extractionCriteria,
+          ...resto
+        } = article;
+
+        const extractionAttributes = article.extractionCriteria
+          ? article.extractionCriteria.reduce((acc, item) => {
+            acc[item.id] = item.response ?? "";
+            return acc;
+          }, {})
+          : {};
+
+        const exclusionCriterions = article.exclusionCriterion.map(a => a.id)
+        const inclusionCriterions = article.inclusionCriterion.map(a => a.id)
+        const qualityCriterias = article.qualityCriteria.map(a => a.id)
+
+        return {
+          ...resto,
+          isDuplicate: article.isDuplicate ? "Yes" : "No",
+          keywords: article.keywords ? article.keywords.join("; ") : "",
+          countries: !article.countries.includes('País não informado') ? article.countries.join("; ") : "",
+          inclusionCriterion: inclusionCriterions
+            ? inclusionCriterions.join("; ")
+            : "",
+          exclusionCriterion: exclusionCriterions
+            ? exclusionCriterions.join("; ")
+            : "",
+          qualityCriteria: qualityCriterias
+            ? qualityCriterias.join("; ")
+            : "",
+          ...extractionAttributes,
+        };
       });
 
-      protocol.exclusionCriteria.forEach((criterion, index) => {
-        copyProtocol[0][`E${index + 1}`] = criterion.value || "";
-        headerProtocol[`E${index + 1}`] = `Exclusion Criterion ${index + 1}`;
-      });
+      return filterArticles
+    }
 
-      protocol.qualityCriteria.forEach((criterion, index) => {
-        copyProtocol[0][`Q${index + 1}`] = criterion.value || "";
-        headerProtocol[`Q${index + 1}`] = `Quality Criterion ${index + 1}`;
-      });
 
-      protocol.extractionCriteria.forEach((criterion, index) => {
-        copyProtocol[0][`EX${index + 1}`] = criterion.value || "";
-        headerProtocol[`EX${index + 1}`] = `Extraction Criterion ${index + 1}`;
-      });
-      const workbook = new ExcelJS.Workbook();
-      const wsProtocol = workbook.addWorksheet("Protocolo");
-      // Colunas (header + key)
-      wsProtocol.columns = Object.keys(headerProtocol).map(key => ({
-        header: headerProtocol[key],
+    const headerArticlesInitial = {
+      title: "Title",
+      authors: "Authors",
+      abstract: "Abstract",
+      keywords: "Keywords",
+      year: "Year",
+      studyType: "Study Type",
+      journal: "Journal",
+      affiliations: "Affiliations",
+      countries: "Countries",
+      language: "Language",
+      doi: "DOI",
+      source: "Source",
+      searchString: "Search String",
+      score: "Score",
+      isDuplicate: "Is Duplicate",
+      dataProcessingStatus: "Data Processing Status",
+      filter1Status: "Filter 1 Status",
+      filter2Status: "Filter 2 Status",
+      filter3Status: "Filter 3 Status",
+      inclusionCriterion: "Inclusion Criteria",
+      exclusionCriterion: "Exclusion Criteria",
+      qualityCriteria: "Quality Criteria",
+    };
+    const headerArticlesFinal = {
+      importDate: "Imported Date",
+      lastModified: "Last Modified",
+    };
+    const extractions = {};
+    protocol.extractionCriteria.forEach((criterion) => {
+      // Use o criterion.id em vez de montar a string manualmente se possível
+      extractions[criterion.id] = criterion.value;
+    });
+    const headerArticles = {
+      ...headerArticlesInitial,
+      ...extractions, // Eles entram aqui, antes do bloco final
+      ...headerArticlesFinal
+    };
+    const tabs = [
+      { label: 'Articles', filter: 'total' },
+      { label: 'Included-Filter 1', filter: 'filter1Status', status: 'included' },
+      { label: 'Excluded-Filter 1', filter: 'filter1Status', status: 'excluded' },
+      { label: 'Included-Filter 2', filter: 'filter2Status', status: 'included' },
+      { label: 'Excluded-Filter 2', filter: 'filter2Status', status: 'excluded' },
+      { label: 'Included-Filter 3', filter: 'filter3Status', status: 'included' },
+      { label: 'Excluded-Filter 3', filter: 'filter3Status', status: 'excluded' },
+    ]
+    // const tabs = ['Articles', 'Included-Filter 1']
+
+    tabs.forEach(tab => {
+      const wsArticles = workbook.addWorksheet(tab.label);
+      wsArticles.columns = Object.keys(headerArticles).map(key => ({
+        header: headerArticles[key],
         key,
         width: 30,
       }));
 
-      // Linha de dados
-      wsProtocol.addRow(copyProtocol[0]);
+      const copyArticles = getArticles(tab.filter, tab.status)
+      // Adiciona linhas
+      copyArticles.forEach((article, index) => {
+        wsArticles.addRow(article);
 
-      const row = wsProtocol.getRow(2);
+        const rowNumber = index + 2; // +1 header, +1 índice base 0
+        const row = wsArticles.getRow(rowNumber);
 
-      row.eachCell({ includeEmpty: true }, cell => {
-        cell.alignment = { vertical: "middle"};
-        cell.fill = {
-          type: "pattern",
-          pattern: "solid",
-          fgColor: { argb: colors[0] },
-        };
-        cell.border = {
-          left: {style:'thin'},
-          right: {style:'thin'}
-        };
+        const currentColor = index % 2 === 0 ? colors[0] : colors[1];
+
+        row.eachCell({ includeEmpty: true }, cell => {
+          cell.alignment = { vertical: "middle" };
+          cell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: currentColor },
+          };
+          cell.border = {
+            left: { style: 'thin' },
+            right: { style: 'thin' }
+          };
+        });
       });
 
       // Estilo do header
-      wsProtocol.getRow(1).eachCell(cell => {
+      wsArticles.getRow(1).eachCell(cell => {
         cell.font = { bold: true };
         cell.alignment = { vertical: "middle", horizontal: "center" };
         cell.fill = {
@@ -4006,176 +4201,31 @@ const SystematicReviewTool = () => {
           fgColor: { argb: colorHeader },
         };
         cell.border = {
-          left: {style:'thin'},
-          right: {style:'thin'}
+          left: { style: 'thin' },
+          right: { style: 'thin' }
         };
       });
 
+    })
 
-      const getArticles = (filter, status) => {
-        const copyArticles = status != 'total'? articles.filter(a => a[filter] === status): articles
+    const buffer = await workbook.xlsx.writeBuffer();
 
-        const filterArticles = copyArticles.map(article => {
-          const {
-            quality,
-            numString,
-            duplicateOf,
-            extractionCriteria,
-            ...resto
-          } = article;
+    const blob = new Blob([buffer], {
+      type:
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
 
-          const extractionAttributes = article.extractionCriteria
-            ? article.extractionCriteria.reduce((acc, item) => {
-                acc[item.id] = item.response ?? "";
-                return acc;
-              }, {})
-            : {};
-          
-            const exclusionCriterions = article.exclusionCriterion.map(a => a.id)
-            const inclusionCriterions = article.inclusionCriterion.map(a => a.id)
-            const qualityCriterias = article.qualityCriteria.map(a => a.id)
-
-          return {
-            ...resto,
-            isDuplicate: article.isDuplicate ? "Yes" : "No",
-            keywords: article.keywords ? article.keywords.join("; ") : "",
-            countries: !article.countries.includes('País não informado') ? article.countries.join("; ") : "",
-            inclusionCriterion: inclusionCriterions
-              ? inclusionCriterions.join("; ")
-              : "",
-            exclusionCriterion: exclusionCriterions
-              ? exclusionCriterions.join("; ")
-              : "",
-            qualityCriteria: qualityCriterias
-              ? qualityCriterias.join("; ")
-              : "",
-            ...extractionAttributes,
-          };
-        });
-
-        return filterArticles
-      }
-      
-      
-      const headerArticlesInitial = {
-        title: "Title",
-        authors: "Authors",
-        abstract: "Abstract",
-        keywords: "Keywords",
-        year: "Year",
-        studyType: "Study Type",
-        journal: "Journal",
-        affiliations: "Affiliations",
-        countries: "Countries",
-        language: "Language",
-        doi: "DOI",
-        source: "Source",
-        searchString: "Search String",
-        score: "Score",
-        isDuplicate: "Is Duplicate",
-        dataProcessingStatus: "Data Processing Status",
-        filter1Status: "Filter 1 Status",
-        filter2Status: "Filter 2 Status",
-        filter3Status: "Filter 3 Status",
-        inclusionCriterion: "Inclusion Criteria",
-        exclusionCriterion: "Exclusion Criteria",
-        qualityCriteria: "Quality Criteria",
-      };
-      const headerArticlesFinal = {
-        importDate: "Imported Date",
-        lastModified: "Last Modified",
-      };
-      const extractions = {};
-        protocol.extractionCriteria.forEach((criterion) => {
-        // Use o criterion.id em vez de montar a string manualmente se possível
-        extractions[criterion.id] = criterion.value; 
-      });
-      const headerArticles = {
-        ...headerArticlesInitial,
-        ...extractions, // Eles entram aqui, antes do bloco final
-        ...headerArticlesFinal
-      };
-      const tabs = [
-        {label: 'Articles', filter: 'total'},
-        {label: 'Included-Filter 1', filter: 'filter1Status', status: 'included'},
-        {label: 'Excluded-Filter 1', filter: 'filter1Status', status: 'excluded'},
-        {label: 'Included-Filter 2', filter: 'filter2Status', status: 'included'},
-        {label: 'Excluded-Filter 2', filter: 'filter2Status', status: 'excluded'},
-        {label: 'Included-Filter 3', filter: 'filter3Status', status: 'included'},
-        {label: 'Excluded-Filter 3', filter: 'filter3Status', status: 'excluded'},
-      ] 
-      // const tabs = ['Articles', 'Included-Filter 1']
-
-      tabs.forEach(tab =>{
-        const wsArticles = workbook.addWorksheet(tab.label);
-        wsArticles.columns = Object.keys(headerArticles).map(key => ({
-          header: headerArticles[key],
-          key,
-          width: 30,
-        }));
-
-        const copyArticles = getArticles(tab.filter, tab.status)
-        // Adiciona linhas
-        copyArticles.forEach((article, index) => {
-          wsArticles.addRow(article);
-          
-          const rowNumber = index + 2; // +1 header, +1 índice base 0
-          const row = wsArticles.getRow(rowNumber);
-
-          const currentColor = index % 2 === 0 ? colors[0] : colors[1];
-
-          row.eachCell({ includeEmpty: true }, cell => {
-            cell.alignment = { vertical: "middle"};
-            cell.fill = {
-              type: "pattern",
-              pattern: "solid",
-              fgColor: { argb: currentColor },
-            };
-            cell.border = {
-              left: {style:'thin'},
-              right: {style:'thin'}
-            };
-          });
-        });
-
-        // Estilo do header
-        wsArticles.getRow(1).eachCell(cell => {
-          cell.font = { bold: true };
-          cell.alignment = { vertical: "middle", horizontal: "center" };
-          cell.fill = {
-            type: "pattern",
-            pattern: "solid",
-            fgColor: { argb: colorHeader },
-          };
-          cell.border = {
-            left: {style:'thin'},
-            right: {style:'thin'}
-          };
-        });
-
-      })
-      // const wsArticles = workbook.addWorksheet("Articles");
-
-     
-
-
-      const buffer = await workbook.xlsx.writeBuffer();
-
-      const blob = new Blob([buffer], {
-        type:
-          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      });
-
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "protocol-and-articles.xlsx";
-      a.click();
-      URL.revokeObjectURL(url);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "protocol-and-articles.xlsx";
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   const restoreState = (data) => {
     fileOpenedAtRef.current = Date.now();
+    isRestoringRef.current = true;
     setProtocol(data.protocol || {});
     setArticles(data.articles || []);
     setCurrentSection(data.currentSection || 'protocol');
@@ -4187,7 +4237,7 @@ const SystematicReviewTool = () => {
   // Estatísticas calculadas
   // Substituir o cálculo das estatísticas (linha ~1147)
   const statistics = useMemo(() => {
-        
+
     // articles.filter(a => a.dataProcessingStatus === 'duplicate' && !a.isDuplicate).length
     // console.log(importedData)
     const importSection = {};
@@ -4209,83 +4259,83 @@ const SystematicReviewTool = () => {
     };
 
     const filter1 = {
-      pending: articles.filter(a => 
-        a.dataProcessingStatus === 'included' && 
-        !a.isDuplicate && 
+      pending: articles.filter(a =>
+        a.dataProcessingStatus === 'included' &&
+        !a.isDuplicate &&
         a.filter1Status === 'pending'
       ).length,
       included: articles.filter(a => a.filter1Status === 'included').length,
-      excluded: articles.filter(a => 
-        a.dataProcessingStatus === 'included' && 
-        !a.isDuplicate && 
+      excluded: articles.filter(a =>
+        a.dataProcessingStatus === 'included' &&
+        !a.isDuplicate &&
         a.filter1Status === 'excluded'
       ).length
     };
-    
+
     const filter2 = {
       pending: articles.filter(a => a.filter1Status === 'included' && a.filter2Status === 'pending').length,
       included: articles.filter(a => a.filter2Status === 'included').length,
       excluded: articles.filter(a => a.filter1Status === 'included' && a.filter2Status === 'excluded').length
     };
-    
+
     const filter3 = {
       pending: articles.filter(a => a.filter2Status === 'included' && a.filter3Status === 'pending').length,
       included: articles.filter(a => a.filter3Status === 'included').length,
       excluded: articles.filter(a => a.filter2Status === 'included' && a.filter3Status === 'excluded').length
     };
-    
-    return {importSection, dataProcessing, filter1, filter2, filter3 };
+
+    return { importSection, dataProcessing, filter1, filter2, filter3 };
   }, [articles, importedData]);
-    
+
   const handleImport = useCallback((newArticles, source) => {
     setLoading(true);
     // setTimeout(() => {
-      
-      // setArticles(prev => [...prev, ...newArticles]);
-      setArticles(prev => {
-        const allArticles = [...prev, ...newArticles];
-        
-        const duplicatesByDOI = new Map();
-        const duplicatesByTitle = new Map();
 
-        return allArticles.map(article => {
-          // if (article.isDuplicate) return article;
+    // setArticles(prev => [...prev, ...newArticles]);
+    setArticles(prev => {
+      const allArticles = [...prev, ...newArticles];
 
-          let isDuplicate = false;
-          let duplicateOf = article.duplicateOf;
+      const duplicatesByDOI = new Map();
+      const duplicatesByTitle = new Map();
 
-          if (article.doi && duplicatesByDOI.has(article.doi)) {
-            isDuplicate = true;
-            duplicateOf = duplicatesByDOI.get(article.doi);
-          } else if (article.doi) {
-            duplicatesByDOI.set(article.doi, article.id);
-          }
+      return allArticles.map(article => {
+        // if (article.isDuplicate) return article;
 
-          const normalizedTitle = article.title.toLowerCase().trim();
-          if (duplicatesByTitle.has(normalizedTitle)) {
-            isDuplicate = true;
-            duplicateOf = duplicatesByTitle.get(normalizedTitle);
-          } else {
-            duplicatesByTitle.set(normalizedTitle, article.id);
-          }
+        let isDuplicate = false;
+        let duplicateOf = article.duplicateOf;
 
-          return isDuplicate
-            ? { ...article, isDuplicate: true, dataProcessingStatus: 'duplicate', duplicateOf }
-            : article;
-        });
+        if (article.doi && duplicatesByDOI.has(article.doi)) {
+          isDuplicate = true;
+          duplicateOf = duplicatesByDOI.get(article.doi);
+        } else if (article.doi) {
+          duplicatesByDOI.set(article.doi, article.id);
+        }
+
+        const normalizedTitle = article.title.toLowerCase().trim();
+        if (duplicatesByTitle.has(normalizedTitle)) {
+          isDuplicate = true;
+          duplicateOf = duplicatesByTitle.get(normalizedTitle);
+        } else {
+          duplicatesByTitle.set(normalizedTitle, article.id);
+        }
+
+        return isDuplicate
+          ? { ...article, isDuplicate: true, dataProcessingStatus: 'duplicate', duplicateOf }
+          : article;
       });
-      setLoading(false);
+    });
+    setLoading(false);
     // }, 1500);
   }, []);
-  
+
   const handleUpdateStatus = useCallback((id, statusType, status, criterion = null) => {
     setArticles(prev => prev.map(article => {
       if (article.id !== id) return article;
 
       const base = status !== 'extracted'
-      ? { ...article, [statusType]: status, lastModified: new Date() }:
-      { ...article, lastModified: new Date() };
-      
+        ? { ...article, [statusType]: status, lastModified: new Date() } :
+        { ...article, lastModified: new Date() };
+
       // Cascade reset — apenas atualiza o campo de status
       if (status === null) return base;
 
@@ -4305,14 +4355,14 @@ const SystematicReviewTool = () => {
       const byCat = (cat) => criteria.filter(c => c.category === cat);
       const newInclusionCriteria = byCat('inclusion');
       const newExclusionCriteria = byCat('exclusion');
-      const newQualityCriteria   = byCat('quality');
+      const newQualityCriteria = byCat('quality');
 
       return {
         ...base,
-        isDuplicate:       false,
+        isDuplicate: false,
         inclusionCriterion: newInclusionCriteria,
         exclusionCriterion: newExclusionCriteria,
-        qualityCriteria:    newQualityCriteria,
+        qualityCriteria: newQualityCriteria,
       };
     }));
   }, []);
@@ -4323,7 +4373,7 @@ const SystematicReviewTool = () => {
     const duplicatesByDOI = new Map();
     const duplicatesByTitle = new Map();
     // const duplicatesByAuthorsYear = new Map();
-    
+
     const updatedArticles = articles.map(article => {
       // if (article.isDuplicate) return article;
 
@@ -4346,9 +4396,9 @@ const SystematicReviewTool = () => {
       }
       console.log(isDuplicate)
       if (isDuplicate) {
-        return { ...article, isDuplicate: true, dataProcessingStatus: 'duplicate', duplicateOf }; // ✅ novo objeto
-      }else{
-        return { ...article, isDuplicate: false, dataProcessingStatus: 'pending' }; // ✅ novo objeto
+        return { ...article, isDuplicate: true, dataProcessingStatus: 'duplicate', duplicateOf };
+      } else {
+        return { ...article, isDuplicate: false, dataProcessingStatus: 'pending' };
       }
 
       return article;
@@ -4356,7 +4406,7 @@ const SystematicReviewTool = () => {
 
     // articles.forEach(article => {
     //   if (article.isDuplicate) return; // Pular se já é marcado como duplicata
-      
+
     //   // Detectar por DOI
     //   if (article.doi && duplicatesByDOI.has(article.doi)) {
     //     article.isDuplicate = true;
@@ -4365,7 +4415,7 @@ const SystematicReviewTool = () => {
     //   } else if (article.doi) {
     //     duplicatesByDOI.set(article.doi, article.id);
     //   }
-      
+
     //   // Detectar por título 
     //   const normalizedTitle = article.title.toLowerCase().trim();
     //   if (duplicatesByTitle.has(normalizedTitle)) {
@@ -4375,7 +4425,7 @@ const SystematicReviewTool = () => {
     //   } else {
     //     duplicatesByTitle.set(normalizedTitle, article.id);
     //   }
-      
+
     //   // Detectar por autores + ano
     //   // const authorYearKey = `${article.authors.toLowerCase()}_${article.year}`;
     //   // if (duplicatesByAuthorsYear.has(authorYearKey)) {
@@ -4390,27 +4440,42 @@ const SystematicReviewTool = () => {
     // console.log(articles.filter(a => a.isDuplicate).length);
   }, [articles]);
 
-  const ConfigureNotification = () => (  
+  const ConfigureNotification = () => (
     <button onClick={() => setShowReminderSettings(true)}
       className="p-2 rounded-lg transition-colors duration-200 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
+      title={`Configurar lembrete de salvamento`}
     >
       <Bell className="h-5 w-5 text-gray-600 dark:text-gray-300" />
     </button>
   );
 
+  // Componente Support
+  const Support = () => {
+    // console.log(theme)
+    return (
+      <button onClick={() => setShowSupport(true)}
+        className="p-2 rounded-lg transition-colors duration-200 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
+        title={`Apoiar o projeto`}
+      >
+        <HeartHandshake className="h-5 w-5  dark:text-gray-300" />
+      </button>
+    );
+  };
+
   const FileMenu = () => (
     <div className="relative" onClick={e => e.stopPropagation()}>
       <button
         onClick={() => setShowFileMenu(!showFileMenu)}
-        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg flex items-center gap-2"
+        className="px-2 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg flex items-center gap-1"
+        title={`Arquivo`}
       >
         <FileText className="h-5 w-5" />
         <div className="hidden sm:block">
           Arquivo
         </div>
-          <ChevronDown className={`h-4 w-4 transition-transform ${showFileMenu ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`hidden h-4 w-4 min-[420px]:inline-flex transition-transform ${showFileMenu ? 'rotate-180' : ''}`} />
         {/* Arquivo */}
-        
+
       </button>
 
       {showFileMenu && (
@@ -4422,7 +4487,7 @@ const SystematicReviewTool = () => {
             <FileText className="h-4 w-4" />
             Novo Projeto
           </button>
-          
+
           <label className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 cursor-pointer">
             <Upload className="h-4 w-4" />
             Abrir Projeto
@@ -4433,7 +4498,7 @@ const SystematicReviewTool = () => {
               className="hidden"
             />
           </label>
-          
+
           <button
             onClick={handleSaveProject}
             className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
@@ -4443,7 +4508,7 @@ const SystematicReviewTool = () => {
             {hasUnsavedChanges && <span className="text-red-500 text-xs">●</span>}
           </button>
 
-           <button
+          <button
             onClick={handleExportXLSX}
             className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
           >
@@ -4481,17 +4546,22 @@ const SystematicReviewTool = () => {
     { id: 'filter3', name: 'Filtro 3', icon: Filter },
     { id: 'statistics', name: 'Estatísticas', icon: ChartArea }
   ];
+  const sectionGroups = [
+    [sections[0], sections[1]],  // Protocolo + Tratamento
+    [sections[2]],       // Importação (sozinho)
+    [sections[3], sections[4], sections[5]], // Filtro 1, 2, 3
+    [sections[6]],                    // Estatísticas (sozinho)
+  ];
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 text-gray-900 dark:text-gray-100 m-0 p-0 transition-colors duration-200">
       <div className="w-full h-full px-4 py-6">
         {/* Header */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6 transition-colors duration-200">
-          <div className="flex justify-between items-start mb-4 gap-3">
+          <div className="flex flex-row items-start justify-between mb-4 gap-3">
             <div className="min-w-0">
               <div className="flex justify-between items-start gap-3 align-items">
                 <div className="hidden sm:block w-[32px]">
-                  {/* <SvgIcon className="w-full h-full" stroke={theme === 'light'?'#000':'#fff'} fill={theme === 'light'?'#fff':'#000'}/> */}
                   <SvgIcon
                     className="w-full h-full"
                     stroke={theme === 'light' ? '#000' : '#fff'}
@@ -4501,184 +4571,188 @@ const SystematicReviewTool = () => {
                 </div>
                 <h1 className="text-xl sm:text-3xl font-bold text-gray-800 dark:text-white leading-tight">
                   SysReview
-                  {/* Sistema de Revisão Sistemática da Literatura */}
                 </h1>
               </div>
               <StatusIndicator />
             </div>
 
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="grid min-[420px]:flex  grid-cols-2 items-center gap-2 flex-shrink-0">
+              {/* grid grid-cols-2 items-center gap-2 flex-shrink-0 */}
               <FileMenu />
               <ConfigureNotification />
+              <Support />
               <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
             </div>
           </div>
-          
+
           {/* Navegação entre seções */}
           <nav className="flex flex-wrap gap-2">
-            {sections.map((section) => {
-              const Icon = section.icon;
-              return (
-                <button
-                  key={section.id}
-                  onClick={() => setCurrentSection(section.id)}
-                  disabled={sectionsToCheck.includes(section.name) && articles.length === 0}
-                  title={sectionsToCheck.includes(section.name) && articles.length === 0 ? 'Importe artigos para ver as estatísticas' : ''}
-                  className={sectionsToCheck.includes(section.name) && articles.length === 0 ? `text-sm px-4 py-2 rounded-lg flex items-center gap-2 border-none bg-gray-100 dark:bg-gray-900 hover:border-none disabled:cursor-not-allowed disabled:text-gray-400` :` text-sm x-4 py-2 rounded-lg flex items-center gap-2 transition-colors duration-200 ${
-                    currentSection === section.id
-                      ? ' text-sm bg-indigo-600 text-white dark:bg-indigo-500'
-                      : ' text-sm bg-gray-300 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 '
-                  }`}
-                >
-                  <Icon size={16} />
-                  {section.name}
-                </button>
-              );
-            })}
+            {sectionGroups.map((group, i) => (
+              <div key={i} className="flex flex-nowrap gap-2">
+                {group.map((section) => {
+                  const Icon = section.icon;
+                  const isDisabled = sectionsToCheck.includes(section.name) && articles.length === 0;
+                  const isActive = currentSection === section.id;
+
+                  return (
+                    <button
+                      key={section.id}
+                      onClick={() => setCurrentSection(section.id)}
+                      disabled={isDisabled}
+                      title={isDisabled ? 'Importe artigos para ver as estatísticas' : section.name}
+                      className={
+                        isDisabled
+                          ? 'text-sm px-3 py-2 rounded-lg flex items-center gap-2 border-none bg-gray-100 dark:bg-gray-900 hover:border-none disabled:cursor-not-allowed disabled:text-gray-400'
+                          : `text-sm px-3 py-2 rounded-lg flex items-center gap-2 transition-colors duration-200 ${isActive
+                            ? 'bg-indigo-600 text-white dark:bg-indigo-500'
+                            : 'bg-gray-300 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                          }`
+                      }
+                    >
+                      <Icon size={16} className="flex-shrink-0" />
+                      <span className={isActive ? 'inline whitespace-nowrap' : 'hidden sm:inline whitespace-nowrap'}>
+                        {section.name}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
           </nav>
         </div>
-        
-        {/* Resumo geral */}
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 transition-colors duration-200">
-            <div className="flex items-center">
-              <Settings className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
-              <div className="ml-4">
-                <p className="text-base sm:text-xl font-semibold text-gray-900 dark:text-gray-100">
-                 {completeProtocol? '✓' : '○'}
-                </p>
-                <p className="text-gray-600 dark:text-gray-400 text-sm">Protocolo</p>
-              </div>
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg grid grid-cols-3 md:grid-cols-6 gap-3  mb-6 transition-colors duration-200">
+          <div className="grid grid-cols-[24px_1fr] gap-2 items-center w-full max-w-[140px] mx-auto ">
+            <Settings className="h-6 w-6 flex-shrink-0 text-indigo-600 dark:text-indigo-400" />
+            <div className="min-w-0">
+              <p className="text-sm sm:text-lg font-semibold text-gray-900 dark:text-gray-100 leading-tight">
+                {completeProtocol ? '✓' : '○'}
+              </p>
+              <p className="text-gray-600 dark:text-gray-400 text-xs leading-tight truncate">Protocolo</p>
             </div>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 transition-colors duration-200">
-            <div className="flex items-center">
-              <Upload className="h-8 w-8 text-blue-600 dark:text-blue-400" />
-              <div className="ml-4">
-                <p className="text-base sm:text-xl font-semibold text-gray-900 dark:text-gray-100">{articles.length}</p>
-                <p className="text-gray-600 dark:text-gray-400 text-sm">Importados</p>
-              </div>
+
+          <div className="grid grid-cols-[24px_1fr] gap-2 items-center w-full max-w-[140px] mx-auto">
+            <Upload className="h-6 w-6 flex-shrink-0 text-blue-600 dark:text-blue-400" />
+            <div className="min-w-0">
+              <p className="text-sm sm:text-lg font-semibold text-gray-900 dark:text-gray-100 leading-tight">{articles.length}</p>
+              <p className="text-gray-600 dark:text-gray-400 text-xs leading-tight truncate">Importados</p>
             </div>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 transition-colors duration-200">
-            <div className="flex items-center">
-              <Database className="h-8 w-8 text-purple-600 dark:text-purple-400" />
-              <div className="ml-4">
-                <p className="text-base sm:text-xl font-semibold text-gray-900 dark:text-gray-100">{statistics.dataProcessing.included}</p>
-                <p className="text-gray-600 dark:text-gray-400 text-sm">Tratados</p>
-              </div>
+
+          <div className="grid grid-cols-[24px_1fr] gap-2 items-center w-full max-w-[140px] mx-auto">
+            <Database className="h-6 w-6 flex-shrink-0 text-purple-600 dark:text-purple-400" />
+            <div className="min-w-0">
+              <p className="text-sm sm:text-lg font-semibold text-gray-900 dark:text-gray-100 leading-tight">{statistics.dataProcessing.included}</p>
+              <p className="text-gray-600 dark:text-gray-400 text-xs leading-tight truncate">Tratados</p>
             </div>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 transition-colors duration-200">
-            <div className="flex items-center">
-              <Filter className="h-8 w-8 text-green-600 dark:text-green-400" />
-              <div className="ml-4">
-                <p className="text-base sm:text-xl font-semibold text-gray-900 dark:text-gray-100">{statistics.filter1.included}</p>
-                <p className="text-gray-600 dark:text-gray-400 text-sm">Filtro 1</p>
-              </div>
+
+          <div className="grid grid-cols-[24px_1fr] gap-2 items-center w-full max-w-[140px] mx-auto">
+            <Filter className="h-6 w-6 flex-shrink-0 text-green-600 dark:text-green-400" />
+            <div className="min-w-0">
+              <p className="text-sm sm:text-lg font-semibold text-gray-900 dark:text-gray-100 leading-tight">{statistics.filter1.included}</p>
+              <p className="text-gray-600 dark:text-gray-400 text-xs leading-tight truncate">Filtro 1</p>
             </div>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 transition-colors duration-200">
-            <div className="flex items-center">
-              <Filter className="h-8 w-8 text-blue-600 dark:text-blue-400" />
-              <div className="ml-4">
-                <p className="text-base sm:text-xl font-semibold text-gray-900 dark:text-gray-100">{statistics.filter2.included}</p>
-                <p className="text-gray-600 dark:text-gray-400 text-sm">Filtro 2</p>
-              </div>
+
+          <div className="grid grid-cols-[24px_1fr] gap-2 items-center w-full max-w-[140px] mx-auto">
+            <Filter className="h-6 w-6 flex-shrink-0 text-blue-600 dark:text-blue-400" />
+            <div className="min-w-0">
+              <p className="text-sm sm:text-lg font-semibold text-gray-900 dark:text-gray-100 leading-tight">{statistics.filter2.included}</p>
+              <p className="text-gray-600 dark:text-gray-400 text-xs leading-tight truncate">Filtro 2</p>
             </div>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 transition-colors duration-200">
-            <div className="flex items-center">
-              <FileText className="h-8 w-8 text-purple-600 dark:text-purple-400" />
-              <div className="ml-4">
-                <p className="text-base sm:text-xl font-semibold text-gray-900 dark:text-gray-100">{statistics.filter3.included}</p>
-                <p className="text-gray-600 dark:text-gray-400 text-sm">Final</p>
-              </div>
+
+          <div className="grid grid-cols-[24px_1fr] gap-2 items-center w-full max-w-[140px] mx-auto">
+            <FileText className="h-6 w-6 flex-shrink-0 text-purple-600 dark:text-purple-400" />
+            <div className="min-w-0">
+              <p className="text-sm sm:text-lg font-semibold text-gray-900 dark:text-gray-100 leading-tight">{statistics.filter3.included}</p>
+              <p className="text-gray-600 dark:text-gray-400 text-xs leading-tight truncate">Final</p>
             </div>
           </div>
         </div>
-        
+
         {/* Conteúdo das seções */}
         {currentSection === 'protocol' && (
           <ProtocolSection protocol={protocol} onUpdateProtocol={setProtocol} />
         )}
-        
+
         {currentSection === 'import' && (
-          <ImportSection 
+          <ImportSection
             articles={articles}
             setArticles={setArticles}
-            onImport={handleImport} 
-            isLoading={loading} 
-            protocol={protocol} 
+            onImport={handleImport}
+            isLoading={loading}
+            protocol={protocol}
             importedData={importedData}
             setImportedData={setImportedData}
             detectDuplicates={detectDuplicates}
             numStringSc={numStringSc}
             setNumStringSc={setNumStringSc}
             statistics={statistics}
-            />
+          />
         )}
-        
+
         {currentSection === 'dataprocessing' && (
-          <DataProcessingSection 
+          <DataProcessingSection
             articles={articles}
             currentFilter={currentSection}
             setArticles={setArticles}
             onUpdateStatus={handleUpdateStatus}
             statistics={statistics}
             detectDuplicates={detectDuplicates}
-            // handleExclude={handleUpdateStatus}
+          // handleExclude={handleUpdateStatus}
           />
         )}
 
         {currentSection === 'filter1' && (
-          <Filter1Section 
+          <Filter1Section
             articles={articles}
             onUpdateStatus={handleUpdateStatus}
-            inclusionCriteria = {protocol.inclusionCriteria}
-            exclusionCriteria = {protocol.exclusionCriteria}
+            inclusionCriteria={protocol.inclusionCriteria}
+            exclusionCriteria={protocol.exclusionCriteria}
             statistics={statistics}
           />
         )}
-        
+
         {currentSection === 'filter2' && (
-          <Filter2Section 
+          <Filter2Section
             articles={articles}
             onUpdateStatus={handleUpdateStatus}
-            inclusionCriteria = {protocol.inclusionCriteria} 
-            exclusionCriteria = {protocol.exclusionCriteria}
+            inclusionCriteria={protocol.inclusionCriteria}
+            exclusionCriteria={protocol.exclusionCriteria}
             statistics={statistics}
           />
         )}
-        
+
         {currentSection === 'filter3' && (
-          <Filter3Section 
+          <Filter3Section
             articles={articles}
             onUpdateStatus={handleUpdateStatus}
-            inclusionCriteria = {protocol.inclusionCriteria} 
-            exclusionCriteria = {protocol.exclusionCriteria}
-            extractionCriteria = {protocol.extractionCriteria}
+            inclusionCriteria={protocol.inclusionCriteria}
+            exclusionCriteria={protocol.exclusionCriteria}
+            extractionCriteria={protocol.extractionCriteria}
             statistics={statistics}
           />
         )}
 
         {currentSection === 'statistics' && (
-          <StatisticsSection 
+          <StatisticsSection
             articles={articles}
             onUpdateStatus={handleUpdateStatus}
-            inclusionCriteria = {protocol.inclusionCriteria} 
-            exclusionCriteria = {protocol.exclusionCriteria}
-            qualityCriteria = {protocol.qualityCriteria}
-            extractionCriteria = {protocol.extractionCriteria}
+            inclusionCriteria={protocol.inclusionCriteria}
+            exclusionCriteria={protocol.exclusionCriteria}
+            qualityCriteria={protocol.qualityCriteria}
+            extractionCriteria={protocol.extractionCriteria}
             statistics={statistics}
             theme={theme}
             importedData={importedData}
           />
         )}
-        
+
         {/* Lista de artigos para a seção atual */}
         {(currentSection === 'dataprocessing' || currentSection === 'filter1' || currentSection === 'filter2' || currentSection === 'filter3') && (
-          <ArticlesList 
+          <ArticlesList
             articles={articles}
             currentFilter={currentSection}
             onUpdateStatus={handleUpdateStatus}
@@ -4702,7 +4776,31 @@ const SystematicReviewTool = () => {
             onClose={() => setShowReminderSettings(false)}
           />
         )}
-        
+
+        {showSupport && (
+          <SupportModal
+            currentMinutes={warnAfterMin}
+            onConfirm={(min) => { setWarnAfterMin(min); setShowSupport(false); }}
+            onClose={() => setShowSupport(false)}
+          />
+        )}
+
+        {showSupportRequest && (
+          <SupportRequestModal
+            autoCloseMs={10000}
+            onOpenSupport={() => {
+              supportInteractedRef.current = true;
+              setShowSupportRequest(false);
+              setShowSupport(true);
+            }}
+            onDismiss={() => {
+              supportInteractedRef.current = true;
+              setShowSupportRequest(false);
+            }}
+            onClose={() => setShowSupportRequest(false)}
+          />
+        )}
+
       </div>
     </div>
   );
