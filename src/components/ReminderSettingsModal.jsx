@@ -1,9 +1,11 @@
 import { useState } from "react";
+import { useTranslation } from 'react-i18next';
 import { X, Bell } from "lucide-react";
 
 const PRESET_OPTIONS = [5, 10, 15, 30];
 
 export function ReminderSettingsModal({ currentMinutes = 10, onConfirm, onClose }) {
+  const { t } = useTranslation();
   const isPreset = PRESET_OPTIONS.includes(currentMinutes);
   const [selected, setSelected] = useState(isPreset ? currentMinutes : null);
   const [custom, setCustom] = useState(isPreset ? "" : String(currentMinutes));
@@ -31,7 +33,7 @@ export function ReminderSettingsModal({ currentMinutes = 10, onConfirm, onClose 
           <div className="flex items-center gap-2 sm:gap-3">
             <Bell className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-600 dark:text-indigo-400" />
             <p className="text-sm sm:text-base font-semibold text-gray-800 dark:text-white">
-              Lembrete de salvamento
+              {t('modals.reminder.title')}
             </p>
           </div>
           <button
@@ -45,7 +47,7 @@ export function ReminderSettingsModal({ currentMinutes = 10, onConfirm, onClose 
         {/* Body */}
         <div className="p-4 sm:p-6 space-y-4 sm:space-y-5">
           <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-            Avisar após quanto tempo sem salvar:
+            {t('modals.reminder.askAfter')}
           </p>
 
           {/* Presets */}
@@ -60,7 +62,7 @@ export function ReminderSettingsModal({ currentMinutes = 10, onConfirm, onClose 
                     : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600"
                   }`}
               >
-                {min} min
+                {t('modals.reminder.min', { count: min })}
               </button>
             ))}
           </div>
@@ -68,7 +70,7 @@ export function ReminderSettingsModal({ currentMinutes = 10, onConfirm, onClose 
           {/* Custom input */}
           <div>
             <label className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-1.5 sm:mb-2 block">
-              Ou defina um valor personalizado:
+              {t('modals.reminder.custom')}
             </label>
             <div className="flex items-center gap-2">
               <input
@@ -77,7 +79,7 @@ export function ReminderSettingsModal({ currentMinutes = 10, onConfirm, onClose 
                 max={60}
                 value={custom}
                 onChange={handleCustomChange}
-                placeholder="ex: 20"
+                placeholder={t('modals.reminder.example')}
                 className={`flex-1 px-3 py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg border transition-colors
                   bg-white dark:bg-gray-700 text-gray-800 dark:text-white
                   placeholder-gray-400 dark:placeholder-gray-500
@@ -87,11 +89,11 @@ export function ReminderSettingsModal({ currentMinutes = 10, onConfirm, onClose 
                     : "border-gray-200 dark:border-gray-600"
                   }`}
               />
-              <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">min</span>
+              <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{t('modals.reminder.minUnit')}</span>
             </div>
             {custom && !isValid && (
               <p className="text-xs sm:text-sm text-red-500 dark:text-red-400 mt-1">
-                Digite um valor entre 1 e 60 minutos.
+                {t('modals.reminder.invalid')}
               </p>
             )}
           </div>
@@ -99,7 +101,7 @@ export function ReminderSettingsModal({ currentMinutes = 10, onConfirm, onClose 
           {/* Preview */}
           {isValid && (
             <p className="text-xs sm:text-sm text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg px-3 sm:px-4 py-2 sm:py-2.5">
-              Você será avisado após <strong>{effectiveValue} minuto{effectiveValue > 1 ? "s" : ""}</strong> sem salvar.
+              {t('modals.reminder.preview', { count: effectiveValue })}
             </p>
           )}
         </div>
@@ -113,7 +115,7 @@ export function ReminderSettingsModal({ currentMinutes = 10, onConfirm, onClose 
               dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-300
               transition-colors duration-150"
           >
-            Cancelar
+            {t('searchString.cancel')}
           </button>
           <button
             disabled={!isValid}
@@ -124,7 +126,7 @@ export function ReminderSettingsModal({ currentMinutes = 10, onConfirm, onClose 
               disabled:opacity-40 disabled:cursor-not-allowed
               transition-colors duration-150"
           >
-            Confirmar
+            {t('multiSelect.confirm')}
           </button>
         </div>
       </div>

@@ -1,14 +1,16 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useTranslation } from 'react-i18next';
 import { Heart, X } from "lucide-react";
 
 export function SupportRequestModal({
-  message = "Gostou do app? Considere apoiar o projeto com uma doação de qualquer valor.",
-  openSupportLabel = "Apoiar o projeto",
+  message = null,
+  openSupportLabel = null,
   autoCloseMs = 10000,
   onOpenSupport,
   onDismiss,
   onClose,
 }) {
+  const { t } = useTranslation();
   const [exiting, setExiting] = useState(false);
   const [paused, setPaused] = useState(false);
   const remainingRef = useRef(autoCloseMs);
@@ -84,16 +86,16 @@ export function SupportRequestModal({
 
           <div className="flex-1 min-w-0">
             <p id="srm-title" className="text-sm font-semibold text-gray-800 dark:text-white leading-snug">
-              Um pedido de apoio
+              {t('modals.supportRequest.title')}
             </p>
             <p id="srm-desc" className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">
-              {message}
+              {message ?? t('modals.supportRequest.message')}
             </p>
           </div>
 
           <button
             onClick={() => close("dismiss")}
-            aria-label="Fechar aviso"
+            aria-label={t('modals.closeNotice')}
             className="flex-shrink-0 p-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:text-gray-300 dark:hover:bg-gray-700 transition-colors duration-150"
           >
             <X className="h-4 w-4" />
@@ -113,7 +115,7 @@ export function SupportRequestModal({
               transition-colors duration-150"
           >
             <Heart className="h-3.5 w-3.5" />
-            {openSupportLabel}
+            {openSupportLabel ?? t('modals.supportRequest.openSupportLabel')}
           </button>
         </div>
 

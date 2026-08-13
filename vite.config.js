@@ -5,7 +5,6 @@ export default defineConfig({
     react(),
   ],
    server: {
-    host: '0.0.0.0',
-    allowedHosts: 'all'
+    host: 'localhost'
   }
 })

@@ -1,18 +1,15 @@
 import React, { useRef, useState, useEffect, useMemo, useCallback } from 'react';
-import { Search, Filter, ChartArea, Download, Table, Upload, CheckCircle, Check, XCircle, BookCopy, List, ListCollapse, Clock, BarChart3, FileText, Users, Calendar, Database, DatabaseBackup, Trash2, RefreshCw, Settings, BookOpen, Globe, Sun, Moon, Bell, ArrowUpDown, ChevronDown, Eye, PlusCircle, X, ChevronRight, CopyX, CopyCheck, HeartHandshake, MoreVertical } from 'lucide-react';
+import { Search, Filter, ChartArea, Download, Table, Upload, CheckCircle, Check, XCircle, BookCopy, List, Clock, BarChart3, FileText, Database, RefreshCw, Settings, Sun, Moon, Bell, ArrowUpDown, ChevronDown, Eye, PlusCircle, X, CopyX, CopyCheck, HeartHandshake, Languages } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { SvgIcon } from './icons/SysReviewIcon.jsx';
-import '@xyflow/react/dist/style.css';
-import * as htmlToImage from 'html-to-image';
-import { toSvg, toPng } from 'html-to-image';
-import { TooltipProvider, TooltipContext, Tip } from "./Tooltip";
-import ArticleModal from "./ArticleModal.jsx"
-import { Tooltip as ReactTooltip } from 'react-tooltip'
-// import { ReactFlow } from '@xyflow/react';
-import StatisticsSection from "./StatisticsSection.jsx"
-import { UnsavedWarningModal } from "./UnsavedWarningModal";
-import { ReminderSettingsModal } from "./ReminderSettingsModal";
-import { SupportModal } from "./SupportModal";
-import { SupportRequestModal } from "./SupportRequestModal";
+
+import ArticleModal from "./components/ArticleModal.jsx"
+
+import StatisticsSection from "./components/StatisticsSection.jsx"
+import { UnsavedWarningModal } from "./components/UnsavedWarningModal.jsx";
+import { ReminderSettingsModal } from "./components/ReminderSettingsModal.jsx";
+import { SupportModal } from "./components/SupportModal.jsx";
+import { SupportRequestModal } from "./components/SupportRequestModal.jsx";
 
 import {
   saveProjectToFile,
@@ -23,10 +20,7 @@ import {
 } from './fileSystem.js';
 
 import countryPatternsData from './countryPatterns/countryPatterns_v2.json';
-// import * as XLSX from 'xlsx-js-style';
 import ExcelJS from "exceljs";
-
-import { useCurrentPng, useGenerateImage } from "recharts-to-png";
 
 // Hook personalizado para gerenciar o tema
 const useTheme = () => {
@@ -51,18 +45,31 @@ const useTheme = () => {
 
 // Componente Toggle
 const ThemeToggle = ({ theme, toggleTheme }) => {
-  // console.log(theme)
+  const { t } = useTranslation();
   return (
     <button
       onClick={toggleTheme}
-      className="p-2 rounded-lg transition-colors duration-200 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
-      title={`Alternar para ${theme === 'light' ? 'escuro' : 'claro'}`}
+      className="p-2 rounded-lg flex items-center justify-center transition-colors duration-200 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
+      title={t('header.themeToggle', { next: theme === 'light' ? t('header.dark') : t('header.light') })}
     >
       {theme === 'light' ? (
         <Moon className="h-5 w-5 text-gray-600 dark:text-gray-300" />
       ) : (
         <Sun className="h-5 w-5 text-yellow-500" />
       )}
+    </button>
+  );
+};
+
+const LanguageSelector = () => {
+  const { i18n } = useTranslation();
+  return (
+    <button
+      onClick={() => i18n.changeLanguage(i18n.language === 'pt' ? 'en' : 'pt')}
+      className="px-2 py-2 rounded-lg flex items-center justify-center transition-colors duration-200 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
+      title={i18n.language === 'pt' ? 'English' : 'Português'}
+    >
+      <Languages className="h-5 w-5 text-gray-600 dark:text-gray-300" />
     </button>
   );
 };
@@ -127,14 +134,6 @@ function getPubMedField(record, field, multi = false) {
 
   return multi ? matches : matches[0];
 }
-
-const validateBibtexFormat = (content) => {
-  // Verificar se contém entradas BibTeX válidas
-  const hasValidEntries = /@(article|book|inproceedings|conference|misc|techreport|mastersthesis|phdthesis)\s*\{/i.test(content);
-  const hasRequiredFields = /title\s*=/i.test(content);
-
-  return hasValidEntries && hasRequiredFields;
-};
 
 // Função melhorada para dividir entradas BibTeX
 function splitBibtexEntries(bibtexContent) {
@@ -342,21 +341,6 @@ const importedPubmedArticles = (pubmedContent, source = 'PubMed', numString = 1,
   return importedArticles.filter(article => !article.title.startsWith('Título não encontrado'));
 };
 
-// const Overlay = ({ children, footer, onClose }) => (
-//   <div
-//     className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center sm:p-4 z-50"
-//     onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-//   >
-//     <div
-//       className="bg-white dark:bg-gray-800 rounded-t-2xl sm:rounded-xl w-full sm:max-w-3xl flex flex-col transition-colors duration-200"
-//       style={{ maxHeight: '92dvh' }}
-//       onClick={(e) => e.stopPropagation()}
-//     >
-//       {children}
-//       {footer}
-//     </div>
-//   </div>
-// );
 const Overlay = ({ children, footer, onClose }) => {
   const [visible, setVisible] = useState(false);
   const [translateY, setTranslateY] = useState(0);
@@ -460,6 +444,7 @@ const Overlay = ({ children, footer, onClose }) => {
 };
 // Modal para seleção de critérios
 const MultiSelect = ({ isOpen, onClose, options, onSelect, type, criteria, initialSelected = [], initialValues = [] }) => {
+  const { t } = useTranslation();
   const [isOpenDrop, setIsOpenDrop] = useState(false);
   const [selected, setSelected] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -485,9 +470,8 @@ const MultiSelect = ({ isOpen, onClose, options, onSelect, type, criteria, initi
       setSearchTerm('');
       setIsOpenDrop(false);
     } else {
-      // document.body.style.overflowY = '';
+      // document.body.styleOverflowY = '';
     }
-    // return () => { document.body.style.overflow = ''; };
   }, [isOpen]);
 
   useEffect(() => {
@@ -553,14 +537,14 @@ const MultiSelect = ({ isOpen, onClose, options, onSelect, type, criteria, initi
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium touch-manipulation active:scale-95 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-900/40 hover:bg-green-200 dark:hover:bg-green-800/60"
             >
               <CheckCircle size={16} />
-              Incluir
+              {t('articles.includeTitle')}
             </button>
             <button
               onClick={() => onSelect(selected, 'excluded')}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium touch-manipulation active:scale-95 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-900/40 hover:bg-red-200 dark:hover:bg-red-800/60"
             >
               <XCircle size={16} />
-              Excluir
+              {t('articles.excludeTitle')}
             </button>
           </div>
         }
@@ -568,7 +552,7 @@ const MultiSelect = ({ isOpen, onClose, options, onSelect, type, criteria, initi
         {/* Header */}
         <div className="flex-shrink-0 flex items-center justify-between px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-base sm:text-xl font-semibold text-gray-900 dark:text-white mt-2 sm:mt-0">
-            Selecionar Critérios
+            {t('multiSelect.selectCriteria')}
           </h2>
           <button
             onClick={onClose}
@@ -617,7 +601,7 @@ const MultiSelect = ({ isOpen, onClose, options, onSelect, type, criteria, initi
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onFocus={() => setIsOpenDrop(true)}
-                placeholder={selected.length === 0 ? 'Buscar e adicionar critérios...' : 'Buscar mais critérios...'}
+                placeholder={selected.length === 0 ? t('multiSelect.searchAdd') : t('multiSelect.searchMore')}
                 className="flex-1 outline-none bg-transparent text-sm text-gray-900 dark:text-white placeholder-gray-400"
               />
               <ChevronDown size={18} className={`text-gray-400 transition-transform flex-shrink-0 ${isOpenDrop ? 'rotate-180' : ''}`} />
@@ -627,14 +611,14 @@ const MultiSelect = ({ isOpen, onClose, options, onSelect, type, criteria, initi
           {/* Quick Actions */}
           <div className="flex items-center gap-3 mb-4 text-sm">
             <button onClick={selectAll} className="text-gray-600 dark:text-white font-medium bg-transparent border-none p-0 cursor-pointer">
-              Selecionar todos
+              {t('multiSelect.selectAll')}
             </button>
             <span className="text-gray-300 dark:text-gray-600">|</span>
             <button onClick={clearAll} className="text-gray-600 dark:text-white font-medium bg-transparent border-none p-0 cursor-pointer">
-              Limpar
+              {t('multiSelect.clear')}
             </button>
             <span className="ml-auto text-gray-500 dark:text-gray-400 font-medium">
-              {selected.length} selecionado{selected.length !== 1 ? 's' : ''}
+              {t('multiSelect.selectedCount', { count: selected.length })}
             </span>
           </div>
 
@@ -643,15 +627,15 @@ const MultiSelect = ({ isOpen, onClose, options, onSelect, type, criteria, initi
             <div className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden mb-4">
               {Object.keys(groupedOptions).length === 0 ? (
                 <div className="p-6 text-center text-gray-500 dark:text-gray-400">
-                  <p className="text-sm">Nenhuma opção encontrada</p>
+                  <p className="text-sm">{t('multiSelect.noOptions')}</p>
                 </div>
               ) : (
                 Object.entries(groupedOptions).map(([category, items], idx) => (
                   <div key={category}>
                     {idx > 0 && <div className="border-t border-gray-200 dark:border-gray-700" />}
                     <div className="px-4 py-2.5 bg-gray-50 dark:bg-gray-900 font-semibold text-sm text-gray-700 dark:text-gray-300">
-                      {category === 'inclusion' ? 'Critérios de Inclusão' :
-                        category === 'exclusion' ? 'Critérios de Exclusão' : 'Critérios de Qualidade'}
+                      {category === 'inclusion' ? t('articles.inclusionCriteriaMenu') :
+                        category === 'exclusion' ? t('articles.exclusionCriteriaMenu') : t('protocol.qualityCriteria')}
                     </div>
                     {items.map((option, optIdx) => {
                       const isSelected = selected.find(s => s.id === option.id);
@@ -681,7 +665,7 @@ const MultiSelect = ({ isOpen, onClose, options, onSelect, type, criteria, initi
           {selected.length > 0 && (
             <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
               <h3 className="font-semibold text-sm text-gray-900 dark:text-white mb-3">
-                Resumo dos critérios selecionados:
+                {t('multiSelect.summary')}
               </h3>
               <div className="space-y-2">
                 {selected.map(item => (
@@ -693,8 +677,8 @@ const MultiSelect = ({ isOpen, onClose, options, onSelect, type, criteria, initi
                     <span className="flex-shrink-0">-</span>
                     <span className="flex-1 break-words">{item.label}</span>
                     <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
-                      ({item.category === 'inclusion' ? 'Inclusão' :
-                        item.category === 'exclusion' ? 'Exclusão' : 'Qualidade'})
+                      ({item.category === 'inclusion' ? t('multiSelect.categoryInclusion') :
+                        item.category === 'exclusion' ? t('multiSelect.categoryExclusion') : t('multiSelect.categoryQuality')})
                     </span>
                   </div>
                 ))}
@@ -715,13 +699,13 @@ const MultiSelect = ({ isOpen, onClose, options, onSelect, type, criteria, initi
             onClick={onClose}
             className="flex-1 sm:flex-none px-5 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors text-sm"
           >
-            Cancelar
+            {t('searchString.cancel')}
           </button>
           <button
             onClick={() => onSelect(resultsExtraction, 'extracted')}
             className="flex-1 sm:flex-none px-5 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors text-sm"
           >
-            Confirmar
+            {t('multiSelect.confirm')}
           </button>
         </div>
       }
@@ -730,7 +714,7 @@ const MultiSelect = ({ isOpen, onClose, options, onSelect, type, criteria, initi
       <div className="flex-shrink-0 flex items-center justify-between px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-700">
         <div className="absolute left-1/2 -translate-x-1/2 top-2 w-10 h-1 bg-gray-300 dark:bg-gray-600 rounded-full sm:hidden" />
         <h3 className="text-base sm:text-xl font-semibold text-gray-900 dark:text-white mt-2 sm:mt-0">
-          Critérios de Extração
+          {t('protocol.extractionCriteria')}
         </h3>
         <button
           onClick={onClose}
@@ -758,7 +742,7 @@ const MultiSelect = ({ isOpen, onClose, options, onSelect, type, criteria, initi
                     rows={3}
                     onChange={(e) => handleCriteriaChange(index, e.target.value)}
                     value={resultsExtraction[index]?.response || ''}
-                    placeholder="Digite sua resposta..."
+                    placeholder={t('multiSelect.answerPlaceholder')}
                     className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg
                                focus:ring-2 focus:ring-orange-500 focus:border-transparent
                                bg-white dark:bg-gray-700 text-gray-900 dark:text-white
@@ -821,6 +805,7 @@ const MultiSelect = ({ isOpen, onClose, options, onSelect, type, criteria, initi
 
 // Componente para definição do protocolo
 const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
+  const { t } = useTranslation();
   const [selectedExCriteria, setSelectedExCriteria] = useState(null);
   const [selectedInExCriteria, setSelectedInExCriteria] = useState(null);
 
@@ -829,7 +814,6 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
 
   }, [onUpdateProtocol]);
 
-  // console.log(selectedExCriteria)
   const handleProtocolChange = useCallback((field, value) => {
     onUpdateProtocol(prev => ({
       ...prev,
@@ -957,17 +941,11 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
   useEffect(() => {
     setSelectedExCriteria(protocol['extractionCriteria'][selectedInExCriteria]);
   }, [protocol]);
-
-  // useEffect(() => {
-  //   if(selectedInExCriteria !== null){
-  //     setSelectedArticle(filteredArticles[selectedInExCriteria])
-  //   }
-  // }, [protocol]);
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6 transition-colors duration-200">
       <h2 className="text-lg sm:text-2xl font-bold text-gray-800 dark:text-white mb-6 flex items-center gap-2">
         <Settings className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
-        Seção 1: Definição do Protocolo de Pesquisa
+        {t('protocol.sectionTitle')}
       </h2>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -977,33 +955,33 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm sm:text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Título da Revisão Sistemática
+                  {t('protocol.title')}
                 </label>
                 <input
                   type="text"
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 text-sm "
                   value={protocol.title}
                   onChange={(e) => handleProtocolChange('title', e.target.value)}
-                  placeholder="Ex: Eficácia do Machine Learning em Diagnósticos Médicos"
+                  placeholder={t('protocol.titlePlaceholder')}
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Pergunta de Pesquisa
+                  {t('protocol.researchQuestion')}
                 </label>
                 <textarea
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 text-sm"
                   rows={3}
                   value={protocol.researchQuestion}
                   onChange={(e) => handleProtocolChange('researchQuestion', e.target.value)}
-                  placeholder="Descreva a pergunta da pesquisa"
+                  placeholder={t('protocol.researchQuestionPlaceholder')}
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Período de Publicação
+                  {t('protocol.publicationPeriod')}
                 </label>
                 <div className="grid grid-cols-2 gap-3">
                   <input
@@ -1031,55 +1009,9 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
                 </div>
               </div>
 
-              {/* <div>
-                <h3 className="text-sm sm:text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">Palavras-chaves</h3>
-                <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-                  <div className="overflow-hidden">
-                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                      
-                      <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                        {protocol.keywords.map((criteria, index) => (
-                          <tr key={index} className="transition-colors duration-200">
-                            
-                            <td className="w-full">
-                              <input
-                                type="text"
-                                // flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-20
-                                className={index === 0 ? "w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-tl-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 text-sm" :"w-full px-3 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 text-sm"}
-                                value={criteria}
-                                onChange={(e) => handleCriteriaChange('keywords', index, e.target.value)}
-                                placeholder="Ex: Machine learning"
-                              />
-                            </td>
-                            <td className="px-4 py-2 text-right">
-                              <button
-                                disabled={protocol.keywords.length === 1}
-                                onClick={() => removeCriteria({type:'keywords', index:index})}
-                                className= "text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 p-1 rounded-full hover:bg-red-50 dark:hover:bg-red-900/50 transition-colors duration-200 disabled:cursor-not-allowed disabled:text-gray-500 disabled:hover:bg-transparent disabled:hover:text-gray-500"
-                              >
-                                <XCircle size={16} />
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                  <div className=" bg-gray-50 dark:bg-gray-900/50  rounded-bl-lg rounded-br-lg " >
-                    <button
-                      onClick={() => addCriteria('keywords')}
-                      className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm font-medium rounded-bl-lg rounded-br-lg rounded-tl-none rounded-tr-none transition-colors duration-200 flex items-center justify-center gap-2"
-                    >
-                      <PlusCircle size={16} />
-                      Adicionar Palavras-chaves
-                    </button>
-                  </div>
-                </div>
-              </div> */}
-
               <div>
                 <h3 className="text-sm sm:text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">
-                  Idiomas dos Artigos
+                  {t('protocol.languages')}
                 </h3>
                 <div className="space-y-2">
                   {['English', 'Portuguese', 'Spanish', 'French', 'German', 'Italian'].map(lang => (
@@ -1109,7 +1041,7 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
 
               <div>
                 <h3 className="text-sm sm:text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">
-                  Bases de Dados
+                  {t('protocol.databases')}
                 </h3>
                 <div className="space-y-2">
                   {['Scopus', 'Web of Science', 'PubMed', 'ScienceDirect', 'Periódicos CAPES'].map(db => (
@@ -1143,7 +1075,7 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
         {/* Critérios */}
         <div className="space-y-3">
           <div>
-            <h3 className="text-sm sm:text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">Critérios de Inclusão</h3>
+            <h3 className="text-sm sm:text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">{t('protocol.inclusionCriteria')}</h3>
             <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
               <div className="overflow-hidden">
                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -1159,7 +1091,7 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
                             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 !h-full resize-none text-sm"
                             value={criteria.value}
                             onChange={(e) => handleCriteriaChange('inclusionCriteria', index, e.target.value, 'value')}
-                            placeholder="Ex: Estudos com população adulta"
+                            placeholder={t('protocol.inclusionPlaceholder')}
                           />
                         </td>
                         <td className="px-4 py-2 text-right">
@@ -1182,13 +1114,13 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
                   className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 text-sm font-medium rounded-bl-lg rounded-br-lg rounded-tl-none rounded-tr-none transition-colors duration-200 flex items-center justify-center gap-2"
                 >
                   <PlusCircle size={16} />
-                  Adicionar Critério de Inclusão
+                  {t('protocol.addInclusion')}
                 </button>
               </div>
             </div>
           </div>
           <div>
-            <h3 className="text-sm sm:text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">Critérios de Exclusão</h3>
+            <h3 className="text-sm sm:text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">{t('protocol.exclusionCriteria')}</h3>
             <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
               <div className="overflow-hidden">
                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -1205,7 +1137,7 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
                             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 !h-full resize-none text-sm"
                             value={criteria.value}
                             onChange={(e) => handleCriteriaChange('exclusionCriteria', index, e.target.value, 'value')}
-                            placeholder="Ex:  Estudos sem grupo controle"
+                            placeholder={t('protocol.exclusionPlaceholder')}
                           />
                         </td>
                         <td className="px-4 py-2 text-right">
@@ -1228,13 +1160,13 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
                   className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 text-sm font-medium rounded-bl-lg rounded-br-lg rounded-tl-none rounded-tr-none transition-colors duration-200 flex items-center justify-center gap-2"
                 >
                   <PlusCircle size={16} />
-                  Adicionar Critério de Exclusão
+                  {t('protocol.addExclusion')}
                 </button>
               </div>
             </div>
           </div>
           <div>
-            <h3 className="text-sm sm:text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">Critérios de Qualidade</h3>
+            <h3 className="text-sm sm:text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">{t('protocol.qualityCriteria')}</h3>
             <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
               <div className="overflow-hidden">
                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -1250,7 +1182,7 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
                             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 !h-full resize-none text-sm"
                             value={criteria.value}
                             onChange={(e) => handleCriteriaChange('qualityCriteria', index, e.target.value, 'value')}
-                            placeholder="Ex:  Randomização adequada"
+                            placeholder={t('protocol.qualityPlaceholder')}
                           />
                         </td>
                         <td className="px-4 py-2 text-right">
@@ -1273,80 +1205,14 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
                   className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm font-medium rounded-bl-lg rounded-br-lg rounded-tl-none rounded-tr-none transition-colors duration-200 flex items-center justify-center gap-2"
                 >
                   <PlusCircle size={16} />
-                  Adicionar Critério de Qualidade
+                  {t('protocol.addQuality')}
                 </button>
               </div>
             </div>
           </div>
-          {/* <div>
-            <h3 className="text-sm sm:text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">Critérios de Extração</h3>
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-              <div className="overflow-auto">
-                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                  
-                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                    {protocol.extractionCriteria.map((criteria, index) => (
-                      
-                      <tr key={index} className="transition-colors duration-200">
-                        <td className="">
-                          <span className="px-4 py-2 text-gray-500 font-bold dark:text-gray-400 text-sm">{`EX${index + 1}`}</span>
-                        </td>
-                        <td >
-                           <select
-                            value={criteria.type || 'Text'}
-                            onChange={(e) => handleCriteriaChange('extractionCriteria', index, e.target.value, 'type')}
-                            className="px-3 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 text-sm">
-                            <option value="Text">Text</option>
-                            <option value="Pick on List">Escolha única</option>
-                            <option value="Pick on Many">Múltipla escolha</option>
-                          </select>
-                        </td>
-                        <td className="w-full">
-                          <input
-                            type="text"
-                            className={"w-full px-3 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 text-sm !h-full resize-none"}
-                            value={criteria.value}
-                            onChange={(e) => handleCriteriaChange('extractionCriteria', index, e.target.value, 'value')}
-                            placeholder="Ex: Qual a metodologia utilizada?"
-                          />
-                        </td>
-                        <td className="px-4 py-2 text-right">
-                          <button
-                            disabled={criteria.type !== 'Pick on List' && criteria.type !== 'Pick on Many' || criteria.value == ''}
-                            onClick={(e) => handleSeExCriteria(criteria, index)}
-                            className="text-black-600 dark:text-white-400 hover:text-white-800 dark:hover:text-white-300 p-1 rounded-full hover:bg-white-50 dark:hover:bg-white-900/50 transition-colors duration-200 disabled:cursor-not-allowed disabled:text-gray-500 "
-                          >
-                            <List  size={16} />
-                          </button>
-                        </td>
-                        <td className="px-4 py-2 text-right">
-                          <button
-                            disabled={protocol.extractionCriteria.length === 1}
-                            onClick={() => removeCriteria({type:'extractionCriteria', index:index})}
-                            className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 p-1 rounded-full hover:bg-red-50 dark:hover:bg-red-900/50 transition-colors duration-200 disabled:cursor-not-allowed disabled:text-gray-500 disabled:hover:bg-transparent disabled:hover:text-gray-500"
-                          >
-                            <XCircle size={16} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <div className=" bg-gray-50 dark:bg-gray-900/50  rounded-bl-lg rounded-br-lg " >
-                <button
-                  onClick={() => addCriteria('extractionCriteria','','',protocol.extractionCriteria.length)}
-                  className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-orange-600 dark:text-orange-400 hover:text-orange-800 dark:hover:text-orange-300 text-sm font-medium rounded-bl-lg rounded-br-lg rounded-tl-none rounded-tr-none transition-colors duration-200 flex items-center justify-center gap-2"
-                >
-                  <PlusCircle size={16} />
-                  Adicionar Critério de Extração
-                </button>
-              </div>
-            </div>
-          </div> */}
           <div>
             <h3 className="text-sm sm:text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              Critérios de Extração
+              {t('protocol.extractionCriteria')}
             </h3>
 
             <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
@@ -1390,9 +1256,9 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
                       }
                       className="w-full text-sm px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 transition-colors"
                     >
-                      <option value="Text">Text</option>
-                      <option value="Pick on List">Escolha única</option>
-                      <option value="Pick on Many">Múltipla escolha</option>
+                      <option value="Text">{t('protocol.textType')}</option>
+                      <option value="Pick on List">{t('protocol.singleChoice')}</option>
+                      <option value="Pick on Many">{t('protocol.multipleChoice')}</option>
                     </select>
 
                     {/* text input */}
@@ -1402,7 +1268,7 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
                       onChange={(e) =>
                         handleCriteriaChange('extractionCriteria', index, e.target.value, 'value')
                       }
-                      placeholder="Ex: Qual a metodologia utilizada?"
+                      placeholder={t('protocol.extractionPlaceholder')}
                       className="w-full text-sm px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 transition-colors"
                     />
                   </div>
@@ -1428,9 +1294,9 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
                             }
                             className="px-3 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 text-sm"
                           >
-                            <option value="Text">Text</option>
-                            <option value="Pick on List">Escolha única</option>
-                            <option value="Pick on Many">Múltipla escolha</option>
+                            <option value="Text">{t('protocol.textType')}</option>
+                            <option value="Pick on List">{t('protocol.singleChoice')}</option>
+                            <option value="Pick on Many">{t('protocol.multipleChoice')}</option>
                           </select>
                         </td>
                         <td className="w-full">
@@ -1441,7 +1307,7 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
                             onChange={(e) =>
                               handleCriteriaChange('extractionCriteria', index, e.target.value, 'value')
                             }
-                            placeholder="Ex: Qual a metodologia utilizada?"
+                            placeholder={t('protocol.extractionPlaceholder')}
                           />
                         </td>
 
@@ -1487,7 +1353,7 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
                 className="w-full px-3 py-2 bg-white dark:bg-gray-800 border-t border-gray-300 dark:border-gray-600 text-orange-600 dark:text-orange-400 hover:text-orange-800 dark:hover:text-orange-300 text-sm font-medium rounded-bl-lg rounded-br-lg transition-colors duration-200 flex items-center justify-center gap-2"
               >
                 <PlusCircle size={16} />
-                Adicionar Critério de Extração
+                {t('protocol.addExtraction')}
               </button>
             </div>
           </div>
@@ -1525,7 +1391,7 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
                               className={index === 0 ? "w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-tl-lg focus:ring-2 focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 text-sm" : "w-full px-3 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 text-sm"}
                               value={criteria}
                               onChange={(e) => handleCriteriaChange('extractionCriteria', selectedInExCriteria, e.target.value, 'items', index)}
-                              placeholder="Ex:  Randomização adequada"
+                              placeholder={t('protocol.qualityPlaceholder')}
                             />
                           </td>
                           <td className="px-4 py-2 text-right">
@@ -1549,46 +1415,10 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
                     className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-orange-600 dark:text-orange-400 hover:text-orange-800 dark:hover:text-orange-300 text-sm font-medium rounded-bl-lg rounded-br-lg rounded-tl-none rounded-tr-none transition-colors duration-200 flex items-center justify-center gap-2"
                   >
                     <PlusCircle size={16} />
-                    Adicionar Possível Resposta
+                    {t('protocol.addAnswer')}
                   </button>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                {/* <div className="text-gray-700 dark:text-gray-300"><strong>Autores:</strong> {selectedArticle.authors}</div>
-                <div className="text-gray-700 dark:text-gray-300"><strong>Fonte:</strong> {selectedArticle.source}</div>
-                <div className="text-gray-700 dark:text-gray-300"><strong>Revista:</strong> {selectedArticle.journal}</div>
-                <div className="text-gray-700 dark:text-gray-300"><strong>Ano:</strong> {selectedArticle.year}</div>
-                <div className="text-gray-700 dark:text-gray-300"><strong>DOI:</strong> {selectedArticle.doi}</div>
-                <div className="text-gray-700 dark:text-gray-300"><strong>Score:</strong> {selectedArticle.score}</div> */}
-                {/* <div className="text-gray-700 dark:text-gray-300"><strong>Idioma:</strong> {selectedArticle.language}</div> */}
-              </div>
-              {/* <div className="mb-4">
-                <strong className="text-gray-700 dark:text-gray-300">Palavras-chave:</strong>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {selectedArticle.keywords.map((keyword, index) => (
-                    <span key={index} className="px-2 py-1 bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 text-xs rounded-full">
-                      {keyword}
-                    </span>
-                  ))}
-                </div>
-              </div>
-              <div className="mb-4">
-                <strong className="text-gray-700 dark:text-gray-300">Resumo:</strong>
-                <p className="mt-2 text-gray-700 dark:text-gray-300">{selectedArticle.abstract}</p>
-              </div> */}
-
-              {/* {selectedArticle.inclusionCriterion && (
-                <div className="mb-4">
-                  <strong className="text-green-700 dark:text-green-300">Critério de Inclusão:</strong>
-                  <p className="mt-1 text-green-600 dark:text-green-400 text-sm">{selectedArticle.inclusionCriterion}</p>
-                </div>
-              )}
-              {selectedArticle.exclusionCriterion && (
-                <div className="mb-4">
-                  <strong className="text-red-700 dark:text-red-300">Critério de Exclusão:</strong>
-                  <p className="mt-1 text-red-600 dark:text-red-400 text-sm">{selectedArticle.exclusionCriterion}</p>
-                </div>
-              )} */}
             </div>
           </div>
         </div>
@@ -1611,16 +1441,16 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
       </div>
 
       <div className="mt-8 p-4 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg transition-colors duration-200">
-        <h4 className="font-semibold text-indigo-800 dark:text-indigo-300 mb-2">Status do Protocolo</h4>
+        <h4 className="font-semibold text-indigo-800 dark:text-indigo-300 mb-2">{t('protocol.status')}</h4>
         <p className="text-sm text-indigo-700 dark:text-indigo-400">
-          {protocol.title ? '✓ Título definido' : '⚠ Título pendente'} |
-          {protocol.researchQuestion ? ' ✓ Pergunta da pesquisa definida' : ' ⚠ Pergunta da pesquisa pendente'} |
-          {protocol.keywords.some(c => c.trim()) ? ' ✓ Palavras-chaves definidas' : ' ⚠ Palavras-chaves pendentes'} |
-          {protocol.inclusionCriteria.length > 1 ? ' ✓ Critérios de inclusão definidos' : ' ⚠ Critérios de inclusão pendentes'} |
-          {protocol.exclusionCriteria.length > 1 ? ' ✓ Critérios de exclusão definidos' : ' ⚠ Critérios de exclusão pendentes'} |
-          {protocol.extractionCriteria.length > 1 ? ' ✓ Critérios de extração definidos' : ' ⚠ Critérios de extração pendentes'} |
-          {protocol.qualityCriteria.length > 1 ? ' ✓ Critérios de qualidade definidos' : ' ⚠ Critérios de qualidade pendentes'} |
-          {protocol.databases.length > 0 ? ' ✓ Bases selecionadas' : ' ⚠ Bases pendentes'}
+          {protocol.title ? `✓ ${t('protocol.statusTitleDefined')}` : `⚠ ${t('protocol.statusTitlePending')}`} |
+          {protocol.researchQuestion ? ` ✓ ${t('protocol.statusQuestionDefined')}` : ` ⚠ ${t('protocol.statusQuestionPending')}`} |
+          {protocol.keywords.some(c => c.trim()) ? ` ✓ ${t('protocol.statusKeywordsDefined')}` : ` ⚠ ${t('protocol.statusKeywordsPending')}`} |
+          {protocol.inclusionCriteria.length > 1 ? ` ✓ ${t('protocol.statusInclusionDefined')}` : ` ⚠ ${t('protocol.statusInclusionPending')}`} |
+          {protocol.exclusionCriteria.length > 1 ? ` ✓ ${t('protocol.statusExclusionDefined')}` : ` ⚠ ${t('protocol.statusExclusionPending')}`} |
+          {protocol.extractionCriteria.length > 1 ? ` ✓ ${t('protocol.statusExtractionDefined')}` : ` ⚠ ${t('protocol.statusExtractionPending')}`} |
+          {protocol.qualityCriteria.length > 1 ? ` ✓ ${t('protocol.statusQualityDefined')}` : ` ⚠ ${t('protocol.statusQualityPending')}`} |
+          {protocol.databases.length > 0 ? ` ✓ ${t('protocol.statusDatabasesDefined')}` : ` ⚠ ${t('protocol.statusDatabasesPending')}`}
 
 
           {/* title: '',
@@ -1641,6 +1471,7 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
 
 // Modal para string de busca
 const SearchStringModal = ({ isOpen, onClose, onConfirm, database }) => {
+  const { t } = useTranslation();
   const [searchString, setSearchString] = useState('');
 
   if (!isOpen) return null;
@@ -1657,23 +1488,23 @@ const SearchStringModal = ({ isOpen, onClose, onConfirm, database }) => {
       <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full transition-colors duration-200">
         <div className="p-6 border-b border-gray-200 dark:border-gray-700">
           <h3 className="text-sm sm:text-lg font-semibold text-gray-900 dark:text-white">
-            String de Busca - {database}
+            {t('searchString.title', { database })}
           </h3>
         </div>
         <div className="p-6">
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Digite a string de busca utilizada *
+              {t('searchString.input')}
             </label>
             <textarea
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200"
               rows={4}
               value={searchString}
               onChange={(e) => setSearchString(e.target.value)}
-              placeholder="Ex: (machine learning OR artificial intelligence) AND (systematic review)"
+              placeholder={t('searchString.placeholder')}
             />
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              *Este campo é obrigatório para documentar a metodologia de busca
+              {t('searchString.required')}
             </p>
           </div>
           <div className="flex gap-3 justify-end">
@@ -1681,14 +1512,14 @@ const SearchStringModal = ({ isOpen, onClose, onConfirm, database }) => {
               onClick={onClose}
               className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors duration-200"
             >
-              Cancelar
+              {t('searchString.cancel')}
             </button>
             <button
               onClick={handleConfirm}
               disabled={!searchString.trim()}
               className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg transition-colors duration-200"
             >
-              Confirmar Importação
+              {t('searchString.confirm')}
             </button>
           </div>
         </div>
@@ -1699,6 +1530,7 @@ const SearchStringModal = ({ isOpen, onClose, onConfirm, database }) => {
 
 // Componente de configuração do sistema de pontuação
 const ScoringSystemConfig = ({ scoringSystem, onUpdate, protocol, addCriteria, removeCriteria, handleCriteriaChange }) => {
+  const { t } = useTranslation();
   const handleWeightChange = (field, value) => {
     const numValue = Math.max(0, Math.min(10, parseInt(value) || 0));
     onUpdate(prev => ({
@@ -1730,7 +1562,7 @@ const ScoringSystemConfig = ({ scoringSystem, onUpdate, protocol, addCriteria, r
           <div className="flex items-center gap-2">
             <BarChart3 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             <h4 className="text-sm sm:text-lg font-semibold text-blue-800 dark:text-blue-300">
-              Sistema de Pontuação por Keywords
+              {t('scoring.title')}
             </h4>
           </div>
           {/* <div className="relative inline-flex items-center">
@@ -1753,7 +1585,7 @@ const ScoringSystemConfig = ({ scoringSystem, onUpdate, protocol, addCriteria, r
           </div> */}
         </div>
         <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
-          Artigos serão pontuados baseado na presença das palavras-chave definidas
+          {t('scoring.description')}
         </p>
       </div>
 
@@ -1765,7 +1597,7 @@ const ScoringSystemConfig = ({ scoringSystem, onUpdate, protocol, addCriteria, r
           {/* Coluna esquerda — Keywords */}
           <div className="p-4">
             <div>
-              <h3 className="font-medium text-blue-700 dark:text-blue-300 mb-4">Palavras-chaves</h3>
+              <h3 className="font-medium text-blue-700 dark:text-blue-300 mb-4">{t('scoring.keywords')}</h3>
               <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                 <div className="overflow-hidden">
                   <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -1781,7 +1613,7 @@ const ScoringSystemConfig = ({ scoringSystem, onUpdate, protocol, addCriteria, r
                               className={index === 0 ? "w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-tl-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 text-sm" : "w-full px-3 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 text-sm"}
                               value={criteria}
                               onChange={(e) => handleCriteriaChange('keywords', index, e.target.value)}
-                              placeholder="Ex: Machine learning"
+                              placeholder={t('scoring.keywordPlaceholder')}
                             />
                           </td>
                           <td className="px-4 py-2 text-right">
@@ -1804,7 +1636,7 @@ const ScoringSystemConfig = ({ scoringSystem, onUpdate, protocol, addCriteria, r
                     className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm font-medium rounded-bl-lg rounded-br-lg rounded-tl-none rounded-tr-none transition-colors duration-200 flex items-center justify-center gap-2"
                   >
                     <PlusCircle size={16} />
-                    Adicionar Palavras-chaves
+                    {t('scoring.addKeywords')}
                   </button>
                 </div>
               </div>
@@ -1812,12 +1644,12 @@ const ScoringSystemConfig = ({ scoringSystem, onUpdate, protocol, addCriteria, r
           </div>
           <div className="p-4">
             <div>
-              <h5 className="font-medium text-blue-700 dark:text-blue-300 mb-4">Pesos por Campo</h5>
+              <h5 className="font-medium text-blue-700 dark:text-blue-300 mb-4">{t('scoring.fieldWeights')}</h5>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {[
-                  { label: 'Título', key: 'title' },
-                  { label: 'Resumo', key: 'abstract' },
-                  { label: 'Palavras-chave', key: 'keywords' }
+                  { label: t('scoring.titleField'), key: 'title' },
+                  { label: t('scoring.abstractField'), key: 'abstract' },
+                  { label: t('scoring.keywordsField'), key: 'keywords' }
                 ].map(field => (
                   <div key={field.key} className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg">
                     <div className="flex justify-between items-center mb-2">
@@ -1842,23 +1674,23 @@ const ScoringSystemConfig = ({ scoringSystem, onUpdate, protocol, addCriteria, r
             </div>
 
             <div className="border-t border-blue-200 dark:border-blue-800 pt-6">
-              <h5 className="font-medium text-blue-700 dark:text-blue-300 mb-4">Configurações de Busca</h5>
+              <h5 className="font-medium text-blue-700 dark:text-blue-300 mb-4">{t('scoring.searchSettings')}</h5>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {[
                   {
                     key: 'caseInsensitive',
-                    label: 'Ignorar maiúsculas/minúsculas',
-                    description: 'Não diferencia entre maiúsculas e minúsculas na busca'
+                    label: t('scoring.caseInsensitive'),
+                    description: t('scoring.caseInsensitiveDesc')
                   },
                   {
                     key: 'exactMatch',
-                    label: 'Busca exata',
-                    description: 'Encontra apenas palavras completas'
+                    label: t('scoring.exactMatch'),
+                    description: t('scoring.exactMatchDesc')
                   },
                   {
                     key: 'multipleOccurrences',
-                    label: 'Múltiplas ocorrências',
-                    description: 'Conta cada vez que uma keyword aparece'
+                    label: t('scoring.multipleOccurrences'),
+                    description: t('scoring.multipleOccurrencesDesc')
                   }
                 ].map(setting => (
                   <div key={setting.key} className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg">
@@ -1894,11 +1726,11 @@ const ScoringSystemConfig = ({ scoringSystem, onUpdate, protocol, addCriteria, r
           </div> */}
 
             <div className="bg-blue-100 dark:bg-blue-800/50 p-3 rounded text-xs text-blue-700 dark:text-blue-300 mt-4">
-              <p><strong>Como funciona:</strong></p>
+              <p><strong>{t('scoring.howItWorks')}</strong></p>
               <ul className="list-disc list-inside mt-1 space-y-1">
-                <li>Cada keyword encontrada soma pontos baseado no peso do campo</li>
-                <li>Pontuação total = soma de todas as keywords × pesos dos campos</li>
-                <li>Maior pontuação = indica maior relevância para a pesquisa</li>
+                <li>{t('scoring.how1')}</li>
+                <li>{t('scoring.how2')}</li>
+                <li>{t('scoring.how3')}</li>
               </ul>
             </div>
           </div>
@@ -1911,55 +1743,12 @@ const ScoringSystemConfig = ({ scoringSystem, onUpdate, protocol, addCriteria, r
 
 // Componente para importação de dados
 const ImportSection = ({ articles, setArticles, onImport, isLoading, importedData, protocol, setImportedData, detectDuplicates, numStringSc, setNumStringSc, statistics }) => {
+  const { t, i18n } = useTranslation();
   const [showSearchStringModal, setShowSearchStringModal] = useState(null);
   const [pendingImport, setPendingImport] = useState(null);
   const [isLoadingState, setIsLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [inputFileSelected, setInputFileSelected] = useState(null);
-
-
-
-  const detectDuplicatesImport = (articles, database) => {
-    const duplicatesByDOI = new Map();
-    const duplicatesByTitle = new Map();
-    const duplicatesByAuthorsYear = new Map();
-
-    articles.forEach(article => {
-      if (article.isDuplicate) return; // Pular se já é marcado como duplicata
-
-      // Detectar por DOI
-      if (article.doi && duplicatesByDOI.has(article.doi)) {
-        article.isDuplicate = true;
-        article.dataProcessingStatus = 'duplicate'
-        article.duplicateOf = duplicatesByDOI.get(article.doi);
-      } else if (article.doi) {
-        duplicatesByDOI.set(article.doi, article.id);
-      }
-
-      // Detectar por título 
-      const normalizedTitle = article.title.toLowerCase().trim();
-      if (duplicatesByTitle.has(normalizedTitle)) {
-        article.isDuplicate = true;
-        article.dataProcessingStatus = 'duplicate'
-        article.duplicateOf = duplicatesByTitle.get(normalizedTitle);
-      } else {
-        duplicatesByTitle.set(normalizedTitle, article.id);
-      }
-
-      // Detectar por autores + ano
-      // const authorYearKey = `${article.authors.toLowerCase()}_${article.year}`;
-      // if (duplicatesByAuthorsYear.has(authorYearKey)) {
-      //   article.isDuplicate = true;
-      //   article.duplicateOf = duplicatesByAuthorsYear.get(authorYearKey);
-      // } else {
-      //   duplicatesByAuthorsYear.set(authorYearKey, article.id);
-      // }
-    });
-  };
-  // useEffect(() => {
-
-  //    detectDuplicates()
-  // }, [articles]); // Executa sempre que articles mudar
 
   const handleImportRequest = (target, database) => {
     const file = target.files[0]
@@ -1969,22 +1758,9 @@ const ImportSection = ({ articles, setArticles, onImport, isLoading, importedDat
       setPendingImport({ file, database });
       setShowSearchStringModal(database);
     } else {
-      alert('Erro ao processar o arquivo. Verifique o formato.');
+      alert(t('import.alertError'));
       throw new Error('Formato de arquivo não corresponde à base de dados selecionada.');
     }
-  };
-
-  const detectType = (text) => {
-    // Regras simples para identificar WOS vs Scopus
-    // WoS costuma ter campos como: "Publisher = {Web of Science}", "ResearcherID", "Unique-ID"
-    // Scopus usa campos como: "Author = {Surname, Name}" em formato diferente, "EID", "Cited by"
-    let type = "Desconhecido";
-    if (/Web of Science|Unique-ID|ResearcherID/i.test(text)) {
-      type = "Web of Science";
-    } else if (/EID|scopus|Cited by/i.test(text)) {
-      type = "Scopus";
-    }
-    return type;     // <-- essencial
   };
 
   const handleConfirmImport = async (searchString) => {
@@ -1996,14 +1772,10 @@ const ImportSection = ({ articles, setArticles, onImport, isLoading, importedDat
     try {
       // Ler o conteúdo do arquivo
       const fileContent = await file.text();
-      const detectedType = detectType(fileContent);
       // Determinar o tipo de arquivo e processar
       let importedArticles;
       if (file.name.endsWith('.bib') || file.name.endsWith('.bibtex') || file.name.endsWith('.txt')) {
 
-        // console.log('Detected type:', detectedType);
-        // console.log('database:', database);
-        // if(detectedType === database){
         if (database === 'Scopus' || database === 'Web of Science' || database === 'ScienceDirect' || database === 'Periódicos CAPES') {
           importedArticles = importedBibtexArticles(fileContent, database, numStringSc, articles.length);
         } else {
@@ -2028,8 +1800,6 @@ const ImportSection = ({ articles, setArticles, onImport, isLoading, importedDat
         }
 
 
-
-        // const idData = importedData.length+1
 
         const idData = importedData.reduce((max, data) => (data.id > max ? data.id : max), 0) + 1;
 
@@ -2059,15 +1829,13 @@ const ImportSection = ({ articles, setArticles, onImport, isLoading, importedDat
 
     } catch (error) {
       console.error('Erro ao processar arquivo:', error);
-      alert('Erro ao processar o arquivo. Verifique o formato.');
+      alert(t('import.alertError'));
       setResult(null);
 
     } finally {
       setPendingImport(null);
       setIsLoading(false);
       inputFileSelected.value = ""
-
-      console.log(importedData)
 
     }
   };
@@ -2119,13 +1887,13 @@ const ImportSection = ({ articles, setArticles, onImport, isLoading, importedDat
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6 transition-colors duration-200">
       <h2 className="text-lg sm:text-2xl font-bold text-gray-800 dark:text-white mb-6 flex items-center gap-2">
         <Upload className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-        Seção 2: Importação de Dados
+        {t('import.sectionTitle')}
       </h2>
 
       {protocol.databases.length === 0 && (
         <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 rounded-lg transition-colors duration-200">
           <p className="text-yellow-800 dark:text-yellow-300">
-            ⚠ Defina primeiro as bases de dados no protocolo de pesquisa.
+            {t('import.warning')}
           </p>
         </div>
       )}
@@ -2140,14 +1908,14 @@ const ImportSection = ({ articles, setArticles, onImport, isLoading, importedDat
               </div>
               <div>
                 <h3 className="text-sm sm:text-lg font-semibold text-gray-800 dark:text-white">Scopus</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Importar BibTeX</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{t('import.importBibtex')}</p>
               </div>
             </div>
 
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Upload do arquivo Scopus
+                  {t('import.uploadScopus')}
                 </label>
                 <input
                   type="file"
@@ -2158,27 +1926,27 @@ const ImportSection = ({ articles, setArticles, onImport, isLoading, importedDat
                   disabled={isLoadingState}
                 />
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Formatos: BibTeX
+                  {t('import.formatBibtex')}
                 </p>
               </div>
 
               {importedData.filter(data => data.database === 'Scopus').length > 0 && (
                 <div className="bg-orange-50 dark:bg-orange-900/30 p-4 rounded-lg transition-colors duration-200">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="font-medium text-orange-800 dark:text-orange-300">Status</span>
+                    <span className="font-medium text-orange-800 dark:text-orange-300">{t('import.status')}</span>
                     <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
                   </div>
                   {importedData.filter(data => data.database === 'Scopus').map((data, index) => (
                     <div key={index} className="space-y-1 text-sm mb-3 last:mb-0">
                       <div className="flex justify-between">
-                        <span className="text-orange-700 dark:text-orange-400">String {data.id}:</span>
-                        <span className="font-medium text-orange-800 dark:text-orange-300">{data.articles.length} artigos</span>
+                        <span className="text-orange-700 dark:text-orange-400">{t('import.string', { index: data.id })}</span>
+                        <span className="font-medium text-orange-800 dark:text-orange-300">{t('import.articles', { count: data.articles.length })}</span>
                       </div>
                       <div className="text-xs text-orange-600 dark:text-orange-500 break-all">
                         {data.searchString.length > 80 ? data.searchString.substring(0, 80) + '...' : data.searchString}
                       </div>
                       <div className="flex justify-between text-xs">
-                        <span className="text-orange-600 dark:text-orange-400">Duplicatas:</span>
+                        <span className="text-orange-600 dark:text-orange-400">{t('import.duplicates')}</span>
                         <span className="font-medium text-red-600 dark:text-red-400">
                           {statistics.importSection['duplicate' + data.id]}
                         </span>
@@ -2191,7 +1959,7 @@ const ImportSection = ({ articles, setArticles, onImport, isLoading, importedDat
               {isLoadingState && (
                 <div className="flex items-center justify-center py-4">
                   <RefreshCw className="h-5 w-5 animate-spin text-orange-600 dark:text-orange-400 mr-2" />
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Processando...</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">{t('import.processing')}</span>
                 </div>
               )}
             </div>
@@ -2207,14 +1975,14 @@ const ImportSection = ({ articles, setArticles, onImport, isLoading, importedDat
               </div>
               <div>
                 <h3 className="text-sm sm:text-lg font-semibold text-gray-800 dark:text-white">Web of Science</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Importar BibTeX</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{t('import.importBibtex')}</p>
               </div>
             </div>
 
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Upload do arquivo WoS
+                  {t('import.uploadWoS')}
                 </label>
                 <input
                   type="file"
@@ -2224,27 +1992,27 @@ const ImportSection = ({ articles, setArticles, onImport, isLoading, importedDat
                   disabled={isLoadingState}
                 />
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Formatos: BibTeX
+                  {t('import.formatBibtex')}
                 </p>
               </div>
 
               {importedData.filter(data => data.database === 'Web of Science').length > 0 && (
                 <div className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg transition-colors duration-200">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="font-medium text-blue-800 dark:text-blue-300">Status</span>
+                    <span className="font-medium text-blue-800 dark:text-blue-300">{t('import.status')}</span>
                     <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
                   </div>
                   {importedData.filter(data => data.database === 'Web of Science').map((data, index) => (
                     <div key={index} className="space-y-1 text-sm mb-3 last:mb-0">
                       <div className="flex justify-between">
-                        <span className="text-blue-700 dark:text-blue-400">String {index + 1}:</span>
-                        <span className="font-medium text-blue-800 dark:text-blue-300">{data.articles.length} artigos</span>
+                        <span className="text-blue-700 dark:text-blue-400">{t('import.string', { index: index + 1 })}</span>
+                        <span className="font-medium text-blue-800 dark:text-blue-300">{t('import.articles', { count: data.articles.length })}</span>
                       </div>
                       <div className="text-xs text-blue-600 dark:text-blue-500 break-all">
                         {data.searchString.length > 80 ? data.searchString.substring(0, 80) + '...' : data.searchString}
                       </div>
                       <div className="flex justify-between text-xs">
-                        <span className="text-blue-600 dark:text-blue-400">Duplicatas:</span>
+                        <span className="text-blue-600 dark:text-blue-400">{t('import.duplicates')}</span>
                         <span className="font-medium text-red-600 dark:text-red-400">
                           {statistics.importSection['duplicate' + data.id]}
                         </span>
@@ -2257,7 +2025,7 @@ const ImportSection = ({ articles, setArticles, onImport, isLoading, importedDat
               {isLoadingState && (
                 <div className="flex items-center justify-center py-4">
                   <RefreshCw className="h-5 w-5 animate-spin text-blue-600 dark:text-blue-400 mr-2" />
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Processando...</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">{t('import.processing')}</span>
                 </div>
               )}
             </div>
@@ -2273,14 +2041,14 @@ const ImportSection = ({ articles, setArticles, onImport, isLoading, importedDat
               </div>
               <div>
                 <h3 className="text-sm sm:text-lg font-semibold text-gray-800 dark:text-white">PubMed</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Importar PubMed</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{t('import.importPubmed')}</p>
               </div>
             </div>
 
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Upload do arquivo PubMed
+                  {t('import.uploadPubmed')}
                 </label>
                 <input
                   type="file"
@@ -2290,27 +2058,27 @@ const ImportSection = ({ articles, setArticles, onImport, isLoading, importedDat
                   disabled={isLoadingState}
                 />
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Formatos: PubMed (.txt)
+                  {t('import.formatPubmed')}
                 </p>
               </div>
 
               {importedData.filter(data => data.database === 'PubMed').length > 0 && (
                 <div className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg transition-colors duration-200">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="font-medium text-blue-800 dark:text-blue-300">Status</span>
+                    <span className="font-medium text-blue-800 dark:text-blue-300">{t('import.status')}</span>
                     <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
                   </div>
                   {importedData.filter(data => data.database === 'PubMed').map((data, index) => (
                     <div key={index} className="space-y-1 text-sm mb-3 last:mb-0">
                       <div className="flex justify-between">
-                        <span className="text-blue-700 dark:text-blue-400">String {index + 1}:</span>
-                        <span className="font-medium text-blue-800 dark:text-blue-300">{data.articles.length} artigos</span>
+                        <span className="text-blue-700 dark:text-blue-400">{t('import.string', { index: index + 1 })}</span>
+                        <span className="font-medium text-blue-800 dark:text-blue-300">{t('import.articles', { count: data.articles.length })}</span>
                       </div>
                       <div className="text-xs text-blue-600 dark:text-blue-500 break-all">
                         {data.searchString.length > 80 ? data.searchString.substring(0, 80) + '...' : data.searchString}
                       </div>
                       <div className="flex justify-between text-xs">
-                        <span className="text-blue-600 dark:text-blue-400">Duplicatas:</span>
+                        <span className="text-blue-600 dark:text-blue-400">{t('import.duplicates')}</span>
                         <span className="font-medium text-red-600 dark:text-red-400">
                           {statistics.importSection['duplicate' + data.id]}
                         </span>
@@ -2323,7 +2091,7 @@ const ImportSection = ({ articles, setArticles, onImport, isLoading, importedDat
               {isLoadingState && (
                 <div className="flex items-center justify-center py-4">
                   <RefreshCw className="h-5 w-5 animate-spin text-blue-600 dark:text-blue-400 mr-2" />
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Processando...</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">{t('import.processing')}</span>
                 </div>
               )}
             </div>
@@ -2339,14 +2107,14 @@ const ImportSection = ({ articles, setArticles, onImport, isLoading, importedDat
               </div>
               <div>
                 <h3 className="text-sm sm:text-lg font-semibold text-gray-800 dark:text-white">ScienceDirect</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Importar BibTeX</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{t('import.importBibtex')}</p>
               </div>
             </div>
 
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Upload do arquivo ScienceDirect
+                  {t('import.uploadScienceDirect')}
                 </label>
                 <input
                   type="file"
@@ -2356,27 +2124,27 @@ const ImportSection = ({ articles, setArticles, onImport, isLoading, importedDat
                   disabled={isLoadingState}
                 />
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Formatos: BibTeX
+                  {t('import.formatBibtex')}
                 </p>
               </div>
 
               {importedData.filter(data => data.database === 'ScienceDirect').length > 0 && (
                 <div className="bg-orange-50 dark:bg-orange-900/30 p-4 rounded-lg transition-colors duration-200">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="font-medium text-orange-800 dark:text-orange-300">Status</span>
+                    <span className="font-medium text-orange-800 dark:text-orange-300">{t('import.status')}</span>
                     <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
                   </div>
                   {importedData.filter(data => data.database === 'ScienceDirect').map((data, index) => (
                     <div key={index} className="space-y-1 text-sm mb-3 last:mb-0">
                       <div className="flex justify-between">
-                        <span className="text-orange-700 dark:text-orange-400">String {index + 1}:</span>
-                        <span className="font-medium text-orange-800 dark:text-orange-300">{data.articles.length} artigos</span>
+                        <span className="text-orange-700 dark:text-orange-400">{t('import.string', { index: index + 1 })}</span>
+                        <span className="font-medium text-orange-800 dark:text-orange-300">{t('import.articles', { count: data.articles.length })}</span>
                       </div>
                       <div className="text-xs text-orange-600 dark:text-orange-500 break-all">
                         {data.searchString.length > 80 ? data.searchString.substring(0, 80) + '...' : data.searchString}
                       </div>
                       <div className="flex justify-between text-xs">
-                        <span className="text-orange-600 dark:text-orange-400">Duplicatas:</span>
+                        <span className="text-orange-600 dark:text-orange-400">{t('import.duplicates')}</span>
                         <span className="font-medium text-red-600 dark:text-red-400">
                           {statistics.importSection['duplicate' + data.id]}
                         </span>
@@ -2389,7 +2157,7 @@ const ImportSection = ({ articles, setArticles, onImport, isLoading, importedDat
               {isLoadingState && (
                 <div className="flex items-center justify-center py-4">
                   <RefreshCw className="h-5 w-5 animate-spin text-orange-600 dark:text-orange-400 mr-2" />
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Processando...</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">{t('import.processing')}</span>
                 </div>
               )}
             </div>
@@ -2405,14 +2173,14 @@ const ImportSection = ({ articles, setArticles, onImport, isLoading, importedDat
               </div>
               <div>
                 <h3 className="text-sm sm:text-lg font-semibold text-gray-800 dark:text-white">Periódicos CAPES</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Importar BibTeX</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{t('import.importBibtex')}</p>
               </div>
             </div>
 
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Upload do arquivo Periódicos CAPES
+                  {t('import.uploadCapes')}
                 </label>
                 <input
                   type="file"
@@ -2422,27 +2190,27 @@ const ImportSection = ({ articles, setArticles, onImport, isLoading, importedDat
                   disabled={isLoadingState}
                 />
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Formatos: BibTeX
+                  {t('import.formatBibtex')}
                 </p>
               </div>
 
               {importedData.filter(data => data.database === 'Periódicos CAPES').length > 0 && (
                 <div className="bg-cyan-50 dark:bg-cyan-900/30 p-4 rounded-lg transition-colors duration-200">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="font-medium text-cyan-800 dark:text-cyan-300">Status</span>
+                    <span className="font-medium text-cyan-800 dark:text-cyan-300">{t('import.status')}</span>
                     <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
                   </div>
                   {importedData.filter(data => data.database === 'Periódicos CAPES').map((data, index) => (
                     <div key={index} className="space-y-1 text-sm mb-3 last:mb-0">
                       <div className="flex justify-between">
-                        <span className="text-cyan-700 dark:text-cyan-400">String {index + 1}:</span>
-                        <span className="font-medium text-cyan-800 dark:text-cyan-300">{data.articles.length} artigos</span>
+                        <span className="text-cyan-700 dark:text-cyan-400">{t('import.string', { index: index + 1 })}</span>
+                        <span className="font-medium text-cyan-800 dark:text-cyan-300">{t('import.articles', { count: data.articles.length })}</span>
                       </div>
                       <div className="text-xs text-cyan-600 dark:text-cyan-500 break-all">
                         {data.searchString.length > 80 ? data.searchString.substring(0, 80) + '...' : data.searchString}
                       </div>
                       <div className="flex justify-between text-xs">
-                        <span className="text-cyan-600 dark:text-cyan-400">Duplicatas:</span>
+                        <span className="text-cyan-600 dark:text-cyan-400">{t('import.duplicates')}</span>
                         <span className="font-medium text-red-600 dark:text-red-400">
                           {statistics.importSection['duplicate' + data.id]}
                         </span>
@@ -2455,7 +2223,7 @@ const ImportSection = ({ articles, setArticles, onImport, isLoading, importedDat
               {isLoadingState && (
                 <div className="flex items-center justify-center py-4">
                   <RefreshCw className="h-5 w-5 animate-spin text-cyan-600 dark:text-cyan-400 mr-2" />
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Processando...</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">{t('import.processing')}</span>
                 </div>
               )}
             </div>
@@ -2467,9 +2235,9 @@ const ImportSection = ({ articles, setArticles, onImport, isLoading, importedDat
       {importedData.length > 0 && (
         <div className="mt-8 bg-gray-100 dark:bg-gray-900/50 rounded-xl shadow-lg overflow-hidden transition-colors duration-200">
           <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-            <h4 className="font-semibold text-gray-800 dark:text-white mb-2">Dados Importados por String e Base</h4>
+            <h4 className="font-semibold text-gray-800 dark:text-white mb-2">{t('import.importedTableTitle')}</h4>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Visualização detalhada dos artigos importados organizados por string de busca e base de dados
+              {t('import.importedTableDesc')}
             </p>
           </div>
 
@@ -2478,22 +2246,22 @@ const ImportSection = ({ articles, setArticles, onImport, isLoading, importedDat
               <thead className="bg-gray-50 dark:bg-gray-900">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Base de Dados
+                    {t('import.colDatabase')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    String de Busca
+                    {t('import.colSearchString')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Total
+                    {t('import.colTotal')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Únicos
+                    {t('import.colUnique')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Duplicatas
+                    {t('import.colDuplicates')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Data Import.
+                    {t('import.colImportDate')}
                   </th>
                   <th className="py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
 
@@ -2535,7 +2303,7 @@ const ImportSection = ({ articles, setArticles, onImport, isLoading, importedDat
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                      {new Date(data.importDate).toLocaleDateString('pt-BR')}
+                      {new Date(data.importDate).toLocaleDateString(i18n.language === 'pt' ? 'pt-BR' : 'en-US')}
                     </td>
                     <td className="px-1 py-4 text-sm font-medium text-gray-500 dark:text-gray-400">
                       <button
@@ -2543,7 +2311,7 @@ const ImportSection = ({ articles, setArticles, onImport, isLoading, importedDat
                           handleExcludeData(data)
                         }}
                         className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 p-1 transition-colors duration-200"
-                        title="Excluir"
+                        title={t('import.delete')}
                       >
                         <XCircle size={16} />
                       </button>
@@ -2559,7 +2327,7 @@ const ImportSection = ({ articles, setArticles, onImport, isLoading, importedDat
 
       {/* Resumo geral da importação */}
       <div className="mt-8 bg-gray-100 dark:bg-gray-900/50 p-6 rounded-lg transition-colors duration-200">
-        <h4 className="font-semibold text-gray-800 dark:text-white mb-4">Resumo da Importação</h4>
+        <h4 className="font-semibold text-gray-800 dark:text-white mb-4">{t('import.summaryTitle')}</h4>
         <div className="grid grid-cols-2 md:grid-cols-7 gap-4">
           <div className="text-center">
             <p className="text-lg sm:text-2xl font-bold text-orange-600 dark:text-orange-400">
@@ -2577,7 +2345,7 @@ const ImportSection = ({ articles, setArticles, onImport, isLoading, importedDat
             <p className="text-lg sm:text-2xl font-bold text-sky-600 dark:text-sky-400">
               {importedData.filter(d => d.database === 'PubMed').reduce((acc, d) => acc + d.articles.length, 0)}
             </p>
-            <p className="text-sm text-gray-600 dark:text-gray-400">PubmMed</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">PubMed</p>
           </div>
           <div className="text-center">
             <p className="text-lg sm:text-2xl font-bold text-orange-600 dark:text-orange-400">
@@ -2595,13 +2363,13 @@ const ImportSection = ({ articles, setArticles, onImport, isLoading, importedDat
             <p className="text-lg sm:text-2xl font-bold text-gray-600 dark:text-gray-400">
               {importedData.filter(d => d.database !== 'Scopus' && d.database !== 'Web of Science' && d.database !== 'PubMed' && d.database !== 'ScienceDirect' && d.database !== 'Periódicos CAPES').reduce((acc, d) => acc + d.articles.length, 0)}
             </p>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Outras Bases</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">{t('import.otherBases')}</p>
           </div>
           <div className="text-center">
             <p className="text-lg sm:text-2xl font-bold text-indigo-600 dark:text-indigo-400">
               {importedData.reduce((acc, d) => acc + d.articles.length, 0)}
             </p>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Total</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">{t('import.total')}</p>
           </div>
         </div>
       </div>
@@ -2622,6 +2390,7 @@ const ImportSection = ({ articles, setArticles, onImport, isLoading, importedDat
 
 // Componente para Tratamento de Dados
 const DataProcessingSection = ({ articles, currentFilter, setArticles, onUpdateStatus, detectDuplicates, statistics }) => {
+  const { t } = useTranslation();
 
   const [duplicateDetection, setDuplicateDetection] = useState({
     byTitle: true,
@@ -2631,13 +2400,6 @@ const DataProcessingSection = ({ articles, currentFilter, setArticles, onUpdateS
   });
   const [duplicates, setDuplicates] = useState(0)
 
-  // useEffect(() => {
-  //   setDuplicates(articles.filter(a => a.isDuplicate == true))
-  // }, [articles]);
-  // console.log(duplicates)
-  // const duplicates = articles.filter(a => a.isDuplicate);
-  // const unique = articles.filter(a => !a.isDuplicate);
-
   const handleClassifyDuplicates = () => {
     const statusField = 'dataProcessingStatus';
 
@@ -2646,14 +2408,13 @@ const DataProcessingSection = ({ articles, currentFilter, setArticles, onUpdateS
       if (article.isDuplicate) {
         handleDuplicate(article.id)
         // onUpdateStatus(article.id, statusField, 'duplicate', null);
-        console.log(article)
       }
 
     })
 
     // Mostrar mensagem de confirmação
     setTimeout(() => {
-      alert(`${duplicates.length} duplicatas foram identificadas e classificadas automaticamente. Elas não avançarão para as próximas seções.`);
+      alert(t('dataprocessing.alertDuplicates', { count: duplicates.length }));
     }, 100);
   };
 
@@ -2662,7 +2423,7 @@ const DataProcessingSection = ({ articles, currentFilter, setArticles, onUpdateS
 
     // Marcar todas as duplicatas como excluídas
 
-    const pendingArticles = articles.filter((article) => article.dataProcessingStatus == "pending")
+    const pendingArticles = articles.filter((article) => article.dataProcessingStatus == "pending" || article.dataProcessingStatus == "included")
 
     pendingArticles.forEach(article => {
       if (article.score === 0) {
@@ -2673,7 +2434,7 @@ const DataProcessingSection = ({ articles, currentFilter, setArticles, onUpdateS
     const zeroScore = pendingArticles.filter(a => a.score === 0);
     // Mostrar mensagem de confirmação
     setTimeout(() => {
-      alert(`${zeroScore.length} trabalhos com score igual a zero foram identificados e classificados como excluídos automaticamente. Eles não avançarão para as próximas seções.`);
+      alert(t('dataprocessing.alertScore', { count: zeroScore.length }));
     }, 100);
   };
 
@@ -2690,7 +2451,7 @@ const DataProcessingSection = ({ articles, currentFilter, setArticles, onUpdateS
 
     // Mostrar mensagem de confirmação
     setTimeout(() => {
-      alert(`${pendingArticles.length} trabalhos foram identificados e incluídos automaticamente.`);
+      alert(t('dataprocessing.alertIncluded', { count: pendingArticles.length }));
     }, 100);
   };
 
@@ -2699,58 +2460,41 @@ const DataProcessingSection = ({ articles, currentFilter, setArticles, onUpdateS
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6 transition-colors duration-200">
       <h2 className="text-lg sm:text-2xl font-bold text-gray-800 dark:text-white mb-6 flex items-center gap-2">
         <Database className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-        Seção 3: Tratamento de Dados
+        {t('dataprocessing.sectionTitle')}
       </h2>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
         <div className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg transition-colors duration-200">
-          <h3 className="font-semibold text-blue-800 dark:text-blue-300 mb-2">Artigos Importados</h3>
+          <h3 className="font-semibold text-blue-800 dark:text-blue-300 mb-2">{t('dataprocessing.imported')}</h3>
           <p className="text-lg sm:text-2xl font-bold text-blue-900 dark:text-blue-200">{articles.length}</p>
         </div>
         <div className="bg-red-50 dark:bg-red-900/30 p-4 rounded-lg transition-colors duration-200">
-          <h3 className="font-semibold text-red-800 dark:text-red-300 mb-2">Duplicatas</h3>
+          <h3 className="font-semibold text-red-800 dark:text-red-300 mb-2">{t('dataprocessing.duplicates')}</h3>
           <p className="text-lg sm:text-2xl font-bold text-red-900 dark:text-red-200">{statistics.dataProcessing.duplicate}</p>
         </div>
         <div className="bg-green-50 dark:bg-green-900/30 p-4 rounded-lg transition-colors duration-200">
-          <h3 className="font-semibold text-green-800 dark:text-green-300 mb-2">Aprovados</h3>
+          <h3 className="font-semibold text-green-800 dark:text-green-300 mb-2">{t('dataprocessing.approved')}</h3>
           <p className="text-lg sm:text-2xl font-bold text-green-900 dark:text-green-200">{statistics.dataProcessing.included}</p>
         </div>
         <div className="bg-red-50 dark:bg-red-900/30 p-4 rounded-lg transition-colors duration-200">
-          <h3 className="font-semibold text-red-800 dark:text-red-300 mb-2">Excluídos</h3>
+          <h3 className="font-semibold text-red-800 dark:text-red-300 mb-2">{t('filter.excluded')}</h3>
           <p className="text-lg sm:text-2xl font-bold text-red-900 dark:text-red-200">{statistics.dataProcessing.excluded}</p>
         </div>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-2 gap-6">
-        {/* <div>
-          <div className="space-y-1 mb-1">
-            <h3 className="text-sm sm:text-lg font-semibold text-gray-700 dark:text-gray-300 ">Configuração de Detecção de Duplicatas</h3>
-            <span className='block text-sm font-medium text-gray-700 dark:text-gray-300 '>Os trabalhos duplicatos são identificados por meio da comparação do título, resumo e palavras-chaves</span>
-          </div>
-          
-          <div className="mt-3">
-            <button
-              onClick={handleClassifyDuplicates}
-              className="w-full bg-orange-600 hover:bg-orange-700 dark:bg-orange-700 dark:hover:bg-orange-600 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors duration-200"
-            >
-              <Database className="h-4 w-4" />
-              Classificar Duplicatas Automaticamente
-            </button>
-            
-          </div>
-        </div> */}
         <div className="p-4 border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30 rounded-lg transition-colors duration-200">
-          <h4 className="font-semibold text-gray-800 dark:text-gray-300 mb-2">Processo de Tratamento</h4>
+          <h4 className="font-semibold text-gray-800 dark:text-gray-300 mb-2">{t('dataprocessing.processTitle')}</h4>
           <ul className="text-sm text-gray-700 dark:text-gray-400 space-y-1">
-            <li>• Identificação e remoção de duplicatas</li>
-            <li>• Verificação de formato dos dados</li>
-            <li>• Validação de metadados</li>
+            <li>{t('dataprocessing.process1')}</li>
+            <li>{t('dataprocessing.process2')}</li>
+            <li>{t('dataprocessing.process3')}</li>
           </ul>
         </div>
         <div>
           <div className="space-y-1 mb-1">
-            <h3 className="text-sm sm:text-lg font-semibold text-gray-700 dark:text-gray-300 ">Exclusão automática por meio do valor do score</h3>
-            <span className='block text-sm font-medium text-gray-700 dark:text-gray-300 '>Os trabalhos com score igual a 0 são automaticamente excluídos</span>
+            <h3 className="text-sm sm:text-lg font-semibold text-gray-700 dark:text-gray-300 ">{t('dataprocessing.scoreTitle')}</h3>
+            <span className='block text-sm font-medium text-gray-700 dark:text-gray-300 '>{t('dataprocessing.scoreDesc')}</span>
           </div>
 
           <div className="mt-3">
@@ -2759,12 +2503,12 @@ const DataProcessingSection = ({ articles, currentFilter, setArticles, onUpdateS
               className="w-full bg-red-200 dark:bg-red-900/30 hover:bg-red-300 dark:hover:bg-red-900/30 text-red-800 dark:text-red-300 border border-gray-300 dark:border-gray-600  px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors duration-200"
             >
               <CopyX className="h-4 w-4" />
-              Remoção dos trabalhos com score 0
+              {t('dataprocessing.scoreButton')}
             </button>
 
           </div>
           <div className="space-y-1 mb-1">
-            <h3 className="text-sm sm:text-lg font-semibold text-gray-700 dark:text-gray-300 ">Aceite automática dos trabalhos pendentes</h3>
+            <h3 className="text-sm sm:text-lg font-semibold text-gray-700 dark:text-gray-300 ">{t('dataprocessing.autoAcceptTitle')}</h3>
             <span className='block text-sm font-medium text-gray-700 dark:text-gray-300 '></span>
           </div>
 
@@ -2774,7 +2518,7 @@ const DataProcessingSection = ({ articles, currentFilter, setArticles, onUpdateS
               className="w-full bg-green-200 dark:bg-green-900/30 hover:bg-green-300 dark:hover:bg-green-900/30 text-green-800 dark:text-green-300 border border-gray-300 dark:border-gray-600  px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors duration-200"
             >
               <CopyCheck className="h-4 w-4" />
-              Aceite automática dos trabalhos pendentes
+              {t('dataprocessing.autoAcceptButton')}
             </button>
 
           </div>
@@ -2782,23 +2526,6 @@ const DataProcessingSection = ({ articles, currentFilter, setArticles, onUpdateS
 
 
         <div>
-          {/* <h3 className="text-sm sm:text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Status do Tratamento</h3>
-          <div className="space-y-3">
-            <div className="bg-gray-50 dark:bg-gray-900/50 p-3 rounded-lg flex justify-between transition-colors duration-200">
-              <span className="text-gray-700 dark:text-gray-300">Pendentes:</span>
-              <span className="font-semibold text-gray-900 dark:text-gray-100">{statistics.dataProcessing.pending}</span>
-            </div>
-            <div className="bg-green-50 dark:bg-green-900/30 p-3 rounded-lg flex justify-between transition-colors duration-200">
-              <span className="text-green-700 dark:text-green-300">Incluídos:</span>
-              <span className="font-semibold text-green-700 dark:text-green-300">{statistics.dataProcessing.included}</span>
-            </div>
-            <div className="bg-red-50 dark:bg-red-900/30 p-3 rounded-lg flex justify-between transition-colors duration-200">
-              <span className="text-red-700 dark:text-red-300">Excluídos:</span>
-              <span className="font-semibold text-red-700 dark:text-red-300">{statistics.dataProcessing.excluded}</span>
-            </div>
-          </div> */}
-
-
         </div>
       </div>
     </div>
@@ -2807,6 +2534,7 @@ const DataProcessingSection = ({ articles, currentFilter, setArticles, onUpdateS
 
 // Componente para Filtro 1
 const Filter1Section = ({ articles, onUpdateStatus, inclusionCriteria, exclusionCriteria, statistics }) => {
+  const { t } = useTranslation();
   const filter1Articles = articles.filter(a =>
     a.dataProcessingStatus === 'included' && !a.isDuplicate && a.dataProcessingStatus !== 'duplicate'
   );
@@ -2815,30 +2543,30 @@ const Filter1Section = ({ articles, onUpdateStatus, inclusionCriteria, exclusion
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6 transition-colors duration-200">
       <h2 className="text-lg sm:text-2xl font-bold text-gray-800 dark:text-white mb-6 flex items-center gap-2">
         <Filter className="h-6 w-6 text-green-600 dark:text-green-400" />
-        Seção 4: Filtro 1 - Triagem por título, palavras-chave e resumo
+        {t('filter.section1Title')}
       </h2>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
         <div className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg transition-colors duration-200">
-          <h3 className="font-semibold text-blue-800 dark:text-blue-300 mb-2">Do Tratamento</h3>
+          <h3 className="font-semibold text-blue-800 dark:text-blue-300 mb-2">{t('filter.fromProcessing')}</h3>
           <p className="text-lg sm:text-2xl font-bold text-blue-900 dark:text-blue-200">{filter1Articles.length}</p>
         </div>
         <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg transition-colors duration-200">
-          <h3 className="font-semibold text-gray-800 dark:text-gray-300 mb-2">Pendentes</h3>
+          <h3 className="font-semibold text-gray-800 dark:text-gray-300 mb-2">{t('filter.pending')}</h3>
           <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-gray-200">{statistics.filter1.pending}</p>
         </div>
         <div className="bg-green-50 dark:bg-green-900/30 p-4 rounded-lg transition-colors duration-200">
-          <h3 className="font-semibold text-green-800 dark:text-green-300 mb-2">Incluídos</h3>
+          <h3 className="font-semibold text-green-800 dark:text-green-300 mb-2">{t('filter.included')}</h3>
           <p className="text-lg sm:text-2xl font-bold text-green-900 dark:text-green-200">{statistics.filter1.included}</p>
         </div>
         <div className="bg-red-50 dark:bg-red-900/30 p-4 rounded-lg transition-colors duration-200">
-          <h3 className="font-semibold text-red-800 dark:text-red-300 mb-2">Excluídos</h3>
+          <h3 className="font-semibold text-red-800 dark:text-red-300 mb-2">{t('filter.excluded')}</h3>
           <p className="text-lg sm:text-2xl font-bold text-red-900 dark:text-red-200">{statistics.filter1.excluded}</p>
         </div>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <div className="bg-green-50 dark:bg-green-900/30 p-4 rounded-lg transition-colors duration-200">
-          <h4 className="font-semibold text-green-800 dark:text-green-300 mb-2">Critérios de inclusão</h4>
+          <h4 className="font-semibold text-green-800 dark:text-green-300 mb-2">{t('filter.inclusionCriteria')}</h4>
           <ul className="text-sm text-green-700 dark:text-green-400 space-y-1">
             {
               inclusionCriteria.filter(c => c.value.trim()).map((criterion, index) => (
@@ -2847,7 +2575,7 @@ const Filter1Section = ({ articles, onUpdateStatus, inclusionCriteria, exclusion
           </ul>
         </div>
         <div className="bg-red-50 dark:bg-red-900/30 p-4 rounded-lg transition-colors duration-200">
-          <h4 className="font-semibold text-red-800 dark:text-red-300 mb-2">Critérios de exclusão</h4>
+          <h4 className="font-semibold text-red-800 dark:text-red-300 mb-2">{t('filter.exclusionCriteria')}</h4>
           <ul className="text-sm text-red-900 dark:text-red-200 space-y-1">
             {
               exclusionCriteria.filter(c => c.value.trim()).map((criterion, index) => (
@@ -2864,37 +2592,38 @@ const Filter1Section = ({ articles, onUpdateStatus, inclusionCriteria, exclusion
 
 // Componente para Filtro 2
 const Filter2Section = ({ articles, onUpdateStatus, inclusionCriteria, exclusionCriteria, statistics }) => {
+  const { t } = useTranslation();
   const filter2Articles = articles.filter(a => a.filter1Status === 'included');
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6 transition-colors duration-200">
       <h2 className="text-lg sm:text-2xl font-bold text-gray-800 dark:text-white mb-6 flex items-center gap-2">
         <Filter className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-        Seção 5: Filtro 2 - Triagem por introdução e conclusão
+        {t('filter.section2Title')}
       </h2>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
         <div className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg transition-colors duration-200">
-          <h3 className="font-semibold text-blue-800 dark:text-blue-300 mb-2">Do Filtro 1</h3>
+          <h3 className="font-semibold text-blue-800 dark:text-blue-300 mb-2">{t('filter.fromFilter1')}</h3>
           <p className="text-lg sm:text-2xl font-bold text-blue-900 dark:text-blue-200">{filter2Articles.length}</p>
         </div>
         <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg transition-colors duration-200">
-          <h3 className="font-semibold text-gray-800 dark:text-gray-300 mb-2">Pendentes</h3>
+          <h3 className="font-semibold text-gray-800 dark:text-gray-300 mb-2">{t('filter.pending')}</h3>
           <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-gray-200">{statistics.filter2.pending}</p>
         </div>
         <div className="bg-green-50 dark:bg-green-900/30 p-4 rounded-lg transition-colors duration-200">
-          <h3 className="font-semibold text-green-800 dark:text-green-300 mb-2">Incluídos</h3>
+          <h3 className="font-semibold text-green-800 dark:text-green-300 mb-2">{t('filter.included')}</h3>
           <p className="text-lg sm:text-2xl font-bold text-green-900 dark:text-green-200">{statistics.filter2.included}</p>
         </div>
         <div className="bg-red-50 dark:bg-red-900/30 p-4 rounded-lg transition-colors duration-200">
-          <h3 className="font-semibold text-red-800 dark:text-red-300 mb-2">Excluídos</h3>
+          <h3 className="font-semibold text-red-800 dark:text-red-300 mb-2">{t('filter.excluded')}</h3>
           <p className="text-lg sm:text-2xl font-bold text-red-900 dark:text-red-200">{statistics.filter2.excluded}</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <div className="bg-green-50 dark:bg-green-900/30 p-4 rounded-lg transition-colors duration-200">
-          <h4 className="font-semibold text-green-800 dark:text-green-300 mb-2">Critérios de inclusão</h4>
+          <h4 className="font-semibold text-green-800 dark:text-green-300 mb-2">{t('filter.inclusionCriteria')}</h4>
           <ul className="text-sm text-green-700 dark:text-green-400 space-y-1">
             {
               inclusionCriteria.filter(c => c.value.trim()).map((criterion, index) => (
@@ -2903,7 +2632,7 @@ const Filter2Section = ({ articles, onUpdateStatus, inclusionCriteria, exclusion
           </ul>
         </div>
         <div className="bg-red-50 dark:bg-red-900/30 p-4 rounded-lg transition-colors duration-200">
-          <h4 className="font-semibold text-red-800 dark:text-red-300 mb-2">Critérios de exclusão</h4>
+          <h4 className="font-semibold text-red-800 dark:text-red-300 mb-2">{t('filter.exclusionCriteria')}</h4>
           <ul className="text-sm text-red-900 dark:text-red-200 space-y-1">
             {
               exclusionCriteria.filter(c => c.value.trim()).map((criterion, index) => (
@@ -2918,37 +2647,38 @@ const Filter2Section = ({ articles, onUpdateStatus, inclusionCriteria, exclusion
 
 // Componente para Filtro 3
 const Filter3Section = ({ articles, onUpdateStatus, inclusionCriteria, exclusionCriteria, extractionCriteria, statistics }) => {
+  const { t } = useTranslation();
   const filter3Articles = articles.filter(a => a.filter2Status === 'included');
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6 transition-colors duration-200">
       <h2 className="text-lg sm:text-2xl font-bold text-gray-800 dark:text-white mb-6 flex items-center gap-2">
         <Filter className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-        Seção 6: Filtro 3 - Triagem por texto completo
+        {t('filter.section3Title')}
       </h2>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
         <div className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg transition-colors duration-200">
-          <h3 className="font-semibold text-blue-800 dark:text-blue-300 mb-2">Do Filtro 2</h3>
+          <h3 className="font-semibold text-blue-800 dark:text-blue-300 mb-2">{t('filter.fromFilter2')}</h3>
           <p className="text-lg sm:text-2xl font-bold text-blue-900 dark:text-blue-200">{filter3Articles.length}</p>
         </div>
         <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg transition-colors duration-200">
-          <h3 className="font-semibold text-gray-800 dark:text-gray-300 mb-2">Pendentes</h3>
+          <h3 className="font-semibold text-gray-800 dark:text-gray-300 mb-2">{t('filter.pending')}</h3>
           <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-gray-200">{statistics.filter3.pending}</p>
         </div>
         <div className="bg-green-50 dark:bg-green-900/30 p-4 rounded-lg transition-colors duration-200">
-          <h3 className="font-semibold text-green-800 dark:text-green-300 mb-2">Incluídos</h3>
+          <h3 className="font-semibold text-green-800 dark:text-green-300 mb-2">{t('filter.included')}</h3>
           <p className="text-lg sm:text-2xl font-bold text-green-900 dark:text-green-200">{statistics.filter3.included}</p>
         </div>
         <div className="bg-red-50 dark:bg-red-900/30 p-4 rounded-lg transition-colors duration-200">
-          <h3 className="font-semibold text-red-800 dark:text-red-300 mb-2">Excluídos</h3>
+          <h3 className="font-semibold text-red-800 dark:text-red-300 mb-2">{t('filter.excluded')}</h3>
           <p className="text-lg sm:text-2xl font-bold text-red-900 dark:text-red-200">{statistics.filter3.excluded}</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <div className="bg-green-50 dark:bg-green-900/30 p-4 rounded-lg transition-colors duration-200">
-          <h4 className="font-semibold text-green-800 dark:text-green-300 mb-2">Critérios de inclusão</h4>
+          <h4 className="font-semibold text-green-800 dark:text-green-300 mb-2">{t('filter.inclusionCriteria')}</h4>
           <ul className="text-sm text-green-700 dark:text-green-400 space-y-1">
             {
               inclusionCriteria.filter(c => c.value.trim()).map((criterion, index) => (
@@ -2957,7 +2687,7 @@ const Filter3Section = ({ articles, onUpdateStatus, inclusionCriteria, exclusion
           </ul>
         </div>
         <div className="bg-red-50 dark:bg-red-900/30 p-4 rounded-lg transition-colors duration-200">
-          <h4 className="font-semibold text-red-800 dark:text-red-300 mb-2">Critérios de exclusão</h4>
+          <h4 className="font-semibold text-red-800 dark:text-red-300 mb-2">{t('filter.exclusionCriteria')}</h4>
           <ul className="text-sm text-red-900 dark:text-red-200 space-y-1">
             {
               exclusionCriteria.filter(c => c.value.trim()).map((criterion, index) => (
@@ -2967,13 +2697,14 @@ const Filter3Section = ({ articles, onUpdateStatus, inclusionCriteria, exclusion
         </div>
 
         <div className="bg-orange-50 dark:bg-orange-900/30 p-4 rounded-lg transition-colors duration-200">
-          <h4 className="font-semibold text-orange-800 dark:text-orange-300 mb-2">Critérios de extração</h4>
-          {/* <ul className="text-sm text-orange-900 dark:text-orange-200 space-y-1">
-            {
-              // extractionCriteria.filter(c => c.trim()).map((criterion, index) => (
-              //   <li key={index}>• {criterion}</li>
-              // ))}
-          </ul> */}
+          <h4 className="font-semibold text-orange-800 dark:text-orange-300 mb-2">{t('filter.extractionCriteria')}</h4>
+          <ul className="text-sm text-orange-900 dark:text-orange-200 space-y-1">
+            {extractionCriteria.filter(c => c.value.trim()).map((criterion, index) => (
+              <li key={index}>
+                • {criterion.id + ' - ' + criterion.value}
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
     </div>
@@ -2982,6 +2713,7 @@ const Filter3Section = ({ articles, onUpdateStatus, inclusionCriteria, exclusion
 
 // Componente melhorado para lista de artigos
 const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => {
+  const { t } = useTranslation();
   const [pagination, setPagination] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
   // Filtrar artigos baseado no status (pendente, incluído, excluído)
@@ -3112,6 +2844,7 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
     }
     setSortConfig({ key, direction });
   };
+
   const getDownstreamFields = (statusField) => ({
     dataProcessingStatus: ['filter1Status', 'filter2Status', 'filter3Status'],
     filter1Status: ['filter2Status', 'filter3Status'],
@@ -3125,7 +2858,6 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
   };
 
   const handleInclude = (article, criterion = null) => {
-    console.log(criterion)
     onUpdateStatus(article.id, getStatusField(currentFilter), 'included', criterion);
     setShowCriterionModal(null);
   };
@@ -3198,12 +2930,12 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
 
   const getSectionTitle = () => {
     switch (currentFilter) {
-      case 'dataprocessing': return 'Tratamento de Dados';
-      case 'filter1': return 'Filtro 1';
-      case 'filter2': return 'Filtro 2';
-      case 'filter3': return 'Filtro 3';
-      case 'statistics': return 'Estátisticas e Análises';
-      default: return 'Artigos';
+      case 'dataprocessing': return t('articles.titleProcessing');
+      case 'filter1': return t('articles.titleFilter1');
+      case 'filter2': return t('articles.titleFilter2');
+      case 'filter3': return t('articles.titleFilter3');
+      case 'statistics': return t('articles.titleStatistics');
+      default: return t('articles.titleDefault');
     }
   };
 
@@ -3266,7 +2998,11 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
       <div className="p-6 border-b border-gray-200 dark:border-gray-700">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-base sm:text-xl font-semibold text-gray-800 dark:text-white">
-            Artigos {statusFilter === "pending" ? 'pendentes' : statusFilter === "included" ? 'incluídos' : statusFilter === "excluded" ? 'excluídos' : statusFilter === "duplicate" ? 'duplicados' : ''} no {getSectionTitle()} ({filteredArticles.length} total)
+            {t('articles.title', {
+              status: statusFilter === "pending" ? t('articles.statusPending') : statusFilter === "included" ? t('articles.statusIncluded') : statusFilter === "excluded" ? t('articles.statusExcluded') : statusFilter === "duplicate" ? t('articles.statusDuplicate') : '',
+              section: getSectionTitle(),
+              count: filteredArticles.length
+            })}
           </h3>
         </div>
 
@@ -3277,7 +3013,7 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <input
                 type="text"
-                placeholder="Busca por título, palavras-chaves ou resumo..."
+                placeholder={t('articles.searchPlaceholder')}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -3291,11 +3027,11 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
               onChange={(e) => setStatusFilter(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             >
-              <option value="all">Todos os status</option>
-              <option value="pending">Pendentes</option>
-              <option value="included">Incluídos</option>
-              <option value="excluded">Excluídos</option>
-              <option value="duplicate">Duplicatas</option>
+              <option value="all">{t('articles.allStatus')}</option>
+              <option value="pending">{t('articles.pending')}</option>
+              <option value="included">{t('articles.included')}</option>
+              <option value="excluded">{t('articles.excluded')}</option>
+              <option value="duplicate">{t('articles.duplicates')}</option>
             </select>
           </div>
         </div>
@@ -3311,7 +3047,7 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
                   onClick={() => handleSort('title')}
                   className="flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-200"
                 >
-                  Título
+                  {t('articles.colTitle')}
                   <ArrowUpDown className="h-3 w-3" />
                 </button>
               </th>
@@ -3320,7 +3056,7 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
                   onClick={() => handleSort('source')}
                   className="flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-200"
                 >
-                  Fonte
+                  {t('articles.colSource')}
                   <ArrowUpDown className="h-3 w-3" />
                 </button>
               </th>
@@ -3329,7 +3065,7 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
                   onClick={() => handleSort('year')}
                   className="flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-200"
                 >
-                  Ano
+                  {t('articles.colYear')}
                   <ArrowUpDown className="h-3 w-3" />
                 </button>
               </th>
@@ -3338,12 +3074,12 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
                   onClick={() => handleSort('score')}
                   className="flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-200"
                 >
-                  Score
+                  {t('articles.colScore')}
                   <ArrowUpDown className="h-3 w-3" />
                 </button>
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Ações</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">{t('articles.colStatus')}</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">{t('articles.colActions')}</th>
             </tr>
           </thead>
           <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
@@ -3363,26 +3099,15 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
                       title={article.abstract}
                     >
 
-                      <div className="text-sm font-medium text-gray-900 dark:text-white break-words" data-tooltip-id="tooltip-rico">
+                      <div className="text-sm font-medium text-gray-900 dark:text-white break-words">
                         {article.title}
                       </div>
-                      {/* <ReactTooltip id="tooltip-rico" >
-                        <div className="text-sm max-w-3xs borde">
-                          <strong>Informação importante: </strong>{article.abstract}
-                
-                        </div>
-                      </ReactTooltip> */}
 
                       <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
                         {article.authors}
                       </div>
                     </div>
                   </td>
-                  {/* <td className="px-6 py-4 max-w-10">
-                    <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                      {article.authors}
-                    </div>
-                  </td> */}
                   <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400 ">
                     <span className={`px-2 py-1 rounded-full text-xs ${article.source === 'Scopus' ? 'bg-orange-100 dark:bg-orange-900/50 text-orange-800 dark:text-orange-300' :
                       article.source === 'Web of Science' ? 'bg-violet-100 dark:bg-violet-900/50 text-violet-800 dark:text-violet-300' :
@@ -3412,10 +3137,10 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
                         status === 'duplicate' ? 'bg-orange-100 dark:bg-orange-900/50 text-orange-800 dark:text-orange-300' :
                           'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-300'
                       }`}>
-                      {status === 'included' ? 'Incluído' :
-                        status === 'excluded' ? 'Excluído' :
-                          status === 'duplicate' ? 'Duplicata' :
-                            'Pendente'}
+                      {status === 'included' ? t('articles.statusIncluded') :
+                        status === 'excluded' ? t('articles.statusExcluded') :
+                          status === 'duplicate' ? t('articles.statusDuplicate') :
+                            t('articles.statusPending')}
                     </span>
                   </td>
                   <td className="px-1 py-4 text-sm font-medium">
@@ -3430,7 +3155,7 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
                           }
                         }}
                         className="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300 p-1 transition-colors duration-200"
-                        title="Incluir"
+                        title={t('articles.includeTitle')}
                       >
                         <CheckCircle size={16} />
                       </button>
@@ -3445,7 +3170,7 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
                           }
                         }}
                         className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 p-1 transition-colors duration-200"
-                        title="Excluir"
+                        title={t('articles.excludeTitle')}
                       >
                         <XCircle size={16} />
                       </button>
@@ -3453,7 +3178,7 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
                         onClick={() => { handleDuplicate(article) }}
                         className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 p-1 transition-colors duration-200"
 
-                        title="Duplicata"
+                        title={t('articles.duplicateTitle')}
                       >
                         <BookCopy size={16} />
                       </button>
@@ -3461,7 +3186,7 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
                       <button
                         onClick={() => getCurrentArticle(article)}
                         className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300 p-1 transition-colors duration-200"
-                        title="Ver detalhes"
+                        title={t('articles.viewDetails')}
                       >
                         <Eye size={16} />
                       </button>
@@ -3480,7 +3205,7 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
         <div className="px-6 py-3 border-t border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div className="text-sm text-gray-700 dark:text-gray-300">
-              Página {currentPage} de {totalPages} ({filteredArticles.length} artigos)
+              {t('articles.page', { current: currentPage, total: totalPages, count: filteredArticles.length })}
             </div>
             <div className="flex gap-2">
               <button
@@ -3488,7 +3213,7 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
                 disabled={currentPage === 1}
                 className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded disabled:opacity-50 hover:bg-gray-100 dark:hover:bg-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 transition-colors duration-200"
               >
-                Anterior
+                {t('articles.previous')}
               </button>
               <span className="px-3 py-1 text-gray-700 dark:text-gray-300">
                 {currentPage} / {totalPages}
@@ -3498,7 +3223,7 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
                 disabled={currentPage === totalPages}
                 className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded disabled:opacity-50 hover:bg-gray-100 dark:hover:bg-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 transition-colors duration-200"
               >
-                Próxima
+                {t('articles.next')}
               </button>
             </div>
           </div>
@@ -3561,7 +3286,7 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
             <div className="px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-green-50 dark:hover:bg-green-900/30 transition-colors duration-150 cursor-pointer flex items-center justify-between">
               <div className="flex items-center">
                 <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400 mr-2" />
-                <span>Incluir</span>
+                <span>{t('articles.includeTitle')}</span>
               </div>
               <ChevronDown className="h-3 w-3 text-gray-400 transform -rotate-90" />
             </div>
@@ -3572,7 +3297,7 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
                 }`}
             >
               <div className="px-3 py-1 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase border-b border-gray-200 dark:border-gray-600 mb-1 sticky top-0 bg-white dark:bg-gray-800">
-                Critérios de Inclusão
+                {t('articles.inclusionCriteriaMenu')}
               </div>
               {protocol.inclusionCriteria.filter(c => c.value.trim()).map((criterion, index) => (
                 <button
@@ -3597,7 +3322,7 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
             <div className="px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors duration-150 cursor-pointer flex items-center justify-between">
               <div className="flex items-center">
                 <XCircle className="h-4 w-4 text-red-600 dark:text-red-400 mr-2" />
-                <span>Excluir</span>
+                <span>{t('articles.excludeTitle')}</span>
               </div>
               <ChevronDown className="h-3 w-3 text-gray-400 transform -rotate-90" />
             </div>
@@ -3608,7 +3333,7 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
                 }`}
             >
               <div className="px-3 py-1 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase border-b border-gray-200 dark:border-gray-600 mb-1 sticky top-0 bg-white dark:bg-gray-800">
-                Critérios de Exclusão
+                {t('articles.exclusionCriteriaMenu')}
               </div>
               {protocol.exclusionCriteria.filter(c => c.value.trim()).map((criterion, index) => (
                 <button
@@ -3634,6 +3359,7 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
 
 // Componente principal
 const SystematicReviewTool = () => {
+  const { t } = useTranslation();
   const [articles, setArticles] = useState([]);
   const [numStringSc, setNumStringSc] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -3701,7 +3427,7 @@ const SystematicReviewTool = () => {
     const autoSaveResult = loadAutoSave();
     if (autoSaveResult.success && autoSaveResult.data.articles?.length > 0) {
       const shouldRestore = window.confirm(
-        `Backup automático encontrado de ${new Date(autoSaveResult.data.metadata?.autoSavedAt || Date.now()).toLocaleString()}. Restaurar?`
+        t('messages.restoreBackup', { date: new Date(autoSaveResult.data.metadata?.autoSavedAt || Date.now()).toLocaleString() })
       );
 
       if (shouldRestore) {
@@ -3903,7 +3629,7 @@ const SystematicReviewTool = () => {
       setLastSaved(new Date());
       setHasUnsavedChanges(false);
       clearAutoSave();
-      alert(`Projeto salvo: ${result.filename}`);
+      alert(t('messages.projectSaved', { filename: result.filename }));
 
       // Primeiro salvamento do dia: exibe o pedido de apoio
       if (!supportInteractedRef.current && !supportFirstSaveDoneRef.current) {
@@ -3911,7 +3637,7 @@ const SystematicReviewTool = () => {
         setShowSupportRequest(true);
       }
     } else {
-      alert(`Erro: ${result.error}`);
+      alert(t('messages.error', { error: result.error }));
     }
   };
 
@@ -3920,7 +3646,7 @@ const SystematicReviewTool = () => {
     if (!file) return;
 
     if (hasUnsavedChanges) {
-      const shouldProceed = window.confirm('Há alterações não salvas. Continuar?');
+      const shouldProceed = window.confirm(t('messages.unsavedChanges'));
       if (!shouldProceed) {
         event.target.value = '';
         return;
@@ -3935,20 +3661,20 @@ const SystematicReviewTool = () => {
           clearAutoSave();
 
           const message = result.migrated
-            ? `Projeto carregado e migrado da versão ${result.originalVersion}`
-            : 'Projeto carregado com sucesso!';
+            ? t('messages.projectLoadedMigrated', { version: result.originalVersion })
+            : t('messages.projectLoaded');
           alert(message);
         }
       })
       .catch(error => {
-        alert(`Erro ao carregar: ${error.error}`);
+        alert(t('messages.projectLoadError', { error: error.error }));
       });
 
     event.target.value = '';
   };
 
   const handleNewProject = () => {
-    if (hasUnsavedChanges && !window.confirm('Há alterações não salvas. Continuar?')) {
+    if (hasUnsavedChanges && !window.confirm(t('messages.unsavedChanges'))) {
       return;
     }
 
@@ -4023,7 +3749,7 @@ const SystematicReviewTool = () => {
       headerProtocol[`EX${index + 1}`] = `Extraction Criterion ${index + 1}`;
     });
     const workbook = new ExcelJS.Workbook();
-    const wsProtocol = workbook.addWorksheet("Protocolo");
+    const wsProtocol = workbook.addWorksheet(t("export.protocolSheet"));
     // Colunas (header + key)
     wsProtocol.columns = Object.keys(headerProtocol).map(key => ({
       header: headerProtocol[key],
@@ -4157,7 +3883,6 @@ const SystematicReviewTool = () => {
       { label: 'Included-Filter 3', filter: 'filter3Status', status: 'included' },
       { label: 'Excluded-Filter 3', filter: 'filter3Status', status: 'excluded' },
     ]
-    // const tabs = ['Articles', 'Included-Filter 1']
 
     tabs.forEach(tab => {
       const wsArticles = workbook.addWorksheet(tab.label);
@@ -4238,8 +3963,6 @@ const SystematicReviewTool = () => {
   // Substituir o cálculo das estatísticas (linha ~1147)
   const statistics = useMemo(() => {
 
-    // articles.filter(a => a.dataProcessingStatus === 'duplicate' && !a.isDuplicate).length
-    // console.log(importedData)
     const importSection = {};
     importedData.forEach(data => {
 
@@ -4299,8 +4022,6 @@ const SystematicReviewTool = () => {
       const duplicatesByTitle = new Map();
 
       return allArticles.map(article => {
-        // if (article.isDuplicate) return article;
-
         let isDuplicate = false;
         let duplicateOf = article.duplicateOf;
 
@@ -4325,7 +4046,6 @@ const SystematicReviewTool = () => {
       });
     });
     setLoading(false);
-    // }, 1500);
   }, []);
 
   const handleUpdateStatus = useCallback((id, statusType, status, criterion = null) => {
@@ -4369,14 +4089,10 @@ const SystematicReviewTool = () => {
 
   // Função para detectar duplicatas por diferentes critérios
   const detectDuplicates = useCallback(() => {
-    console.log(articles)
     const duplicatesByDOI = new Map();
     const duplicatesByTitle = new Map();
-    // const duplicatesByAuthorsYear = new Map();
 
     const updatedArticles = articles.map(article => {
-      // if (article.isDuplicate) return article;
-
       let isDuplicate = false;
       let duplicateOf = article.duplicateOf;
 
@@ -4394,7 +4110,6 @@ const SystematicReviewTool = () => {
       } else {
         duplicatesByTitle.set(normalizedTitle, article.id);
       }
-      console.log(isDuplicate)
       if (isDuplicate) {
         return { ...article, isDuplicate: true, dataProcessingStatus: 'duplicate', duplicateOf };
       } else {
@@ -4404,46 +4119,13 @@ const SystematicReviewTool = () => {
       return article;
     });
 
-    // articles.forEach(article => {
-    //   if (article.isDuplicate) return; // Pular se já é marcado como duplicata
-
-    //   // Detectar por DOI
-    //   if (article.doi && duplicatesByDOI.has(article.doi)) {
-    //     article.isDuplicate = true;
-    //     article.dataProcessingStatus = 'duplicate'
-    //     article.duplicateOf = duplicatesByDOI.get(article.doi);
-    //   } else if (article.doi) {
-    //     duplicatesByDOI.set(article.doi, article.id);
-    //   }
-
-    //   // Detectar por título 
-    //   const normalizedTitle = article.title.toLowerCase().trim();
-    //   if (duplicatesByTitle.has(normalizedTitle)) {
-    //     article.isDuplicate = true;
-    //     article.dataProcessingStatus = 'duplicate'
-    //     article.duplicateOf = duplicatesByTitle.get(normalizedTitle);
-    //   } else {
-    //     duplicatesByTitle.set(normalizedTitle, article.id);
-    //   }
-
-    //   // Detectar por autores + ano
-    //   // const authorYearKey = `${article.authors.toLowerCase()}_${article.year}`;
-    //   // if (duplicatesByAuthorsYear.has(authorYearKey)) {
-    //   //   article.isDuplicate = true;
-    //   //   article.duplicateOf = duplicatesByAuthorsYear.get(authorYearKey);
-    //   // } else {
-    //   //   duplicatesByAuthorsYear.set(authorYearKey, article.id);
-    //   // }
-    // });
-
     setArticles(updatedArticles);
-    // console.log(articles.filter(a => a.isDuplicate).length);
   }, [articles]);
 
   const ConfigureNotification = () => (
     <button onClick={() => setShowReminderSettings(true)}
-      className="p-2 rounded-lg transition-colors duration-200 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
-      title={`Configurar lembrete de salvamento`}
+      className="p-2 rounded-lg transition-colors duration-200 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 flex items-center justify-center"
+      title={t('header.notification')}
     >
       <Bell className="h-5 w-5 text-gray-600 dark:text-gray-300" />
     </button>
@@ -4451,11 +4133,10 @@ const SystematicReviewTool = () => {
 
   // Componente Support
   const Support = () => {
-    // console.log(theme)
     return (
       <button onClick={() => setShowSupport(true)}
-        className="p-2 rounded-lg transition-colors duration-200 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
-        title={`Apoiar o projeto`}
+        className="p-2 rounded-lg transition-colors duration-200 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 flex items-center justify-center"
+        title={t('header.support')}
       >
         <HeartHandshake className="h-5 w-5  dark:text-gray-300" />
       </button>
@@ -4463,17 +4144,17 @@ const SystematicReviewTool = () => {
   };
 
   const FileMenu = () => (
-    <div className="relative" onClick={e => e.stopPropagation()}>
+    <div className="relative col-span-4 min-[440px]:col-auto w-full min-[440px]:w-auto" onClick={e => e.stopPropagation()}>
       <button
         onClick={() => setShowFileMenu(!showFileMenu)}
-        className="px-2 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg flex items-center gap-1"
-        title={`Arquivo`}
+        className="w-full min-[440px]:w-auto justify-center px-2 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg flex items-center gap-1"
+        title={t('file.menu')}
       >
         <FileText className="h-5 w-5" />
-        <div className="hidden sm:block">
-          Arquivo
+        <div className="whitespace-nowrap">
+          {t('file.menu')}
         </div>
-        <ChevronDown className={`hidden h-4 w-4 min-[420px]:inline-flex transition-transform ${showFileMenu ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`inline-flex h-4 w-4 transition-transform ${showFileMenu ? 'rotate-180' : ''}`} />
         {/* Arquivo */}
 
       </button>
@@ -4485,12 +4166,12 @@ const SystematicReviewTool = () => {
             className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
           >
             <FileText className="h-4 w-4" />
-            Novo Projeto
+            {t('file.new')}
           </button>
 
           <label className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 cursor-pointer">
             <Upload className="h-4 w-4" />
-            Abrir Projeto
+            {t('file.open')}
             <input
               type="file"
               accept=".srp,.json"
@@ -4504,7 +4185,7 @@ const SystematicReviewTool = () => {
             className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
           >
             <Download className="h-4 w-4" />
-            Salvar Projeto
+            {t('file.save')}
             {hasUnsavedChanges && <span className="text-red-500 text-xs">●</span>}
           </button>
 
@@ -4513,7 +4194,7 @@ const SystematicReviewTool = () => {
             className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
           >
             <Table className="h-4 w-4" />
-            Exportar .xlsx
+            {t('file.export')}
           </button>
         </div>
       )}
@@ -4525,26 +4206,26 @@ const SystematicReviewTool = () => {
       {hasUnsavedChanges && (
         <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
           <Clock className="h-4 w-4" />
-          Não salvo
+          {t('app.unsaved')}
         </span>
       )}
       {lastSaved && (
         <span className="flex items-center gap-1">
           <CheckCircle className="h-4 w-4 text-green-600" />
-          Salvo: {lastSaved.toLocaleTimeString()}
+          {t('app.saved')}: {lastSaved.toLocaleTimeString()}
         </span>
       )}
     </div>
   );
-  const sectionsToCheck = ['Tratamento', 'Filtro 1', 'Filtro 2', 'Filtro 3', 'Estatísticas']
+  const sectionsToCheck = ['dataprocessing', 'filter1', 'filter2', 'filter3', 'statistics']
   const sections = [
-    { id: 'protocol', name: 'Protocolo', icon: Settings },
-    { id: 'import', name: 'Importação', icon: Upload },
-    { id: 'dataprocessing', name: 'Tratamento', icon: Database },
-    { id: 'filter1', name: 'Filtro 1', icon: Filter },
-    { id: 'filter2', name: 'Filtro 2', icon: Filter },
-    { id: 'filter3', name: 'Filtro 3', icon: Filter },
-    { id: 'statistics', name: 'Estatísticas', icon: ChartArea }
+    { id: 'protocol', name: t('nav.protocol'), icon: Settings },
+    { id: 'import', name: t('nav.import'), icon: Upload },
+    { id: 'dataprocessing', name: t('nav.dataprocessing'), icon: Database },
+    { id: 'filter1', name: t('nav.filter1'), icon: Filter },
+    { id: 'filter2', name: t('nav.filter2'), icon: Filter },
+    { id: 'filter3', name: t('nav.filter3'), icon: Filter },
+    { id: 'statistics', name: t('nav.statistics'), icon: ChartArea }
   ];
   const sectionGroups = [
     [sections[0], sections[1]],  // Protocolo + Tratamento
@@ -4558,10 +4239,10 @@ const SystematicReviewTool = () => {
       <div className="w-full h-full px-4 py-6">
         {/* Header */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6 transition-colors duration-200">
-          <div className="flex flex-row items-start justify-between mb-4 gap-3">
-            <div className="min-w-0">
+          <div className="flex flex-col min-[560px]:flex-row flex-wrap items-start justify-between mb-4 gap-3">
+            <div className="min-w-0 shrink-0">
               <div className="flex justify-between items-start gap-3 align-items">
-                <div className="hidden sm:block w-[32px]">
+                <div className="w-[32px] shrink-0">
                   <SvgIcon
                     className="w-full h-full"
                     stroke={theme === 'light' ? '#000' : '#fff'}
@@ -4576,11 +4257,11 @@ const SystematicReviewTool = () => {
               <StatusIndicator />
             </div>
 
-            <div className="grid min-[420px]:flex  grid-cols-2 items-center gap-2 flex-shrink-0">
-              {/* grid grid-cols-2 items-center gap-2 flex-shrink-0 */}
+            <div className="grid min-[440px]:flex w-full min-[440px]:w-auto grid-cols-4 items-center gap-2 flex-shrink-0">
               <FileMenu />
               <ConfigureNotification />
               <Support />
+              <LanguageSelector />
               <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
             </div>
           </div>
@@ -4591,7 +4272,7 @@ const SystematicReviewTool = () => {
               <div key={i} className="flex flex-nowrap gap-2">
                 {group.map((section) => {
                   const Icon = section.icon;
-                  const isDisabled = sectionsToCheck.includes(section.name) && articles.length === 0;
+                  const isDisabled = sectionsToCheck.includes(section.id) && articles.length === 0;
                   const isActive = currentSection === section.id;
 
                   return (
@@ -4599,7 +4280,7 @@ const SystematicReviewTool = () => {
                       key={section.id}
                       onClick={() => setCurrentSection(section.id)}
                       disabled={isDisabled}
-                      title={isDisabled ? 'Importe artigos para ver as estatísticas' : section.name}
+                      title={isDisabled ? t('nav.importArticlesDisabled') : section.name}
                       className={
                         isDisabled
                           ? 'text-sm px-3 py-2 rounded-lg flex items-center gap-2 border-none bg-gray-100 dark:bg-gray-900 hover:border-none disabled:cursor-not-allowed disabled:text-gray-400'
@@ -4627,7 +4308,7 @@ const SystematicReviewTool = () => {
               <p className="text-sm sm:text-lg font-semibold text-gray-900 dark:text-gray-100 leading-tight">
                 {completeProtocol ? '✓' : '○'}
               </p>
-              <p className="text-gray-600 dark:text-gray-400 text-xs leading-tight truncate">Protocolo</p>
+              <p className="text-gray-600 dark:text-gray-400 text-xs leading-tight truncate">{t('overview.protocol')}</p>
             </div>
           </div>
 
@@ -4635,7 +4316,7 @@ const SystematicReviewTool = () => {
             <Upload className="h-6 w-6 flex-shrink-0 text-blue-600 dark:text-blue-400" />
             <div className="min-w-0">
               <p className="text-sm sm:text-lg font-semibold text-gray-900 dark:text-gray-100 leading-tight">{articles.length}</p>
-              <p className="text-gray-600 dark:text-gray-400 text-xs leading-tight truncate">Importados</p>
+              <p className="text-gray-600 dark:text-gray-400 text-xs leading-tight truncate">{t('overview.imported')}</p>
             </div>
           </div>
 
@@ -4643,7 +4324,7 @@ const SystematicReviewTool = () => {
             <Database className="h-6 w-6 flex-shrink-0 text-purple-600 dark:text-purple-400" />
             <div className="min-w-0">
               <p className="text-sm sm:text-lg font-semibold text-gray-900 dark:text-gray-100 leading-tight">{statistics.dataProcessing.included}</p>
-              <p className="text-gray-600 dark:text-gray-400 text-xs leading-tight truncate">Tratados</p>
+              <p className="text-gray-600 dark:text-gray-400 text-xs leading-tight truncate">{t('overview.processed')}</p>
             </div>
           </div>
 
@@ -4651,7 +4332,7 @@ const SystematicReviewTool = () => {
             <Filter className="h-6 w-6 flex-shrink-0 text-green-600 dark:text-green-400" />
             <div className="min-w-0">
               <p className="text-sm sm:text-lg font-semibold text-gray-900 dark:text-gray-100 leading-tight">{statistics.filter1.included}</p>
-              <p className="text-gray-600 dark:text-gray-400 text-xs leading-tight truncate">Filtro 1</p>
+              <p className="text-gray-600 dark:text-gray-400 text-xs leading-tight truncate">{t('overview.filter1')}</p>
             </div>
           </div>
 
@@ -4659,7 +4340,7 @@ const SystematicReviewTool = () => {
             <Filter className="h-6 w-6 flex-shrink-0 text-blue-600 dark:text-blue-400" />
             <div className="min-w-0">
               <p className="text-sm sm:text-lg font-semibold text-gray-900 dark:text-gray-100 leading-tight">{statistics.filter2.included}</p>
-              <p className="text-gray-600 dark:text-gray-400 text-xs leading-tight truncate">Filtro 2</p>
+              <p className="text-gray-600 dark:text-gray-400 text-xs leading-tight truncate">{t('overview.filter2')}</p>
             </div>
           </div>
 
@@ -4667,7 +4348,7 @@ const SystematicReviewTool = () => {
             <FileText className="h-6 w-6 flex-shrink-0 text-purple-600 dark:text-purple-400" />
             <div className="min-w-0">
               <p className="text-sm sm:text-lg font-semibold text-gray-900 dark:text-gray-100 leading-tight">{statistics.filter3.included}</p>
-              <p className="text-gray-600 dark:text-gray-400 text-xs leading-tight truncate">Final</p>
+              <p className="text-gray-600 dark:text-gray-400 text-xs leading-tight truncate">{t('overview.final')}</p>
             </div>
           </div>
         </div>

@@ -1,17 +1,18 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useTranslation } from 'react-i18next';
 import { Clock, X, Download } from "lucide-react";
 
 const CHECK_INTERVAL_MS = 30 * 1000;
 
-function formatTimeSince(date) {
-  if (!date) return "ainda não salvo";
+function formatTimeSince(date, t) {
+  if (!date) return t("modals.unsaved.neverSaved");
   const diffMin = Math.floor((Date.now() - new Date(date).getTime()) / 60000);
-  if (diffMin < 1) return "menos de 1 minuto";
-  if (diffMin === 1) return "1 minuto";
-  return `${diffMin} minutos`;
+  if (diffMin < 1) return t("modals.unsaved.lessThanMinute");
+  return t("modals.unsaved.minutes", { count: diffMin });
 }
 
 export function UnsavedWarningModal({ lastSaved, hasUnsavedChanges = false, fileOpenedAt = null, warnAfterMin=10,  onSave, onDismiss }) {
+  const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
   const [exiting, setExiting] = useState(false);
   const dismissedAtRef = useRef(null);
@@ -93,24 +94,24 @@ export function UnsavedWarningModal({ lastSaved, hasUnsavedChanges = false, file
 
           <div className="flex-1 min-w-0">
             <p id="uwm-title" className="text-sm font-semibold text-gray-800 dark:text-white leading-snug">
-              Alterações não salvas
+              {t('modals.unsaved.title')}
             </p>
             <p id="uwm-desc" className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">
               {lastSaved ? (
                 <>
-                  Último salvamento há{" "}
+                  {t('modals.unsaved.lastSave')}{' '}
                   <span className="font-medium text-amber-600 dark:text-amber-400">
-                    {formatTimeSince(lastSaved)}
+                    {formatTimeSince(lastSaved, t)}
                   </span>
-                  . Salve para não perder o progresso.
+                  . {t('modals.unsaved.savePrompt')}
                 </>
               ) : (
                 <>
-                  O projeto{" "}
+                  {t('modals.unsaved.projectStillNotSaved')}{' '}
                   <span className="font-medium text-amber-600 dark:text-amber-400">
-                    ainda não foi salvo
+                    {t('modals.unsaved.neverSaved')}
                   </span>
-                  . Salve para não perder o progresso.
+                  . {t('modals.unsaved.savePrompt')}
                 </>
               )}
             </p>
@@ -118,7 +119,7 @@ export function UnsavedWarningModal({ lastSaved, hasUnsavedChanges = false, file
 
           <button
             onClick={() => close("dismiss")}
-            aria-label="Fechar aviso"
+            aria-label={t('modals.closeNotice')}
             className="flex-shrink-0 p-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:text-gray-300 dark:hover:bg-gray-700 transition-colors duration-150"
           >
             <X className="h-4 w-4" />
@@ -137,7 +138,7 @@ export function UnsavedWarningModal({ lastSaved, hasUnsavedChanges = false, file
               dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-300
               transition-colors duration-150"
           >
-            Lembrar depois
+            {t('modals.unsaved.remindLater')}
           </button>
           <button
             onClick={handleSave}
@@ -147,7 +148,7 @@ export function UnsavedWarningModal({ lastSaved, hasUnsavedChanges = false, file
               transition-colors duration-150"
           >
             <Download className="h-3.5 w-3.5" />
-            Salvar agora
+            {t('modals.unsaved.saveNow')}
           </button>
         </div>
       </div>
