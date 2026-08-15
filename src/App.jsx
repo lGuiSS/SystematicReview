@@ -2793,22 +2793,29 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
       });
     }
 
-    // Aplicar ordenação
+    // Aplicar ordenação (score preferencial + título como secundária)
     if (sortConfig.key) {
+      const sortKeys =
+        sortConfig.key === 'title' || sortConfig.key === 'score'
+          ? ['score', 'title']
+          : [sortConfig.key];
+
       filtered.sort((a, b) => {
-        let aValue = a[sortConfig.key];
-        let bValue = b[sortConfig.key];
+        for (const key of sortKeys) {
+          let aValue = a[key];
+          let bValue = b[key];
 
-        if (typeof aValue === 'string') {
-          aValue = aValue.toLowerCase();
-          bValue = bValue.toLowerCase();
-        }
+          if (typeof aValue === 'string') {
+            aValue = aValue.toLowerCase();
+            bValue = bValue.toLowerCase();
+          }
 
-        if (aValue < bValue) {
-          return sortConfig.direction === 'asc' ? -1 : 1;
-        }
-        if (aValue > bValue) {
-          return sortConfig.direction === 'asc' ? 1 : -1;
+          if (aValue < bValue) {
+            return sortConfig.direction === 'asc' ? -1 : 1;
+          }
+          if (aValue > bValue) {
+            return sortConfig.direction === 'asc' ? 1 : -1;
+          }
         }
         return 0;
       });
