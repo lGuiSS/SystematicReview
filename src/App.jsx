@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect, useMemo, useCallback } from 'react';
-import { Search, Filter, ChartArea, Download, Table, Upload, CheckCircle, Check, XCircle, BookCopy, List, Clock, BarChart3, FileText, Database, RefreshCw, Settings, Sun, Moon, Bell, ArrowUpDown, ChevronDown, Eye, PlusCircle, X, CopyX, CopyCheck, HeartHandshake, Languages } from 'lucide-react';
+import { Search, Filter, ChartArea, Download, Table, Upload, CheckCircle, Check, XCircle, BookCopy, List, Clock, BarChart3, FileText, Database, RefreshCw, Settings, Sun, Moon, Bell, ArrowUpDown, ChevronDown, Eye, PlusCircle, X, CopyX, CopyCheck, HeartHandshake, Languages, Save } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { SvgIcon } from './icons/SysReviewIcon.jsx';
 
@@ -10,16 +10,23 @@ import { UnsavedWarningModal } from "./components/UnsavedWarningModal.jsx";
 import { ReminderSettingsModal } from "./components/ReminderSettingsModal.jsx";
 import { SupportModal } from "./components/SupportModal.jsx";
 import { SupportRequestModal } from "./components/SupportRequestModal.jsx";
+import { AlertModal } from "./components/AlertModal.jsx";
+import { AutoSaveOfferModal } from "./components/AutoSaveOfferModal.jsx";
 
 import {
   saveProjectToFile,
   loadProjectFromFile,
   setupAutoSave,
   loadAutoSave,
-  clearAutoSave
+  clearAutoSave,
+  autoSaveToFile,
+  clearFileHandle,
+  isFileSystemAccessSupported,
+  requestHandlePermission,
+  openProjectFromPicker
 } from './fileSystem.js';
 
-import countryPatternsData from './countryPatterns/countryPatterns_v2.json';
+import countryPatternsData from './countryPatterns/countryPatterns_v3.json';
 import ExcelJS from "exceljs";
 
 // Hook personalizado para gerenciar o tema
@@ -223,17 +230,29 @@ const normalizeDoi = (doi) => {
   return doi.replace(/^https?:\/\/(dx\.)?doi\.org\//i, '').trim() || null;
 };
 
-const importedBibtexArticles = (bibtexContent, source = 'Scopus', numString = 1, articlesLength) => {
+const importedBibtexArticles = (bibtexContent, source = 'Scopus', numString = 1, articles = []) => {
   // Dividir o conteúdo em entradas individuais
   const entries = splitBibtexEntries(bibtexContent);
+  const idPrefix = source.toLowerCase().replace(/\s+/g, '_');
+  const existingIds = new Set((articles || []).map(a => a.id).filter(Boolean));
+  let nextNumber = (articles || []).reduce((max, a) => {
+    const match = a.id && a.id.match(new RegExp(`^${idPrefix}_(\\d+)$`));
+    return match ? Math.max(max, parseInt(match[1], 10)) : max;
+  }, 0) + 1;
 
   const importedArticles = entries.map((fullEntry, index) => {
     const affiliations = getField(fullEntry, "affiliations") || getField(fullEntry, "Affiliation") || 'Afiliação não informada';
     const countries = affiliations !== 'Afiliação não informada'
       ? extractCountriesFromAffiliation(affiliations)
       : 'País não informado'
+    let id;
+    do {
+      id = `${idPrefix}_${nextNumber}`;
+      nextNumber += 1;
+    } while (existingIds.has(id));
+    existingIds.add(id);
     return {
-      id: `${source.toLowerCase().replace(/\s+/g, '_')}_${articlesLength + index + 1}`,
+      id,
       title: getField(fullEntry, "title") || getField(fullEntry, "Title") || `Título não encontrado ${index + 1}`,
       authors: getField(fullEntry, "author") || getField(fullEntry, "Author") || 'Autor não informado',
       affiliations: affiliations || 'Afiliação não informada',
@@ -269,8 +288,14 @@ const importedBibtexArticles = (bibtexContent, source = 'Scopus', numString = 1,
 
 };
 
-const importedPubmedArticles = (pubmedContent, source = 'PubMed', numString = 1, articlesLength) => {
+const importedPubmedArticles = (pubmedContent, source = 'PubMed', numString = 1, articles = []) => {
   const entries = splitPubmedEntries(pubmedContent);
+  const idPrefix = source.toLowerCase().replace(/\s+/g, '_');
+  const existingIds = new Set((articles || []).map(a => a.id).filter(Boolean));
+  let nextNumber = (articles || []).reduce((max, a) => {
+    const match = a.id && a.id.match(new RegExp(`^${idPrefix}_(\\d+)$`));
+    return match ? Math.max(max, parseInt(match[1], 10)) : max;
+  }, 0) + 1;
 
   const importedArticles = entries.map((fullEntry, index) => {
     // Autores: FAU = nome completo, AU = abreviado
@@ -304,8 +329,15 @@ const importedPubmedArticles = (pubmedContent, source = 'PubMed', numString = 1,
     const pubTypeArray = getPubMedField(fullEntry, "PT", true) || [];
     const studyType = pubTypeArray.join("; ") || 'Não especificado';
 
+    let id;
+    do {
+      id = `${idPrefix}_${nextNumber}`;
+      nextNumber += 1;
+    } while (existingIds.has(id));
+    existingIds.add(id);
+
     return {
-      id: `${source.toLowerCase().replace(/\s+/g, '_')}_${articlesLength + index + 1}`,
+      id,
       title: getPubMedField(fullEntry, "TI") || `Título não encontrado ${index + 1}`,
       authors,
       affiliations,
@@ -1044,7 +1076,7 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
                   {t('protocol.databases')}
                 </h3>
                 <div className="space-y-2">
-                  {['Scopus', 'Web of Science', 'PubMed', 'ScienceDirect', 'Periódicos CAPES'].map(db => (
+                  {['Scopus', 'Web of Science', 'PubMed', 'ScienceDirect'].map(db => (
                     <label key={db} className="flex items-center space-x-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors duration-200">
                       <div className="relative">
                         <input
@@ -1086,9 +1118,9 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
                           <span className="px-4 py-2 text-gray-500 font-bold dark:text-gray-400 text-sm">{`I${index + 1}`}</span>
 
                         </td>
-                        <td className="w-full h-px">
+                        <td className="w-full p-0">
                           <textarea
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 !h-full resize-none text-sm"
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 resize-none text-sm"
                             value={criteria.value}
                             onChange={(e) => handleCriteriaChange('inclusionCriteria', index, e.target.value, 'value')}
                             placeholder={t('protocol.inclusionPlaceholder')}
@@ -1132,9 +1164,9 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
                           <span className="px-4 py-2 text-gray-500 font-bold dark:text-gray-400">{`E${index + 1}`}</span>
 
                         </td>
-                        <td className="w-full h-px">
+                        <td className="w-full p-0">
                           <textarea
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 !h-full resize-none text-sm"
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 resize-none text-sm"
                             value={criteria.value}
                             onChange={(e) => handleCriteriaChange('exclusionCriteria', index, e.target.value, 'value')}
                             placeholder={t('protocol.exclusionPlaceholder')}
@@ -1177,9 +1209,9 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
                         <td className="">
                           <span className="px-4 py-2 text-gray-500 font-bold dark:text-gray-400 text-sm">{`Q${index + 1}`}</span>
                         </td>
-                        <td className="w-full h-px">
+                        <td className="w-full p-0">
                           <textarea
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 !h-full resize-none text-sm"
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 resize-none text-sm"
                             value={criteria.value}
                             onChange={(e) => handleCriteriaChange('qualityCriteria', index, e.target.value, 'value')}
                             placeholder={t('protocol.qualityPlaceholder')}
@@ -1749,6 +1781,7 @@ const ImportSection = ({ articles, setArticles, onImport, isLoading, importedDat
   const [isLoadingState, setIsLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [inputFileSelected, setInputFileSelected] = useState(null);
+  const [alertMessage, setAlertMessage] = useState(null);
 
   const handleImportRequest = (target, database) => {
     const file = target.files[0]
@@ -1758,7 +1791,7 @@ const ImportSection = ({ articles, setArticles, onImport, isLoading, importedDat
       setPendingImport({ file, database });
       setShowSearchStringModal(database);
     } else {
-      alert(t('import.alertError'));
+      setAlertMessage({ type: 'error', title: t('modals.alert.errorTitle'), message: t('import.alertError') });
       throw new Error('Formato de arquivo não corresponde à base de dados selecionada.');
     }
   };
@@ -1776,10 +1809,10 @@ const ImportSection = ({ articles, setArticles, onImport, isLoading, importedDat
       let importedArticles;
       if (file.name.endsWith('.bib') || file.name.endsWith('.bibtex') || file.name.endsWith('.txt')) {
 
-        if (database === 'Scopus' || database === 'Web of Science' || database === 'ScienceDirect' || database === 'Periódicos CAPES') {
-          importedArticles = importedBibtexArticles(fileContent, database, numStringSc, articles.length);
+        if (database === 'Scopus' || database === 'Web of Science' || database === 'ScienceDirect') {
+          importedArticles = importedBibtexArticles(fileContent, database, numStringSc, articles);
         } else {
-          importedArticles = importedPubmedArticles(fileContent, database, numStringSc, articles.length);
+          importedArticles = importedPubmedArticles(fileContent, database, numStringSc, articles);
         }
         // Adicionar string de busca
         importedArticles = importedArticles.map(article => ({
@@ -1829,7 +1862,7 @@ const ImportSection = ({ articles, setArticles, onImport, isLoading, importedDat
 
     } catch (error) {
       console.error('Erro ao processar arquivo:', error);
-      alert(t('import.alertError'));
+      setAlertMessage({ type: 'error', title: t('modals.alert.errorTitle'), message: t('import.alertError') });
       setResult(null);
 
     } finally {
@@ -2164,71 +2197,6 @@ const ImportSection = ({ articles, setArticles, onImport, isLoading, importedDat
           </div>
         )}
 
-        {/* Periódicos CAPES */}
-        {protocol.databases.includes('Periódicos CAPES') && (
-          <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-6 bg-white dark:bg-gray-800 transition-colors duration-200">
-            <div className="flex items-center mb-4">
-              <div className="w-12 h-12 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg flex items-center justify-center mr-4">
-                <Database className="h-6 w-6 text-cyan-700 dark:text-cyan-400" />
-              </div>
-              <div>
-                <h3 className="text-sm sm:text-lg font-semibold text-gray-800 dark:text-white">Periódicos CAPES</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">{t('import.importBibtex')}</p>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  {t('import.uploadCapes')}
-                </label>
-                <input
-                  type="file"
-                  accept=".bib,.bibtex,.txt"
-                  onChange={(e) => handleImportRequest(e.target, 'Periódicos CAPES')}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 dark:hover:text-white dark:hover:bg-indigo-500 hover:text-black hover:bg-gray-200 file:hidden"
-                  disabled={isLoadingState}
-                />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {t('import.formatBibtex')}
-                </p>
-              </div>
-
-              {importedData.filter(data => data.database === 'Periódicos CAPES').length > 0 && (
-                <div className="bg-cyan-50 dark:bg-cyan-900/30 p-4 rounded-lg transition-colors duration-200">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-medium text-cyan-800 dark:text-cyan-300">{t('import.status')}</span>
-                    <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-                  </div>
-                  {importedData.filter(data => data.database === 'Periódicos CAPES').map((data, index) => (
-                    <div key={index} className="space-y-1 text-sm mb-3 last:mb-0">
-                      <div className="flex justify-between">
-                        <span className="text-cyan-700 dark:text-cyan-400">{t('import.string', { index: index + 1 })}</span>
-                        <span className="font-medium text-cyan-800 dark:text-cyan-300">{t('import.articles', { count: data.articles.length })}</span>
-                      </div>
-                      <div className="text-xs text-cyan-600 dark:text-cyan-500 break-all">
-                        {data.searchString.length > 80 ? data.searchString.substring(0, 80) + '...' : data.searchString}
-                      </div>
-                      <div className="flex justify-between text-xs">
-                        <span className="text-cyan-600 dark:text-cyan-400">{t('import.duplicates')}</span>
-                        <span className="font-medium text-red-600 dark:text-red-400">
-                          {statistics.importSection['duplicate' + data.id]}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {isLoadingState && (
-                <div className="flex items-center justify-center py-4">
-                  <RefreshCw className="h-5 w-5 animate-spin text-cyan-600 dark:text-cyan-400 mr-2" />
-                  <span className="text-sm text-gray-600 dark:text-gray-400">{t('import.processing')}</span>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Tabela de dados importados */}
@@ -2276,8 +2244,7 @@ const ImportSection = ({ articles, setArticles, onImport, isLoading, importedDat
                         data.database === 'Web of Science' ? 'bg-violet-100 dark:bg-violet-900/50 text-violet-800 dark:text-violet-300' :
                           data.database === 'PubMed' ? 'bg-sky-100 dark:bg-sky-900/50 text-sky-800 dark:text-sky-300' :
                             data.database === 'ScienceDirect' ? 'bg-orange-100 dark:bg-orange-900/50 text-orange-800 dark:text-orange-300' :
-                              data.database === 'Periódicos CAPES' ? 'bg-cyan-100 dark:bg-cyan-900/50 text-cyan-800 dark:text-cyan-300' :
-                                'bg-gray-100 dark:bg-gray-900/50 text-gray-800 dark:text-gray-300'
+                              'bg-gray-100 dark:bg-gray-900/50 text-gray-800 dark:text-gray-300'
                         }`}>
                         {data.database}
                       </span>
@@ -2328,7 +2295,7 @@ const ImportSection = ({ articles, setArticles, onImport, isLoading, importedDat
       {/* Resumo geral da importação */}
       <div className="mt-8 bg-gray-100 dark:bg-gray-900/50 p-6 rounded-lg transition-colors duration-200">
         <h4 className="font-semibold text-gray-800 dark:text-white mb-4">{t('import.summaryTitle')}</h4>
-        <div className="grid grid-cols-2 md:grid-cols-7 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
           <div className="text-center">
             <p className="text-lg sm:text-2xl font-bold text-orange-600 dark:text-orange-400">
               {importedData.filter(d => d.database === 'Scopus').reduce((acc, d) => acc + d.articles.length, 0)}
@@ -2354,14 +2321,8 @@ const ImportSection = ({ articles, setArticles, onImport, isLoading, importedDat
             <p className="text-sm text-gray-600 dark:text-gray-400">ScienceDirect</p>
           </div>
           <div className="text-center">
-            <p className="text-lg sm:text-2xl font-bold text-cyan-600 dark:text-cyan-400">
-              {importedData.filter(d => d.database === 'Periódicos CAPES').reduce((acc, d) => acc + d.articles.length, 0)}
-            </p>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Periódicos CAPES</p>
-          </div>
-          <div className="text-center">
             <p className="text-lg sm:text-2xl font-bold text-gray-600 dark:text-gray-400">
-              {importedData.filter(d => d.database !== 'Scopus' && d.database !== 'Web of Science' && d.database !== 'PubMed' && d.database !== 'ScienceDirect' && d.database !== 'Periódicos CAPES').reduce((acc, d) => acc + d.articles.length, 0)}
+              {importedData.filter(d => d.database !== 'Scopus' && d.database !== 'Web of Science' && d.database !== 'PubMed' && d.database !== 'ScienceDirect').reduce((acc, d) => acc + d.articles.length, 0)}
             </p>
             <p className="text-sm text-gray-600 dark:text-gray-400">{t('import.otherBases')}</p>
           </div>
@@ -2384,6 +2345,14 @@ const ImportSection = ({ articles, setArticles, onImport, isLoading, importedDat
         onConfirm={handleConfirmImport}
         database={showSearchStringModal}
       />
+
+      <AlertModal
+        isOpen={!!alertMessage}
+        type={alertMessage?.type}
+        title={alertMessage?.title}
+        message={alertMessage?.message}
+        onClose={() => setAlertMessage(null)}
+      />
     </div>
   );
 };
@@ -2399,7 +2368,8 @@ const DataProcessingSection = ({ articles, currentFilter, setArticles, onUpdateS
     similarityThreshold: 1
   });
   const [duplicates, setDuplicates] = useState(0)
-
+  const [removeIncludes, setRemoveIncludes] = useState(false)
+  const [alertMessage, setAlertMessage] = useState(null)
   const handleClassifyDuplicates = () => {
     const statusField = 'dataProcessingStatus';
 
@@ -2414,27 +2384,32 @@ const DataProcessingSection = ({ articles, currentFilter, setArticles, onUpdateS
 
     // Mostrar mensagem de confirmação
     setTimeout(() => {
-      alert(t('dataprocessing.alertDuplicates', { count: duplicates.length }));
+      setAlertMessage({ type: 'info', title: t('modals.alert.infoTitle'), message: t('dataprocessing.alertDuplicates', { count: duplicates.length }) });
     }, 100);
   };
 
-  const handleExcludeScore = () => {
+  const handleExcludeScore = (removeIncludes) => {
     const statusField = 'dataProcessingStatus';
 
     // Marcar todas as duplicatas como excluídas
+    const allowedStatuses = removeIncludes
+      ? ["pending", "included"]
+      : ["pending"];
 
-    const pendingArticles = articles.filter((article) => article.dataProcessingStatus == "pending" || article.dataProcessingStatus == "included")
+    const pendingArticles = articles.filter(article =>
+      allowedStatuses.includes(article.dataProcessingStatus)
+    );
 
     pendingArticles.forEach(article => {
       if (article.score === 0) {
         onUpdateStatus(article.id, statusField, 'excluded', null);
       }
-    })
+    });
 
     const zeroScore = pendingArticles.filter(a => a.score === 0);
-    // Mostrar mensagem de confirmação
+
     setTimeout(() => {
-      alert(t('dataprocessing.alertScore', { count: zeroScore.length }));
+      setAlertMessage({ type: 'info', title: t('modals.alert.infoTitle'), message: t('dataprocessing.alertScore', { count: zeroScore.length }) });
     }, 100);
   };
 
@@ -2451,7 +2426,7 @@ const DataProcessingSection = ({ articles, currentFilter, setArticles, onUpdateS
 
     // Mostrar mensagem de confirmação
     setTimeout(() => {
-      alert(t('dataprocessing.alertIncluded', { count: pendingArticles.length }));
+      setAlertMessage({ type: 'success', title: t('modals.alert.successTitle'), message: t('dataprocessing.alertIncluded', { count: pendingArticles.length }) });
     }, 100);
   };
 
@@ -2482,7 +2457,7 @@ const DataProcessingSection = ({ articles, currentFilter, setArticles, onUpdateS
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="p-4 border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30 rounded-lg transition-colors duration-200">
           <h4 className="font-semibold text-gray-800 dark:text-gray-300 mb-2">{t('dataprocessing.processTitle')}</h4>
           <ul className="text-sm text-gray-700 dark:text-gray-400 space-y-1">
@@ -2491,43 +2466,53 @@ const DataProcessingSection = ({ articles, currentFilter, setArticles, onUpdateS
             <li>{t('dataprocessing.process3')}</li>
           </ul>
         </div>
-        <div>
-          <div className="space-y-1 mb-1">
-            <h3 className="text-sm sm:text-lg font-semibold text-gray-700 dark:text-gray-300 ">{t('dataprocessing.scoreTitle')}</h3>
-            <span className='block text-sm font-medium text-gray-700 dark:text-gray-300 '>{t('dataprocessing.scoreDesc')}</span>
+
+        <div className="space-y-4">
+          <div className="p-4 border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30 rounded-lg transition-colors duration-200">
+            <h4 className="font-semibold text-gray-800 dark:text-gray-300 mb-1">{t('dataprocessing.scoreTitle')}</h4>
+            <p className="text-sm text-gray-700 dark:text-gray-400 mb-3">{t('dataprocessing.scoreDesc')}</p>
+
+            <div className="grid grid-cols-[2fr_1fr] gap-2">
+              <button
+                onClick={() => handleExcludeScore(removeIncludes)}
+                className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium touch-manipulation active:scale-95 transition-all duration-150 text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-900/40 hover:bg-red-200 dark:hover:bg-red-800/60"
+              >
+                <CopyX className="h-4 w-4" />
+                {t('dataprocessing.scoreButton')}
+              </button>
+              <button
+                key="removeIncludes"
+                onClick={() => setRemoveIncludes(!removeIncludes)}
+                className={`text-sm px-3 py-2 rounded-xl flex items-center justify-center gap-2 border-none cursor-pointer touch-manipulation active:scale-95 transition-all duration-150
+                  ${removeIncludes
+                    ? 'bg-indigo-600 text-white dark:bg-indigo-500'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'}`}
+              >
+                {t('dataprocessing.removeIncludes')}
+              </button>
+            </div>
           </div>
 
-          <div className="mt-3">
-            <button
-              onClick={handleExcludeScore}
-              className="w-full bg-red-200 dark:bg-red-900/30 hover:bg-red-300 dark:hover:bg-red-900/30 text-red-800 dark:text-red-300 border border-gray-300 dark:border-gray-600  px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors duration-200"
-            >
-              <CopyX className="h-4 w-4" />
-              {t('dataprocessing.scoreButton')}
-            </button>
-
-          </div>
-          <div className="space-y-1 mb-1">
-            <h3 className="text-sm sm:text-lg font-semibold text-gray-700 dark:text-gray-300 ">{t('dataprocessing.autoAcceptTitle')}</h3>
-            <span className='block text-sm font-medium text-gray-700 dark:text-gray-300 '></span>
-          </div>
-
-          <div className="mt-3">
+          <div className="p-4 border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30 rounded-lg transition-colors duration-200">
+            <h4 className="font-semibold text-gray-800 dark:text-gray-300 mb-3">{t('dataprocessing.autoAcceptTitle')}</h4>
             <button
               onClick={handleIncludePendents}
-              className="w-full bg-green-200 dark:bg-green-900/30 hover:bg-green-300 dark:hover:bg-green-900/30 text-green-800 dark:text-green-300 border border-gray-300 dark:border-gray-600  px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors duration-200"
+              className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium touch-manipulation active:scale-95 transition-all duration-150 text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-900/40 hover:bg-green-200 dark:hover:bg-green-800/60"
             >
               <CopyCheck className="h-4 w-4" />
               {t('dataprocessing.autoAcceptButton')}
             </button>
-
           </div>
         </div>
-
-
-        <div>
-        </div>
       </div>
+
+      <AlertModal
+        isOpen={!!alertMessage}
+        type={alertMessage?.type}
+        title={alertMessage?.title}
+        message={alertMessage?.message}
+        onClose={() => setAlertMessage(null)}
+      />
     </div>
   );
 };
@@ -2729,6 +2714,14 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
   const [optionExtraction, setOptionExtraction] = useState(null);
   // Obter página atual para a seção específica
   const currentPage = pagination[currentFilter] || 1;
+  const [pageInput, setPageInput] = useState(currentPage);
+  useEffect(() => {
+    setPageInput(currentPage);
+  }, [currentPage]);
+  const applyPageInput = () => {
+    const page = Math.min(Math.max(parseInt(pageInput, 10) || 1, 1), totalPages);
+    setCurrentPage(page);
+  };
   const janelaRef = useRef(null);
   useEffect(() => {
     const allEmpty = protocol.extractionCriteria.every(
@@ -2762,7 +2755,7 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
 
     switch (currentFilter) {
       case 'dataprocessing':
-        filtered = articles;
+        filtered = [...articles];
         // filtered = articles.filter(a => !a.isDuplicate);
         break;
       case 'filter1':
@@ -2777,7 +2770,7 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
         filtered = articles.filter(a => a.filter2Status === 'included');
         break;
       default:
-        filtered = articles;
+        filtered = [...articles];
     }
 
     // Aplicar busca
@@ -3113,8 +3106,7 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
                       article.source === 'Web of Science' ? 'bg-violet-100 dark:bg-violet-900/50 text-violet-800 dark:text-violet-300' :
                         article.source === 'PubMed' ? 'bg-sky-100 dark:bg-sky-900/50 text-sky-800 dark:text-sky-300' :
                           article.source === 'ScienceDirect' ? 'bg-orange-100 dark:bg-orange-900/50 text-orange-800 dark:text-orange-300' :
-                            article.source === 'Periódicos CAPES' ? 'bg-cyan-100 dark:bg-cyan-900/50 text-cyan-800 dark:text-cyan-300' :
-                              'bg-gray-100 dark:bg-gray-900/50 text-gray-800 dark:text-gray-300'
+                            'bg-gray-100 dark:bg-gray-900/50 text-gray-800 dark:text-gray-300'
                       }`}>
                       {article.source}
                     </span>
@@ -3215,9 +3207,26 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
               >
                 {t('articles.previous')}
               </button>
-              <span className="px-3 py-1 text-gray-700 dark:text-gray-300">
-                {currentPage} / {totalPages}
-              </span>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min={1}
+                  max={totalPages}
+                  value={pageInput}
+                  onChange={(e) => setPageInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      applyPageInput();
+                    }
+                  }}
+                  onBlur={applyPageInput}
+                  className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none w-16 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm text-center"
+                  title={t('articles.pageJump')}
+                />
+                <span className="text-sm text-gray-700 dark:text-gray-300">
+                  / {totalPages}
+                </span>
+              </div>
               <button
                 onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                 disabled={currentPage === totalPages}
@@ -3406,11 +3415,20 @@ const SystematicReviewTool = () => {
   const [warnAfterMin, setWarnAfterMin] = useState(10);
   const [showReminderSettings, setShowReminderSettings] = useState(false);
 
+  const [autoSaveEnabled, setAutoSaveEnabled] = useState(false);
+  const autoSaveHandleRef = useRef(null);
+  const [showAutoSaveOffer, setShowAutoSaveOffer] = useState(false);
+  const autoSaveOfferShownRef = useRef(false);
+  const fileInputRef = useRef(null);
+
   const [showSupport, setShowSupport] = useState(false);
   const [showSupportRequest, setShowSupportRequest] = useState(false);
   const supportInteractedRef = useRef(false);
   const supportFirstSaveDoneRef = useRef(false);
+  const pendingSupportRequestRef = useRef(false);
   const SUPPORT_REQUEST_INTERVAL_MS = 60 * 60 * 1000; // 1h
+
+  const [alertMessage, setAlertMessage] = useState(null);
 
   // Auto-save setup
   useEffect(() => {
@@ -3440,6 +3458,12 @@ const SystematicReviewTool = () => {
         clearInterval(interval);
       }
     };
+  }, []);
+
+  // O reload recomeça do zero: limpa qualquer handle/preferência de auto-save persistidos
+  useEffect(() => {
+    clearFileHandle();
+    localStorage.removeItem('sysreview-auto-save');
   }, []);
 
   useEffect(() => {
@@ -3501,6 +3525,102 @@ const SystematicReviewTool = () => {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [hasUnsavedChanges]);
 
+  const statistics = useMemo(() => {
+
+    const importSection = {};
+    importedData.forEach(data => {
+
+      importSection['unique' + data.id] = articles.filter(
+        a => a.idData === data.id && !a.isDuplicate
+      ).length;
+      importSection['duplicate' + data.id] = articles.filter(
+        a => a.idData === data.id && a.isDuplicate
+      ).length;
+    });
+
+    const dataProcessing = {
+      pending: articles.filter(a => a.dataProcessingStatus === 'pending' && !a.isDuplicate).length,
+      included: articles.filter(a => a.dataProcessingStatus === 'included' && !a.isDuplicate).length,
+      excluded: articles.filter(a => a.dataProcessingStatus === 'excluded').length,
+      duplicate: articles.filter(a => a.dataProcessingStatus === 'duplicate' || a.isDuplicate).length
+    };
+
+    const filter1 = {
+      pending: articles.filter(a =>
+        a.dataProcessingStatus === 'included' &&
+        !a.isDuplicate &&
+        a.filter1Status === 'pending'
+      ).length,
+      included: articles.filter(a => a.filter1Status === 'included').length,
+      excluded: articles.filter(a =>
+        a.dataProcessingStatus === 'included' &&
+        !a.isDuplicate &&
+        a.filter1Status === 'excluded'
+      ).length
+    };
+
+    const filter2 = {
+      pending: articles.filter(a => a.filter1Status === 'included' && a.filter2Status === 'pending').length,
+      included: articles.filter(a => a.filter2Status === 'included').length,
+      excluded: articles.filter(a => a.filter1Status === 'included' && a.filter2Status === 'excluded').length
+    };
+
+    const filter3 = {
+      pending: articles.filter(a => a.filter2Status === 'included' && a.filter3Status === 'pending').length,
+      included: articles.filter(a => a.filter3Status === 'included').length,
+      excluded: articles.filter(a => a.filter2Status === 'included' && a.filter3Status === 'excluded').length
+    };
+
+    return { importSection, dataProcessing, filter1, filter2, filter3 };
+  }, [articles, importedData]);
+
+  // Salvamento automático com debounce (só quando há alterações não salvas)
+  useEffect(() => {
+    if (!autoSaveEnabled || !autoSaveHandleRef.current || !hasUnsavedChanges) return;
+
+    const timeout = setTimeout(async () => {
+      if (isRestoringRef.current) {
+        isRestoringRef.current = false;
+        return;
+      }
+      const state = { protocol, articles, statistics, currentSection, importedData, warnAfterMin };
+      const result = await autoSaveToFile(state, autoSaveHandleRef.current);
+      if (result.success) {
+        setLastSaved(new Date());
+        setHasUnsavedChanges(false);
+        clearAutoSave();
+      } else {
+        setAutoSaveEnabled(false);
+        localStorage.removeItem('sysreview-auto-save');
+        autoSaveHandleRef.current = null;
+        clearFileHandle();
+        setAlertMessage({ type: 'error', title: t('modals.alert.errorTitle'), message: t('autosave.error', { error: result.error }) });
+      }
+    }, 4000);
+
+    return () => clearTimeout(timeout);
+  }, [autoSaveEnabled, hasUnsavedChanges, articles, protocol, currentSection, importedData, statistics, warnAfterMin]);
+
+  // Flush do auto-save ao ocultar/sair da página
+  useEffect(() => {
+    if (!autoSaveEnabled || !autoSaveHandleRef.current) return;
+
+    const flush = () => {
+      if (!autoSaveHandleRef.current) return;
+      const state = { protocol, articles, statistics, currentSection, importedData, warnAfterMin };
+      autoSaveToFile(state, autoSaveHandleRef.current);
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') flush();
+    };
+    window.addEventListener('pagehide', flush);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.removeEventListener('pagehide', flush);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [autoSaveEnabled, articles, protocol, currentSection, importedData, statistics, warnAfterMin]);
+
   // Fechar menu ao clicar fora
   useEffect(() => {
     const handleClickOutside = () => setShowFileMenu(false);
@@ -3513,7 +3633,7 @@ const SystematicReviewTool = () => {
   // Repete o pedido de apoio em intervalos longos enquanto o app estiver aberto
   useEffect(() => {
     const interval = setInterval(() => {
-      if (!supportInteractedRef.current && !showSupportRequest) {
+      if (!supportInteractedRef.current && !showSupportRequest && !pendingSupportRequestRef.current) {
         setShowSupportRequest(true);
       }
     }, SUPPORT_REQUEST_INTERVAL_MS);
@@ -3621,57 +3741,138 @@ const SystematicReviewTool = () => {
     };
   }, [protocol.keywords, protocol.scoringSystem, articles.length, recalculateAllScores, calculateArticleScore]);
 
-  const handleSaveProject = async () => {
-    const state = { protocol, articles, statistics, currentSection, importedData, warnAfterMin };
-    const result = await saveProjectToFile(state);
+  const handleSaveResult = (result) => {
+    if (!result.success) {
+      setAlertMessage({ type: 'error', title: t('modals.alert.errorTitle'), message: t('messages.error', { error: result.error }) });
+      return;
+    }
 
-    if (result.success) {
-      setLastSaved(new Date());
-      setHasUnsavedChanges(false);
-      clearAutoSave();
-      alert(t('messages.projectSaved', { filename: result.filename }));
+    if (result.fileHandle) {
+      autoSaveHandleRef.current = result.fileHandle;
+    }
 
-      // Primeiro salvamento do dia: exibe o pedido de apoio
-      if (!supportInteractedRef.current && !supportFirstSaveDoneRef.current) {
-        supportFirstSaveDoneRef.current = true;
-        setShowSupportRequest(true);
-      }
-    } else {
-      alert(t('messages.error', { error: result.error }));
+    setLastSaved(new Date());
+    setHasUnsavedChanges(false);
+    clearAutoSave();
+    setAlertMessage({ type: 'success', title: t('modals.alert.successTitle'), message: t('messages.projectSaved', { filename: result.filename }) });
+
+    // Primeiro salvamento do dia: exibe o pedido de apoio (após o aviso de salvamento)
+    const shouldShowSupport = !supportInteractedRef.current && !supportFirstSaveDoneRef.current;
+    if (shouldShowSupport) {
+      supportFirstSaveDoneRef.current = true;
+      pendingSupportRequestRef.current = true;
+    }
+
+    // Oferece ativação do auto-save após o primeiro salvamento deste arquivo
+    const shouldShowOffer = !autoSaveEnabled && autoSaveHandleRef.current && !autoSaveOfferShownRef.current && isFileSystemAccessSupported();
+    if (shouldShowOffer) {
+      autoSaveOfferShownRef.current = true;
+      setShowAutoSaveOffer(true);
     }
   };
 
-  const handleLoadProject = (event) => {
-    const file = event.target.files[0];
+  const handleSaveProject = async () => {
+    const state = { protocol, articles, statistics, currentSection, importedData, warnAfterMin };
+    const handle = autoSaveHandleRef.current;
+
+    // Se já existe um handle (arquivo conhecido), grava direto sem abrir o picker
+    const result = handle
+      ? await autoSaveToFile(state, handle)
+      : await saveProjectToFile(state);
+
+    handleSaveResult(result);
+  };
+
+  // Salvar como: sempre abre o seletor para escolher um novo nome/arquivo
+  const handleSaveAs = async () => {
+    const state = { protocol, articles, statistics, currentSection, importedData, warnAfterMin };
+    const result = await saveProjectToFile(state);
+    handleSaveResult(result);
+  };
+
+  const handleOpenProjectFile = useCallback((file, fileHandle = null) => {
     if (!file) return;
 
     if (hasUnsavedChanges) {
       const shouldProceed = window.confirm(t('messages.unsavedChanges'));
-      if (!shouldProceed) {
-        event.target.value = '';
-        return;
-      }
+      if (!shouldProceed) return;
     }
 
     loadProjectFromFile(file)
       .then(result => {
         if (result.success) {
+          // Novo arquivo: auto-save desligado por padrão e handle trocado
+          autoSaveOfferShownRef.current = false;
+          autoSaveHandleRef.current = fileHandle || null;
+          setAutoSaveEnabled(false);
+          localStorage.removeItem('sysreview-auto-save');
+          clearFileHandle();
+
           restoreState(result.data);
           setHasUnsavedChanges(false);
           clearAutoSave();
 
           const message = result.migrated
-            ? t('messages.projectLoadedMigrated', { version: result.originalVersion })
+            ? t('messages.projectLoadedMigrated', { oldVersion: result.originalVersion, newVersion: result.newVersion })
             : t('messages.projectLoaded');
-          alert(message);
+          setAlertMessage({ type: 'success', title: t('modals.alert.successTitle'), message });
         }
       })
       .catch(error => {
-        alert(t('messages.projectLoadError', { error: error.error }));
+        setAlertMessage({ type: 'error', title: t('modals.alert.errorTitle'), message: t('messages.projectLoadError', { error: error.error }) });
       });
+  }, [hasUnsavedChanges, t]);
 
+  const handleLoadProject = (event) => {
+    const file = event.target.files[0];
+    handleOpenProjectFile(file, null);
     event.target.value = '';
   };
+
+  const handleOpenClick = useCallback(async () => {
+    if (!isFileSystemAccessSupported()) {
+      fileInputRef.current?.click();
+      return;
+    }
+
+    const result = await openProjectFromPicker();
+    if (result.success) {
+      handleOpenProjectFile(result.file, result.fileHandle);
+    } else if (result.unsupported) {
+      fileInputRef.current?.click();
+    } else if (result.error && result.error !== 'Operação cancelada pelo usuário.') {
+      setAlertMessage({ type: 'error', title: t('modals.alert.errorTitle'), message: t('messages.projectLoadError', { error: result.error }) });
+    }
+  }, [handleOpenProjectFile, t]);
+
+  // ── Auto-save: ativação/desativação ───────────────────────────────────────
+  const enableAutoSave = useCallback(async () => {
+    const handle = autoSaveHandleRef.current;
+    if (!handle) return false;
+
+    const perm = await requestHandlePermission(handle);
+    if (!perm.granted) {
+      setAlertMessage({ type: 'error', title: t('modals.alert.errorTitle'), message: t('autosave.permissionDenied') });
+      return false;
+    }
+
+    localStorage.setItem('sysreview-auto-save', '1');
+    setAutoSaveEnabled(true);
+    return true;
+  }, [t]);
+
+  const disableAutoSave = useCallback(() => {
+    setAutoSaveEnabled(false);
+    localStorage.removeItem('sysreview-auto-save');
+  }, []);
+
+  const toggleAutoSave = useCallback(async (enabled) => {
+    if (enabled) {
+      await enableAutoSave();
+    } else {
+      disableAutoSave();
+    }
+  }, [enableAutoSave, disableAutoSave]);
 
   const handleNewProject = () => {
     if (hasUnsavedChanges && !window.confirm(t('messages.unsavedChanges'))) {
@@ -3707,6 +3908,11 @@ const SystematicReviewTool = () => {
     setImportedData([]);
     setHasUnsavedChanges(false);
     setLastSaved(null);
+    autoSaveOfferShownRef.current = false;
+    autoSaveHandleRef.current = null;
+    setAutoSaveEnabled(false);
+    localStorage.removeItem('sysreview-auto-save');
+    clearFileHandle();
     clearAutoSave();
   };
 
@@ -3961,55 +4167,6 @@ const SystematicReviewTool = () => {
 
   // Estatísticas calculadas
   // Substituir o cálculo das estatísticas (linha ~1147)
-  const statistics = useMemo(() => {
-
-    const importSection = {};
-    importedData.forEach(data => {
-
-      importSection['unique' + data.id] = articles.filter(
-        a => a.idData === data.id && !a.isDuplicate
-      ).length;
-      importSection['duplicate' + data.id] = articles.filter(
-        a => a.idData === data.id && a.isDuplicate
-      ).length;
-    });
-
-    const dataProcessing = {
-      pending: articles.filter(a => a.dataProcessingStatus === 'pending' && !a.isDuplicate).length,
-      included: articles.filter(a => a.dataProcessingStatus === 'included' && !a.isDuplicate).length,
-      excluded: articles.filter(a => a.dataProcessingStatus === 'excluded').length,
-      duplicate: articles.filter(a => a.dataProcessingStatus === 'duplicate' || a.isDuplicate).length
-    };
-
-    const filter1 = {
-      pending: articles.filter(a =>
-        a.dataProcessingStatus === 'included' &&
-        !a.isDuplicate &&
-        a.filter1Status === 'pending'
-      ).length,
-      included: articles.filter(a => a.filter1Status === 'included').length,
-      excluded: articles.filter(a =>
-        a.dataProcessingStatus === 'included' &&
-        !a.isDuplicate &&
-        a.filter1Status === 'excluded'
-      ).length
-    };
-
-    const filter2 = {
-      pending: articles.filter(a => a.filter1Status === 'included' && a.filter2Status === 'pending').length,
-      included: articles.filter(a => a.filter2Status === 'included').length,
-      excluded: articles.filter(a => a.filter1Status === 'included' && a.filter2Status === 'excluded').length
-    };
-
-    const filter3 = {
-      pending: articles.filter(a => a.filter2Status === 'included' && a.filter3Status === 'pending').length,
-      included: articles.filter(a => a.filter3Status === 'included').length,
-      excluded: articles.filter(a => a.filter2Status === 'included' && a.filter3Status === 'excluded').length
-    };
-
-    return { importSection, dataProcessing, filter1, filter2, filter3 };
-  }, [articles, importedData]);
-
   const handleImport = useCallback((newArticles, source) => {
     setLoading(true);
     // setTimeout(() => {
@@ -4169,16 +4326,20 @@ const SystematicReviewTool = () => {
             {t('file.new')}
           </button>
 
-          <label className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 cursor-pointer">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".srp,.json"
+            onChange={handleLoadProject}
+            className="hidden"
+          />
+          <button
+            onClick={handleOpenClick}
+            className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+          >
             <Upload className="h-4 w-4" />
             {t('file.open')}
-            <input
-              type="file"
-              accept=".srp,.json"
-              onChange={handleLoadProject}
-              className="hidden"
-            />
-          </label>
+          </button>
 
           <button
             onClick={handleSaveProject}
@@ -4187,6 +4348,14 @@ const SystematicReviewTool = () => {
             <Download className="h-4 w-4" />
             {t('file.save')}
             {hasUnsavedChanges && <span className="text-red-500 text-xs">●</span>}
+          </button>
+
+          <button
+            onClick={handleSaveAs}
+            className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+          >
+            <Save className="h-4 w-4" />
+            {t('file.saveAs')}
           </button>
 
           <button
@@ -4203,6 +4372,19 @@ const SystematicReviewTool = () => {
 
   const StatusIndicator = () => (
     <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+      {/* {autoSaveHandleRef.current && isFileSystemAccessSupported() && (
+        <button
+          onClick={() => toggleAutoSave(!autoSaveEnabled)}
+          title={autoSaveEnabled ? t('autosave.toggleOff') : t('autosave.toggleOn')}
+          className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium transition-colors duration-150 touch-manipulation cursor-pointer ${autoSaveEnabled
+              ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300'
+              : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+            }`}
+        >
+          <Save className="h-3.5 w-3.5" />
+          {autoSaveEnabled ? t('autosave.indicatorOn') : t('autosave.toggleOn')}
+        </button>
+      )} */}
       {hasUnsavedChanges && (
         <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
           <Clock className="h-4 w-4" />
@@ -4212,7 +4394,7 @@ const SystematicReviewTool = () => {
       {lastSaved && (
         <span className="flex items-center gap-1">
           <CheckCircle className="h-4 w-4 text-green-600" />
-          {t('app.saved')}: {lastSaved.toLocaleTimeString()}
+          {t('app.saved') + (autoSaveEnabled && isFileSystemAccessSupported() ? ' (' + t('autosave.indicatorOn') + ')' : ' ')}: {lastSaved.toLocaleTimeString()}
         </span>
       )}
     </div>
@@ -4448,7 +4630,29 @@ const SystematicReviewTool = () => {
           warnAfterMin={warnAfterMin}
           onSave={handleSaveProject}
           onDismiss={() => console.log("usuário dispensou o aviso")}
+          autoSaveAvailable={!!autoSaveHandleRef.current && isFileSystemAccessSupported()}
+          autoSaveEnabled={autoSaveEnabled}
+          onToggleAutoSave={toggleAutoSave}
         />
+
+        {showAutoSaveOffer && (
+          <AutoSaveOfferModal
+            onEnable={async () => {
+              const ok = await enableAutoSave();
+              setShowAutoSaveOffer(false);
+              if (ok) {
+                setAlertMessage({ type: 'success', title: t('modals.alert.successTitle'), message: t('autosave.enabledNotice') });
+              }
+            }}
+            onClose={() => {
+              setShowAutoSaveOffer(false);
+              if (pendingSupportRequestRef.current) {
+                pendingSupportRequestRef.current = false;
+                setShowSupportRequest(true);
+              }
+            }}
+          />
+        )}
 
         {showReminderSettings && (
           <ReminderSettingsModal
@@ -4481,6 +4685,20 @@ const SystematicReviewTool = () => {
             onClose={() => setShowSupportRequest(false)}
           />
         )}
+
+        <AlertModal
+          isOpen={!!alertMessage}
+          type={alertMessage?.type}
+          title={alertMessage?.title}
+          message={alertMessage?.message}
+          onClose={() => {
+            setAlertMessage(null);
+            if (pendingSupportRequestRef.current && !showAutoSaveOffer) {
+              pendingSupportRequestRef.current = false;
+              setShowSupportRequest(true);
+            }
+          }}
+        />
 
       </div>
     </div>

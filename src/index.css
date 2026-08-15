@@ -22,14 +22,27 @@
 
 }
 
-html, body, #root {
+html,
+body,
+#root {
   width: 100%;
   min-height: 100%;
 }
 
 @layer base {
-  input, textarea, select {
-    font-size: var(--text-sm); /* v4 usa variáveis CSS */
+
+  input,
+  textarea,
+  select {
+    font-size: var(--text-sm);
+    /* v4 usa variáveis CSS */
+  }
+
+  textarea {
+    field-sizing: content;
+    min-height: 2lh;
+    max-height: 10lh;
+    resize: none;
   }
 }
 
@@ -37,11 +50,13 @@ html, body, #root {
   --chart-axis: #ffffff;
   --chart-grid: rgba(255, 255, 255, 0.25);
 }
+
 a {
   font-weight: 500;
   color: #646cff;
   text-decoration: inherit;
 }
+
 a:hover {
   color: #535bf2;
 }
@@ -69,9 +84,11 @@ button {
   cursor: pointer;
   transition: border-color 0.25s;
 }
+
 button:hover {
   border-color: #646cff;
 }
+
 button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
@@ -82,11 +99,12 @@ button:focus-visible {
     color: #213547;
     background-color: #ffffff;
   }
+
   a:hover {
     color: #747bff;
   }
+
   button {
     background-color: #f9f9f9;
   }
 }
-

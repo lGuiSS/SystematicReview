@@ -1,7 +1,8 @@
 // ─── StatisticsSection ───────────────────────────────────────────────────────
-import { useState, useEffect, useRef, useCallback, forwardRef, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback, forwardRef, useMemo, useImperativeHandle } from "react";
+import { createRoot } from 'react-dom/client';
 import { useTranslation } from 'react-i18next';
-import { ChartArea, Download, X, Map, Earth, Network, BarChart3 } from 'lucide-react';
+import { ChartArea, Download, X, Map, Earth, Network, BarChart3, HelpCircle, Info } from 'lucide-react';
 import {
   Line, Bar, Cell, Pie, PieChart, XAxis, YAxis,
   CartesianGrid, Tooltip, Legend, ComposedChart, BarChart,
@@ -19,7 +20,6 @@ import {
   buildKeywordCoOccurrenceData,
   buildKeywordNetwork,
   detectCommunities,
-  generateClusterColors,
 } from '../bibliometrics';
 import NetworkVisualization from '../bibliometrics/NetworkVisualization';
 import DensityVisualization from '../bibliometrics/DensityVisualization';
@@ -103,6 +103,9 @@ const PrismaFlowchart = forwardRef(({ statistics, databases = [], totalCount, is
 // ─────────────────────────────────────────────────────────────────────────────
 // Exportação
 // ─────────────────────────────────────────────────────────────────────────────
+const SVG_NS = 'http://www.w3.org/2000/svg';
+const EXPORT_FONT_FAMILY = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+
 const changeColors = (svgClone) => {
   const fix = (sel, attr, val, useChild = false) =>
     svgClone.querySelectorAll(sel).forEach(el => {
@@ -120,70 +123,144 @@ const changeColors = (svgClone) => {
 };
 
 const mmToPx = (mm, dpi) => Math.round(mm * dpi / 25.4);
+const ptToPx = (pt, dpi) => Math.round(pt * dpi / 72);
 
-const applyFontSize = (el, fontSize, scale = 1) => {
-  if (!fontSize) return;
-  const adjusted = scale > 0 ? fontSize / scale : fontSize;
-  const ptVal = `${adjusted}pt`;
-  el.querySelectorAll('text').forEach(t => {
-    t.setAttribute('font-size', ptVal);
-    if (t.style?.fontSize) t.style.fontSize = ptVal;
-  });
-  el.querySelectorAll('style').forEach(s => {
-    s.textContent = s.textContent.replace(/font-size:\s*\d+(\.\d+)?(px|pt|em|rem)/g, `font-size: ${ptVal}`);
-  });
+let _measureCtx = null;
+const getMeasureCtx = () => {
+  if (!_measureCtx) _measureCtx = document.createElement('canvas').getContext('2d');
+  return _measureCtx;
 };
 
-const getViewBoxWidth = (svgClone) => {
-  const vb = svgClone.getAttribute('viewBox');
-  if (vb) return parseFloat(vb.split(/[\s,]+/)[2]) || 0;
-  return 0;
+const svgToDataUrl = (svgEl) => {
+  const clone = svgEl.cloneNode(true);
+  clone.setAttribute('xmlns', SVG_NS);
+  const style = document.createElement('style');
+  style.textContent = `* { font-family: ${EXPORT_FONT_FAMILY}; }`;
+  clone.insertBefore(style, clone.firstChild);
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(new XMLSerializer().serializeToString(clone))}`;
 };
+
+const injectExportStyle = (clone) => {
+  clone.setAttribute('xmlns', SVG_NS);
+  const style = document.createElement('style');
+  style.textContent = `* { font-family: ${EXPORT_FONT_FAMILY}; }`;
+  clone.insertBefore(style, clone.firstChild);
+  return clone;
+};
+
+// Layout da legenda (SVG) — mede os textos e quebra em linhas sem sobreposição
+const computeLegendLayout = (items, fontPx, width) => {
+  if (!items?.length) return null;
+  const ctx = getMeasureCtx();
+  ctx.font = `${fontPx}px sans-serif`;
+  const pad = fontPx * 0.8;
+  const swatch = fontPx * 0.9;
+  const gap = fontPx * 0.55;
+  const rowH = fontPx * 1.55;
+  const maxW = Math.max(width - pad * 2, 1);
+  const rows = [];
+  let cur = [], curW = 0;
+  items.forEach(it => {
+    const textW = ctx.measureText(it.text).width;
+    const w = swatch + gap + textW + gap;
+    if (cur.length && curW + w > maxW) { rows.push({ items: cur, width: curW }); cur = []; curW = 0; }
+    cur.push({ ...it, w, textW });
+    curW += w;
+  });
+  if (cur.length) rows.push({ items: cur, width: curW });
+  return { rows, height: rows.length * rowH, rowH, swatch, gap, pad, fontPx };
+};
+
+const appendLegend = (svg, layout, width, height) => {
+  if (!layout) return;
+  const g = document.createElementNS(SVG_NS, 'g');
+  g.setAttribute('class', 'export-legend');
+  const startY = Math.max(layout.rowH / 2, height - layout.height - layout.pad / 2);
+  layout.rows.forEach((row, r) => {
+    const rowCenterY = startY + r * layout.rowH;
+    let x = (width - row.width) / 2;
+    row.items.forEach(it => {
+      const rect = document.createElementNS(SVG_NS, 'rect');
+      rect.setAttribute('x', x);
+      rect.setAttribute('y', rowCenterY - layout.swatch / 2);
+      rect.setAttribute('width', layout.swatch);
+      rect.setAttribute('height', layout.swatch);
+      rect.setAttribute('rx', Math.max(1, layout.swatch * 0.25));
+      rect.setAttribute('fill', it.color);
+      g.appendChild(rect);
+      const text = document.createElementNS(SVG_NS, 'text');
+      text.setAttribute('x', x + layout.swatch + layout.gap);
+      text.setAttribute('y', rowCenterY);
+      text.setAttribute('font-size', layout.fontPx);
+      text.setAttribute('fill', '#111827');
+      text.setAttribute('dominant-baseline', 'central');
+      text.textContent = it.text;
+      g.appendChild(text);
+      x += it.w;
+    });
+  });
+  svg.appendChild(g);
+};
+
+// Prepara o clone para exportação: cores, viewBox, fonte uniforme (pt exato) e legenda
+const postProcessExportSvg = (clone, { renderedW, renderedH, fontPx, legendLayout }) => {
+  changeColors(clone);
+  const svg = clone;
+  const vb = svg.viewBox;
+  const hasViewBox = vb && vb.baseVal && vb.baseVal.width > 0;
+  const vbW = hasViewBox ? vb.baseVal.width : (renderedW || 100);
+  const vbH = hasViewBox ? vb.baseVal.height : (renderedH || 100);
+  const w = Math.round(renderedW || vbW);
+  const h = Math.round(renderedH || vbH);
+  if (!hasViewBox) svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+  // dimensões explícitas em px — necessárias para o <img> da pré-visualização
+  // e para SVGs com width="100%" (ex.: fluxograma PRISMA) ganharem tamanho fixo
+  svg.setAttribute('width', w);
+  svg.setAttribute('height', h);
+  // fonte em unidades do viewBox → equivale a fontPx px no render (pt exato no mm alvo)
+  const fontUnits = Math.round((fontPx * (vbW / (renderedW || vbW))) * 100) / 100;
+  svg.querySelectorAll('text').forEach(t => t.setAttribute('font-size', fontUnits));
+  if (legendLayout) appendLegend(svg, legendLayout, w, h);
+  return svg;
+};
+
+const waitForSvg = (host, timeout = 4000) => new Promise(resolve => {
+  const start = Date.now();
+  const tick = () => {
+    const svg = host.querySelector('svg');
+    if (svg) { resolve(svg); return; }
+    if (Date.now() - start > timeout) { resolve(null); return; }
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+});
 
 const exportSvgElement = async (svgEl, filename, settings) => {
   const clone = svgEl.cloneNode(true);
-  changeColors(clone);
-  if (settings?.fontSize) {
-    const vbW = getViewBoxWidth(clone) || clone.getBoundingClientRect().width;
-    const targetPxW = settings.widthMm ? settings.widthMm * 96 / 25.4 : vbW;
-    applyFontSize(clone, settings.fontSize, targetPxW / vbW);
-  }
-  if (settings?.widthMm && settings?.heightMm) {
-    clone.setAttribute('width', `${settings.widthMm}mm`);
-    clone.setAttribute('height', `${settings.heightMm}mm`);
-  }
-  const style = document.createElement('style');
-  style.textContent = `* { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }`;
-  clone.insertBefore(style, clone.firstChild);
+  if (settings?.widthMm) clone.setAttribute('width', `${settings.widthMm}mm`);
+  if (settings?.heightMm) clone.setAttribute('height', `${settings.heightMm}mm`);
+  injectExportStyle(clone);
   const blob = new Blob([new XMLSerializer().serializeToString(clone)], { type: 'image/svg+xml;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.download = filename; a.href = url; a.click();
-  URL.revokeObjectURL(url);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 };
 
 const exportSvgToPng = async (svgEl, filename, settings) => {
   const clone = svgEl.cloneNode(true);
-  changeColors(clone);
-  const { width: w, height: h } = svgEl.getBoundingClientRect();
-  const targetW = settings?.widthPx || w * (settings?.dpi ? settings.dpi / 96 : 4);
-  const targetH = settings?.heightPx || Math.round(targetW * h / w);
-  clone.setAttribute('width', targetW);
-  clone.setAttribute('height', targetH);
-  clone.setAttribute('viewBox', `0 0 ${w} ${h}`);
-  if (settings?.fontSize) applyFontSize(clone, settings.fontSize, targetW / w);
-  const style = document.createElement('style');
-  style.textContent = `* { font-family: -apple-system, sans-serif; }`;
-  clone.insertBefore(style, clone.firstChild);
+  clone.setAttribute('width', settings.widthPx);
+  clone.setAttribute('height', settings.heightPx);
+  injectExportStyle(clone);
   const url = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(clone)], { type: 'image/svg+xml;charset=utf-8' }));
   const canvas = document.createElement('canvas');
-  canvas.width = targetW; canvas.height = targetH;
+  canvas.width = settings.widthPx; canvas.height = settings.heightPx;
   const ctx = canvas.getContext('2d');
   ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
   const img = new Image(); img.crossOrigin = 'anonymous';
   await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = url; });
-  ctx.drawImage(img, 0, 0, targetW, targetH);
-  canvas.toBlob(blob => { FileSaver.saveAs(blob, filename); URL.revokeObjectURL(url); }, 'image/png', 1);
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  await new Promise(res => canvas.toBlob(blob => { FileSaver.saveAs(blob, filename); URL.revokeObjectURL(url); res(); }, 'image/png', 1));
 };
 
 const exportToXLSX = async (data, filename) => {
@@ -196,6 +273,50 @@ const exportToXLSX = async (data, filename) => {
   const buf = await workbook.xlsx.writeBuffer();
   FileSaver.saveAs(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), filename);
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ExportableChart — renderiza o gráfico na tela e, sob demanda, re-renderiza
+// em tamanho oculto no tamanho-alvo de exportação (px = mm × 96/25,4) para que
+// o recharts recalcule ticks/labels para aquele tamanho e a fonte saia em pt exato.
+// ─────────────────────────────────────────────────────────────────────────────
+const ExportableChart = forwardRef(({ children, style, legend }, ref) => {
+  const screenHostRef = useRef(null);
+
+  const renderForExport = useCallback(async ({ width, height, fontPx, legendBottom }) => {
+    const host = document.createElement('div');
+    host.style.cssText = 'position:fixed;left:-100000px;top:0;width:0;height:0;overflow:hidden;pointer-events:none;';
+    document.body.appendChild(host);
+    const root = createRoot(host);
+    const legendLayout = legend ? computeLegendLayout(legend, fontPx, width) : null;
+    try {
+      root.render(children({
+        export: true,
+        width,
+        height,
+        fontPx,
+        isDark: false,
+        legendBottom: legendLayout ? legendLayout.height + legendLayout.pad : 0,
+      }));
+      const svg = await waitForSvg(host);
+      if (!svg) throw new Error('No svg rendered');
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+      const renderedW = svg.getBoundingClientRect().width || width;
+      const renderedH = svg.getBoundingClientRect().height || height;
+      const clone = svg.cloneNode(true);
+      return postProcessExportSvg(clone, { renderedW, renderedH, fontPx, legendLayout });
+    } finally {
+      root.unmount();
+      host.remove();
+    }
+  }, [children, legend]);
+
+  useImperativeHandle(ref, () => ({
+    renderForExport,
+    getScreenSvg: () => screenHostRef.current?.querySelector('svg') ?? null,
+  }), [renderForExport]);
+
+  return <div ref={screenHostRef} style={style}>{children({ screen: true })}</div>;
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ExportConfigModal — modal de configuração para exportação de imagens
@@ -213,45 +334,183 @@ const saveExportSettings = (settings) => {
   try { localStorage.setItem(EXPORT_SETTINGS_KEY, JSON.stringify(settings)); } catch { /* localStorage unavailable */ }
 };
 
-const ExportConfigModal = ({ isOpen, onClose, onExport, format = 'png', svgElement }) => {
+const RulerBar = ({ displayWidth, totalMm, dark }) => {
+  if (!displayWidth || !totalMm) return null;
+  const mmPerPx = totalMm / displayWidth;
+  const step = totalMm <= 80 ? 10 : 20;
+  const ticks = [];
+  for (let mm = 0; mm <= totalMm; mm += step) ticks.push({ mm, x: mm / mmPerPx });
+  const tickColor = dark ? '#9ca3af' : '#6b7280';
+  return (
+    <div className="relative w-full" style={{ height: 18 }}>
+      {ticks.map(tk => (
+        <div key={tk.mm} className="absolute bottom-0 flex flex-col items-center" style={{ left: tk.x, transform: 'translateX(-50%)' }}>
+          <div className="w-px" style={{ height: tk.mm === 0 ? 0 : 7, background: tickColor }} />
+          <span className="text-[8px] leading-tight" style={{ color: tickColor }}>{tk.mm}</span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+const ExportConfigModal = ({ isOpen, onClose, onExport, format = 'png', svgElement, sourceAspectRatio, getSvg, svgOnly = false }) => {
   const { t } = useTranslation();
   const saved = loadExportSettings();
   const [widthMm, setWidthMm] = useState(saved?.widthMm ?? 150);
   const [heightMm, setHeightMm] = useState(saved?.heightMm ?? 100);
   const [keepRatio, setKeepRatio] = useState(saved?.keepRatio ?? true);
-  const [dpi, setDpi] = useState(saved?.dpi ?? 300);
-  const [fontSize, setFontSize] = useState(saved?.fontSize ?? 10);
+  const [fontPt, setFontPt] = useState(saved?.fontPt ?? 10);
+  const [exportWarning, setExportWarning] = useState(null);
+  const dpi = 1200;
   const aspectRatio = useRef(null);
+  const imgRef = useRef(null);
+  const [imgWidth, setImgWidth] = useState(0);
+  const [previewUrl, setPreviewUrl] = useState(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const previewTimer = useRef(null);
+  const previewSeq = useRef(0);
+  const getSvgRef = useRef(null);
+  getSvgRef.current = getSvg;
+
+  const lockedAspect = useMemo(() => {
+    if (!svgOnly || !svgElement) return null;
+    const vb = svgElement.viewBox;
+    if (vb && vb.baseVal && vb.baseVal.width > 0 && vb.baseVal.height > 0) {
+      return vb.baseVal.width / vb.baseVal.height;
+    }
+    return null;
+  }, [svgOnly, svgElement]);
+
+  const toFinite = (val, fallback) => {
+    const n = Number(val);
+    return Number.isFinite(n) && n > 0 ? n : fallback;
+  };
+
+  const buildSettings = () => {
+    const w = toFinite(widthMm, 150);
+    const h = toFinite(heightMm, 100);
+    const f = toFinite(fontPt, 10);
+    const widthPx = mmToPx(w, dpi);
+    const heightPx = mmToPx(h, dpi);
+    return { widthPx, heightPx, widthMm: w, heightMm: h, dpi, fontPt: f };
+  };
 
   useEffect(() => {
-    if (isOpen && svgElement) {
-      const { width, height } = svgElement.getBoundingClientRect();
-      aspectRatio.current = width / height;
-      if (!saved) {
-        setWidthMm(Math.round(width * 25.4 / 96));
-        setHeightMm(Math.round(height * 25.4 / 96));
+    if (isOpen) {
+      const el = svgElement;
+      const elAspect = el
+        ? el.getBoundingClientRect().width / el.getBoundingClientRect().height
+        : (typeof sourceAspectRatio === 'number' && sourceAspectRatio > 0 ? sourceAspectRatio : null);
+      const effectiveAspect = lockedAspect || elAspect;
+      if (effectiveAspect) {
+        aspectRatio.current = effectiveAspect;
+        if (!saved) {
+          if (el) {
+            const { width, height } = el.getBoundingClientRect();
+            const wMm = Math.max(1, width * 25.4 / 96);
+            const hMm = Math.max(1, height * 25.4 / 96);
+            const scale = Math.min(1, MAX_MM / Math.max(wMm, 1));
+            setWidthMm(Math.max(MIN_MM, Math.round(wMm * scale)));
+            setHeightMm(Math.max(MIN_MM, Math.round(hMm * scale)));
+          } else {
+            setWidthMm(150);
+            setHeightMm(Math.round(150 / effectiveAspect));
+          }
+        }
+        if (lockedAspect) {
+          setKeepRatio(true);
+          const w = toFinite(saved?.widthMm ?? widthMm, 150);
+          setWidthMm(Math.max(MIN_MM, Math.round(w)));
+          setHeightMm(Math.max(MIN_MM, Math.round(w / lockedAspect)));
+        }
       }
     }
-  }, [isOpen, svgElement, saved]);
+  }, [isOpen, svgElement, saved, sourceAspectRatio, svgOnly, lockedAspect]);
+
+  // Pré-visualização (debounced) — renderiza exatamente o SVG que será exportado
+  useEffect(() => {
+    if (!isOpen || !getSvgRef.current) return;
+    setPreviewLoading(true);
+    clearTimeout(previewTimer.current);
+    const settings = buildSettings();
+    previewTimer.current = setTimeout(async () => {
+      const seq = ++previewSeq.current;
+      try {
+        const svg = await getSvgRef.current(settings);
+        if (seq !== previewSeq.current) return;
+        setPreviewUrl(svg ? svgToDataUrl(svg) : null);
+      } catch (e) {
+        console.error('Preview error:', e);
+        if (seq === previewSeq.current) setPreviewUrl(null);
+      } finally {
+        if (seq === previewSeq.current) setPreviewLoading(false);
+      }
+    }, 250);
+    return () => clearTimeout(previewTimer.current);
+  }, [isOpen, widthMm, heightMm, keepRatio, fontPt]);
+
+  const MIN_MM = 10, MAX_MM = 150, MIN_PT = 6, MAX_PT = 24;
+
+  const validateSettings = () => {
+    const issues = [];
+    const w = Number(widthMm), h = Number(heightMm), f = Number(fontPt);
+    if (!Number.isFinite(w) || w < MIN_MM || w > MAX_MM)
+      issues.push(t('stats.exportWarningMm', 'Largura e altura devem estar entre 10 e 150 mm.'));
+    if (!Number.isFinite(h) || h < MIN_MM || h > MAX_MM)
+      issues.push(t('stats.exportWarningMm', 'Largura e altura devem estar entre 10 e 150 mm.'));
+    if (!Number.isFinite(f) || f < MIN_PT || f > MAX_PT)
+      issues.push(t('stats.exportWarningFont', 'A fonte deve estar entre 6 e 24 pt.'));
+    return [...new Set(issues)];
+  };
 
   const handleWidthChange = (val) => {
-    const w = Number(val) || 0;
-    setWidthMm(w);
-    if (keepRatio && aspectRatio.current) setHeightMm(Math.round(w / aspectRatio.current));
+    setExportWarning(null);
+    setWidthMm(val);
+    const aspect = lockedAspect || aspectRatio.current;
+    if ((keepRatio || lockedAspect) && aspect) {
+      const n = Number(val);
+      if (Number.isFinite(n) && n > 0) setHeightMm(Math.round(n / aspect));
+    }
   };
 
   const handleHeightChange = (val) => {
-    const h = Number(val) || 0;
-    setHeightMm(h);
-    if (keepRatio && aspectRatio.current) setWidthMm(Math.round(h * aspectRatio.current));
+    setExportWarning(null);
+    setHeightMm(val);
+    const aspect = lockedAspect || aspectRatio.current;
+    if ((keepRatio || lockedAspect) && aspect) {
+      const n = Number(val);
+      if (Number.isFinite(n) && n > 0) setWidthMm(Math.round(n * aspect));
+    }
   };
 
-  const handleExport = () => {
-    const settings = { widthMm, heightMm, keepRatio, dpi, fontSize };
-    saveExportSettings(settings);
-    const widthPx = mmToPx(widthMm, dpi);
-    const heightPx = mmToPx(heightMm, dpi);
-    onExport({ widthPx, heightPx, widthMm, heightMm, dpi, fontSize });
+  const handleKeepRatioChange = (checked) => {
+    setExportWarning(null);
+    setKeepRatio(checked);
+    if (checked && aspectRatio.current) {
+      const w = Number(widthMm);
+      if (Number.isFinite(w) && w > 0) setHeightMm(Math.round(w / aspectRatio.current));
+    }
+  };
+
+  const handleExport = async () => {
+    const issues = validateSettings();
+    if (issues.length) {
+      setExportWarning(issues.join(' '));
+      return;
+    }
+    setExportWarning(null);
+    const settings = buildSettings();
+    saveExportSettings({ widthMm, heightMm, keepRatio, dpi, fontPt });
+    let svg = null;
+    try {
+      if (getSvgRef.current) {
+        setPreviewLoading(true);
+        svg = await getSvgRef.current(settings);
+      }
+    } catch (e) {
+      console.error('Export error:', e);
+    }
+    onExport(settings, svg);
     onClose();
   };
 
@@ -261,60 +520,179 @@ const ExportConfigModal = ({ isOpen, onClose, onExport, format = 'png', svgEleme
   const resultH = mmToPx(heightMm, dpi);
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50" onClick={onClose}>
-      <div className="bg-zinc-800 rounded-xl p-6 w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-5">
-          <h3 className="text-white font-semibold text-base">{t('stats.exportConfigTitle', 'Configurar Exportação')}</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-white bg-transparent border-none cursor-pointer"><X size={18} /></button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 dark:bg-black/50 p-4">
+      <div className="w-full max-w-lg bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 max-h-[92vh] flex flex-col">
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100 dark:border-gray-700">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Download className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-600 dark:text-indigo-400" />
+            <p className="text-sm sm:text-base font-semibold text-gray-800 dark:text-white">
+              {t('stats.exportConfigTitle', 'Configurar Exportação')}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1 sm:p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:text-gray-300 dark:hover:bg-gray-700 transition-colors"
+          >
+            <X className="h-4 w-4 sm:h-5 sm:w-5" />
+          </button>
         </div>
 
-        <div className="space-y-4">
-          <div className="flex gap-3">
+        {/* Body */}
+        <div className="p-4 sm:p-6 space-y-3 sm:space-y-4 overflow-y-auto">
+          <div className="flex gap-2 sm:gap-3">
             <div className="flex-1">
-              <label className="block text-xs text-gray-400 mb-1">{t('stats.widthMm', 'Largura (mm)')}</label>
-              <input type="number" value={widthMm} onChange={e => handleWidthChange(e.target.value)}
-                className="w-full bg-zinc-700 text-white rounded px-3 py-2 text-sm border border-zinc-600 focus:border-indigo-500 focus:outline-none" />
+              <label className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-1.5 sm:mb-2 block">{t('stats.widthMm', 'Largura (mm)')}</label>
+              <input type="number" value={widthMm} min={10} max={150} onChange={e => handleWidthChange(e.target.value)}
+                className="w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg border transition-colors bg-white dark:bg-gray-700 text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 border-gray-200 dark:border-gray-600" />
             </div>
             <div className="flex-1">
-              <label className="block text-xs text-gray-400 mb-1">{t('stats.heightMm', 'Altura (mm)')}</label>
-              <input type="number" value={heightMm} onChange={e => handleHeightChange(e.target.value)} disabled={keepRatio}
-                className={`w-full bg-zinc-700 text-white rounded px-3 py-2 text-sm border border-zinc-600 focus:border-indigo-500 focus:outline-none ${keepRatio ? 'opacity-50 cursor-not-allowed' : ''}`} />
+              <label className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-1.5 sm:mb-2 block">{t('stats.heightMm', 'Altura (mm)')}</label>
+              <input type="number" value={heightMm} min={10} max={150} onChange={e => handleHeightChange(e.target.value)} disabled={keepRatio && !lockedAspect}
+                className={`w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg border transition-colors bg-white dark:bg-gray-700 text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 border-gray-200 dark:border-gray-600 disabled:opacity-40 disabled:cursor-not-allowed`} />
+            </div>
+            <div className="w-24">
+              <label className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-1.5 sm:mb-2 block">{t('stats.fontPt', 'Fonte (pt)')}</label>
+              <input type="number" min={6} max={24} value={fontPt} onChange={e => { setExportWarning(null); setFontPt(e.target.value); }}
+                className="w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg border transition-colors bg-white dark:bg-gray-700 text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 border-gray-200 dark:border-gray-600" />
             </div>
           </div>
 
-          <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
-            <input type="checkbox" checked={keepRatio} onChange={e => setKeepRatio(e.target.checked)}
-              className="accent-indigo-500" />
-            {t('stats.keepRatio', 'Manter proporção')}
-          </label>
+          <div className="flex items-center justify-between gap-2">
+            {!lockedAspect && (
+              <label className="flex items-center gap-2 text-xs sm:text-sm text-gray-600 dark:text-gray-300 cursor-pointer">
+                <input type="checkbox" checked={keepRatio} onChange={e => handleKeepRatioChange(e.target.checked)}
+                  className="accent-indigo-500" />
+                {t('stats.keepRatio', 'Manter proporção')}
+              </label>
+            )}
+            {lockedAspect && <div />}
+            {format === 'png' && (
+              <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{t('stats.dpi', 'Resolução (DPI)')}: <span className="text-gray-800 dark:text-gray-200">{dpi}</span></div>
+            )}
+          </div>
 
-          {format === 'png' && (
+          {getSvg && (
             <div>
-              <label className="block text-xs text-gray-400 mb-1">{t('stats.dpi', 'Resolução (DPI)')}</label>
-              <input type="number" value={dpi} onChange={e => setDpi(Number(e.target.value) || 96)}
-                className="w-full bg-zinc-700 text-white rounded px-3 py-2 text-sm border border-zinc-600 focus:border-indigo-500 focus:outline-none" />
+              <label className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-1.5 block">
+                {t('stats.preview', 'Pré-visualização')}
+              </label>
+              <div className="rounded-lg border border-gray-200 dark:border-gray-600 p-2 bg-white overflow-hidden">
+                {previewLoading && (
+                  <div className="flex items-center justify-center py-8 text-xs text-gray-400 gap-2">
+                    <div className="animate-spin inline-block h-4 w-4 border-2 border-indigo-600 border-t-transparent rounded-full"></div>
+                    {t('stats.generatingPreview', 'Gerando pré-visualização...')}
+                  </div>
+                )}
+                {!previewLoading && previewUrl && (
+                  <div className="mx-auto" style={{ width: 'fit-content' }}>
+                    <img ref={imgRef} src={previewUrl} alt={t('stats.preview')} className="max-w-full h-auto block"
+                      style={{ background: '#fff' }} onLoad={e => setImgWidth(e.currentTarget.clientWidth)} />
+                    <div className="mx-auto" style={{ width: imgWidth || '100%' }}>
+                      <RulerBar displayWidth={imgWidth || widthMm * (96 / 25.4)} totalMm={widthMm} dark={false} />
+                    </div>
+                  </div>
+                )}
+              </div>
+              <p className="text-[11px] text-gray-400 mt-1.5 leading-snug">
+                {t('stats.previewHint', 'O conteúdo exibido é exatamente o arquivo exportado (texto em fonte uniforme de {pt} pt, legenda e cores ajustadas para fundo branco). A régua é aproximada (96 dpi).', { pt: fontPt })}
+              </p>
             </div>
           )}
 
-          <div>
-            <label className="block text-xs text-gray-400 mb-1">{t('stats.fontSizePt', 'Tamanho da fonte (pt)')}</label>
-            <input type="number" value={fontSize} onChange={e => setFontSize(Number(e.target.value) || 8)} min={6} max={72}
-              className="w-full bg-zinc-700 text-white rounded px-3 py-2 text-sm border border-zinc-600 focus:border-indigo-500 focus:outline-none" />
-          </div>
-
-          <div className="text-xs text-gray-500 border-t border-zinc-700 pt-3">
-            {t('stats.resultSize', 'Tamanho resultante')}: <span className="text-gray-300">{resultW} × {resultH} px</span>
+          <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 border-t border-gray-100 dark:border-gray-700 pt-3">
+            {t('stats.resultSize', 'Tamanho resultante')}: <span className="text-gray-800 dark:text-gray-200">{resultW} × {resultH} px</span>
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 mt-5">
+        {/* Footer */}
+        {exportWarning && (
+          <div className="px-4 sm:px-6 pb-2">
+            <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-lg px-3 py-2">
+              {exportWarning}
+            </p>
+          </div>
+        )}
+        <div className="flex gap-2 sm:gap-3 px-4 sm:px-6 pb-4 sm:pb-6">
           <button onClick={onClose}
-            className="px-4 py-2 text-sm text-gray-300 bg-zinc-700 hover:bg-zinc-600 rounded cursor-pointer border-none">
+            className="flex-1 px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg
+              bg-gray-100 hover:bg-gray-200 text-gray-700
+              dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-300
+              transition-colors duration-150">
             {t('common.cancel', 'Cancelar')}
           </button>
           <button onClick={handleExport}
-            className="px-4 py-2 text-sm text-white bg-indigo-600 hover:bg-indigo-500 rounded cursor-pointer border-none">
+            className="flex-1 px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg
+              bg-indigo-600 hover:bg-indigo-700 text-white
+              dark:bg-indigo-500 dark:hover:bg-indigo-600
+              transition-colors duration-150">
             {t('stats.exportButton', 'Exportar')}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// NetworkHelpModal — modal de ajuda explicando o funcionamento da rede
+// ─────────────────────────────────────────────────────────────────────────────
+const NetworkHelpModal = ({ isOpen, onClose }) => {
+  const { t } = useTranslation();
+
+  if (!isOpen) return null;
+
+  const sections = [
+    { title: t('stats.networkHelpAlgorithmTitle'), text: t('stats.networkHelpAlgorithmText') },
+    { title: t('stats.networkHelpNodeTitle'), text: t('stats.networkHelpNodeText') },
+    { title: t('stats.networkHelpEdgeTitle'), text: t('stats.networkHelpEdgeText') },
+    { title: t('stats.networkHelpCountingTitle'), text: t('stats.networkHelpCountingText') }
+  ];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 dark:bg-black/50 p-4">
+      <div className="w-full sm:w-[26rem] md:w-[30rem] bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700">
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100 dark:border-gray-700">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <HelpCircle className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-600 dark:text-indigo-400" />
+            <p className="text-sm sm:text-base font-semibold text-gray-800 dark:text-white">
+              {t('stats.networkHelpTitle')}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1 sm:p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:text-gray-300 dark:hover:bg-gray-700 transition-colors"
+          >
+            <X className="h-4 w-4 sm:h-5 sm:w-5" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="p-4 sm:p-6 space-y-4 sm:space-y-5 max-h-[60vh] overflow-y-auto">
+          {sections.map(section => (
+            <div key={section.title}>
+              <h4 className="text-sm sm:text-base font-semibold text-gray-800 dark:text-white mb-1 sm:mb-1.5">
+                {section.title}
+              </h4>
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+                {section.text}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        {/* Footer */}
+        <div className="flex justify-end px-4 sm:px-6 pb-4 sm:pb-6">
+          <button
+            onClick={onClose}
+            className="px-4 sm:px-5 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg
+              bg-indigo-600 hover:bg-indigo-700 text-white
+              dark:bg-indigo-500 dark:hover:bg-indigo-600
+              transition-colors duration-150"
+          >
+            {t('modals.alert.ok')}
           </button>
         </div>
       </div>
@@ -598,8 +976,30 @@ const ChartExport = ({ id, isOpen, onToggle, chartRef, data, svgOnly = false }) 
   const { t } = useTranslation();
   const [modalOpen, setModalOpen] = useState(false);
   const [modalFormat, setModalFormat] = useState('png');
-  const getSvgEl = () => chartRef?.current?.tagName === 'svg'
-    ? chartRef.current : chartRef?.current?.querySelector('svg') ?? null;
+  const getSvgEl = () => {
+    const handle = chartRef?.current;
+    if (handle?.getScreenSvg) return handle.getScreenSvg();
+    if (handle?.tagName === 'svg') return handle;
+    return handle?.querySelector?.('svg') ?? null;
+  };
+
+  const getExportSvg = useCallback(async (settings) => {
+    const handle = chartRef?.current;
+    if (handle?.renderForExport) {
+      const width = mmToPx(settings.widthMm, 96);
+      const height = mmToPx(settings.heightMm, 96);
+      const fontPx = ptToPx(settings.fontPt ?? 10, 96);
+      return await handle.renderForExport({ width, height, fontPx });
+    }
+    // Fallback: clone do SVG renderizado na tela (sem re-layout no tamanho-alvo),
+    // dimensionado pela configuração de exportação (mm → px a 96 dpi)
+    const el = getSvgEl();
+    if (!el) return null;
+    const clone = el.cloneNode(true);
+    const renderedW = mmToPx(settings.widthMm, 96);
+    const renderedH = mmToPx(settings.heightMm, 96);
+    return postProcessExportSvg(clone, { renderedW, renderedH, fontPx: (settings.fontPt ?? 10) * 96 / 72 });
+  }, [chartRef]);
 
   const openModal = (format) => {
     setModalFormat(format);
@@ -611,11 +1011,15 @@ const ChartExport = ({ id, isOpen, onToggle, chartRef, data, svgOnly = false }) 
   const handleSVG = () => openModal('svg');
   const handleXLSX = async () => { await exportToXLSX(data, `${id}.xlsx`); onToggle(id); };
 
-  const handleExport = async (settings) => {
-    const el = getSvgEl();
-    if (!el) return;
-    if (modalFormat === 'png') await exportSvgToPng(el, `${id}.png`, settings);
-    else await exportSvgElement(el, `${id}.svg`, settings);
+  const handleExport = async (settings, svg) => {
+    try {
+      const el = svg || await getExportSvg(settings);
+      if (!el) return;
+      if (modalFormat === 'png') await exportSvgToPng(el, `${id}.png`, settings);
+      else await exportSvgElement(el, `${id}.svg`, settings);
+    } catch (e) {
+      console.error('Export error:', e);
+    }
   };
 
   return (
@@ -632,7 +1036,7 @@ const ChartExport = ({ id, isOpen, onToggle, chartRef, data, svgOnly = false }) 
           {!svgOnly && <button onClick={handleXLSX} className="w-full text-left px-4 py-2 text-sm text-white bg-transparent hover:bg-zinc-700 rounded cursor-pointer border-none">{t('stats.exportXLSX')}</button>}
         </div>
       )}
-      <ExportConfigModal isOpen={modalOpen} onClose={() => setModalOpen(false)} onExport={handleExport} format={modalFormat} svgElement={getSvgEl()} />
+      <ExportConfigModal isOpen={modalOpen} onClose={() => setModalOpen(false)} onExport={handleExport} format={modalFormat} svgElement={getSvgEl()} getSvg={getExportSvg} svgOnly={svgOnly} />
     </div>
   );
 };
@@ -730,8 +1134,8 @@ const ChartInstance = ({ id, label, chartRef, data, openMenuId, onToggle, svgOnl
 // ─────────────────────────────────────────────────────────────────────────────
 // Cores por database
 // ─────────────────────────────────────────────────────────────────────────────
-const DB_LINE_COLOR = { 'Scopus': '#fb923c', 'Web of Science': '#d4d0e3', 'ScienceDirect': '#fb923c', 'Periódicos CAPES': '#076a97' };
-const DB_BAR_COLOR = { 'Scopus': '#3b2b2b', 'Web of Science': '#592aaa', 'ScienceDirect': '#3b2b2b', 'Periódicos CAPES': '#043a52' };
+const DB_LINE_COLOR = { 'Scopus': '#fb923c', 'Web of Science': '#d4d0e3', 'ScienceDirect': '#fb923c' };
+const DB_BAR_COLOR = { 'Scopus': '#3b2b2b', 'Web of Science': '#592aaa', 'ScienceDirect': '#3b2b2b' };
 const TOTAL_LINE = '#646464';
 const TOTAL_BAR = '#3f3f3f';
 const getLineColor = (db) => DB_LINE_COLOR[db] ?? TOTAL_LINE;
@@ -1256,7 +1660,7 @@ const StatisticsSection = ({ articles, onUpdateStatus, inclusionCriteria, exclus
   const TABS = [
     { id: 'bibliometria', label: t('stats.tabOverview') },
     { id: 'processo', label: t('stats.tabProcess') },
-    { id: 'coauthorship', label: t('stats.tabCoauthorship', 'Redes Bibliométricas') },
+    { id: 'network', label: t('stats.tabNetwork', 'Redes Bibliométricas') },
   ];
   const [activeTab, setActiveTab] = useState('bibliometria');
   const TabNav = () => (
@@ -1299,14 +1703,8 @@ const StatisticsSection = ({ articles, onUpdateStatus, inclusionCriteria, exclus
   const [stroke, setStroke] = useState('#000');
   const [topNCountries, setTopNCountries] = useState(10);
   const [countryView, setCountryView] = useState('bar'); // 'bar' | 'map' | 'continent'
-  const [showCountriesMap, setShowCountriesMap] = useState(false);
   const [topNJournals, setTopNJournals] = useState(5);
   const [scoreBinSize, setScoreBinSize] = useState(5);
-
-  // ── clustering ────────────────────────────────────────────────────────────
-  const [numClusters, setNumClusters] = useState(5);
-  const [vizType, setVizType] = useState('bar'); // 'bar' | 'heatmap' | 'network'
-  const [clusterResults, setClusterResults] = useState(null);
 
   // ── slots ─────────────────────────────────────────────────────────────────
   // Cada slot: { id: string, source: label da importação ou "Total" }
@@ -1504,12 +1902,10 @@ const StatisticsSection = ({ articles, onUpdateStatus, inclusionCriteria, exclus
     const variationsScopus = generatePalette(DB_LINE_COLOR['Scopus'], importOptions.map(opt => opt.database == 'Scopus').length);
     const variationsWOS = generatePalette(DB_BAR_COLOR['Web of Science'], importOptions.map(opt => opt.database == 'Web of Science').length);
     const variationsScienceDirect = generatePalette(DB_LINE_COLOR['ScienceDirect'], importOptions.map(opt => opt.database == 'ScienceDirect').length);
-    const variationsPeriodicos = generatePalette(DB_LINE_COLOR['Periódicos CAPES'], importOptions.map(opt => opt.database == 'Periódicos CAPES').length);
 
     setOriginColorsScopus(variationsScopus)
     setOriginColorsWos(variationsWOS)
     setOriginColorsScienceDirect(variationsScienceDirect)
-    setOriginColorsPeriodicos(variationsPeriodicos)
   }, [importedData]);
 
   useEffect(() => {
@@ -1579,7 +1975,7 @@ const StatisticsSection = ({ articles, onUpdateStatus, inclusionCriteria, exclus
   // ── toggle helpers para slots ─────────────────────────────────────────────
   // ── makeSlotToggle atualizado ─────────────────────────────────────────────
   // Ordem canônica das bases
-  const DB_ORDER = ['Scopus', 'Web of Science', 'ScienceDirect', 'Periódicos CAPES', 'Total'];
+  const DB_ORDER = ['Scopus', 'Web of Science', 'ScienceDirect', 'Total'];
   const makeSlotToggle = (setSlots, prefix) => (database) =>
     setSlots(prev => {
       const exists = prev.find(s => s.database === database);
@@ -1652,9 +2048,8 @@ const StatisticsSection = ({ articles, onUpdateStatus, inclusionCriteria, exclus
   const [originColorsScopus, setOriginColorsScopus] = useState(['#6366f1'])
   const [originColorsWOS, setOriginColorsWos] = useState(['#6366f1'])
   const [originColorsScienceDirect, setOriginColorsScienceDirect] = useState(['#6366f1'])
-  const [originColorsPeriodicos, setOriginColorsPeriodicos] = useState(['#6366f1'])
 
-  const getOriginColors = (or) => or.includes('Scop') ? originColorsScopus : or.includes('WoS') ? originColorsWOS : or.includes('ScienceDirect') ? originColorsScienceDirect : or.includes('CAPES') ? originColorsPeriodicos : TOTAL_COLORS;
+  const getOriginColors = (or) => or.includes('Scop') ? originColorsScopus : or.includes('WoS') ? originColorsWOS : or.includes('ScienceDirect') ? originColorsScienceDirect : TOTAL_COLORS;
 
   const getCriterionColors = (ctr) => ctr.includes('Exclus') ? EXCLUSION_COLORS : ctr.includes('Inclus') ? INCLUSION_COLORS : TOTAL_COLORS;
 
@@ -1867,19 +2262,24 @@ const StatisticsSection = ({ articles, onUpdateStatus, inclusionCriteria, exclus
               const barColor = db ? getBarColor(db) : TOTAL_BAR;
               return (
                 <>
-                  <div ref={chartRef}>
-                    <ComposedChart
-                      style={{ width: '100%', aspectRatio: pubYearSlots.length > 1 ? 1 : 1, maxHeight: '60vh' }}
-                      responsive data={pubYearData[slot.source] ?? []} margin={{ top: 5, right: 4, left: 0, bottom: 5 }}
-                    >
-                      <CartesianGrid stroke={stroke} strokeWidth={0.5} />
-                      <XAxis dataKey="year" stroke={stroke} tick={{ fontSize: 14 }} />
-                      <YAxis dataKey="count" stroke={stroke} tick={{ fontSize: 14 }} />
-                      <Tooltip {...sharedTooltip('year', lineColor)} />
-                      <Bar dataKey="count" fill={barColor} strokeWidth={2} name="Quant." />
-                      <Line dataKey="count" stroke={lineColor} strokeWidth={2} type="monotone" name="Quant." dot={false} />
-                    </ComposedChart>
-                  </div>
+                  <ExportableChart ref={chartRef}>
+                    {(cfg) => (
+                      <ComposedChart
+                        width={cfg.width}
+                        height={cfg.height}
+                        responsive={!cfg.export}
+                        style={cfg.export ? undefined : { width: '100%', aspectRatio: 1, maxHeight: '60vh' }}
+                        data={pubYearData[slot.source] ?? []} margin={{ top: 5, right: 4, left: 0, bottom: 5 }}
+                      >
+                        <CartesianGrid stroke={stroke} strokeWidth={0.5} />
+                        <XAxis dataKey="year" stroke={stroke} tick={{ fontSize: cfg.fontPx }} />
+                        <YAxis dataKey="count" stroke={stroke} width={40} tick={{ fontSize: cfg.fontPx }} />
+                        <Tooltip {...sharedTooltip('year', lineColor)} />
+                        <Bar dataKey="count" fill={barColor} strokeWidth={2} name="Quant." isAnimationActive={false} />
+                        <Line dataKey="count" stroke={lineColor} strokeWidth={2} type="monotone" name="Quant." dot={false} isAnimationActive={false} />
+                      </ComposedChart>
+                    )}
+                  </ExportableChart>
                   {slot.source === 'Total' && <p className="text-xs text-gray-400 mt-1">* {t('stats.duplicatesNotCounted')}</p>}
                 </>
               );
@@ -1941,16 +2341,22 @@ const StatisticsSection = ({ articles, onUpdateStatus, inclusionCriteria, exclus
                 </ChartInstance>
               ) : (
                 <ChartInstance id="countries" label="" chartRef={countriesRef} data={visibleCountries} openMenuId={openMenuId} onToggle={toggleMenu}>
-                  <div ref={countriesRef}>
-                    <BarChart layout="vertical" style={{ width: '100%', aspectRatio: 1.618, maxHeight: '70vh' }}
-                      responsive data={visibleCountries} margin={{ top: 5, right: 4, left: 0, bottom: 5 }}>
-                      <CartesianGrid stroke={stroke} strokeWidth={0.5} />
-                      <XAxis type="number" dataKey="count" stroke={stroke} tick={{ fontSize: 14 }} />
-                      <YAxis type="category" dataKey="country" stroke={stroke} width={90} tick={{ fontSize: 14 }} />
-                      <Tooltip {...sharedTooltip('country', '#94a3b8')} />
-                      <Bar dataKey="count" fill="#646464" strokeWidth={2} name="Quant." />
-                    </BarChart>
-                  </div>
+                  <ExportableChart ref={countriesRef}>
+                    {(cfg) => (
+                      <BarChart layout="vertical"
+                        width={cfg.width}
+                        height={cfg.height}
+                        responsive={!cfg.export}
+                        style={cfg.export ? undefined : { width: '100%', aspectRatio: 1.618, maxHeight: '70vh' }}
+                        data={visibleCountries} margin={{ top: 5, right: 4, left: 0, bottom: 5 }}>
+                        <CartesianGrid stroke={stroke} strokeWidth={0.5} />
+                        <XAxis type="number" dataKey="count" stroke={stroke} tick={{ fontSize: cfg.fontPx }} />
+                        <YAxis type="category" dataKey="country" stroke={stroke} width={90} tick={{ fontSize: cfg.fontPx }} />
+                        <Tooltip {...sharedTooltip('country', '#94a3b8')} />
+                        <Bar dataKey="count" fill="#646464" strokeWidth={2} name="Quant." isAnimationActive={false} />
+                      </BarChart>
+                    )}
+                  </ExportableChart>
                 </ChartInstance>
               )}
             </SectionWrapper>
@@ -1974,17 +2380,23 @@ const StatisticsSection = ({ articles, onUpdateStatus, inclusionCriteria, exclus
               }
             >
               <ChartInstance id="journals" label="" chartRef={pubJournalRefs} data={visibleJournals} openMenuId={openMenuId} onToggle={toggleMenu}>
-                <div ref={pubJournalRefs}>
-                  <BarChart layout="vertical" style={{ width: '100%', aspectRatio: 1.618, maxHeight: '70vh' }}
-                    responsive data={visibleJournals} margin={{ top: 5, right: 4, left: 0, bottom: 5 }}>
-                    <CartesianGrid stroke={stroke} strokeWidth={0.5} />
-                    <XAxis type="number" dataKey="count" stroke={stroke} tick={{ fontSize: 14 }} />
-                    <YAxis type="category" dataKey="journal" stroke={stroke} width={90} tick={{ fontSize: 14 }}
-                      tickFormatter={v => formatVehicle(v, 25)} />
-                    <Tooltip {...sharedTooltip('journal', '#94a3b8')} />
-                    <Bar dataKey="count" fill="#646464" strokeWidth={2} name="Quant." />
-                  </BarChart>
-                </div>
+                <ExportableChart ref={pubJournalRefs}>
+                  {(cfg) => (
+                    <BarChart layout="vertical"
+                      width={cfg.width}
+                      height={cfg.height}
+                      responsive={!cfg.export}
+                      style={cfg.export ? undefined : { width: '100%', aspectRatio: 1.618, maxHeight: '70vh' }}
+                      data={visibleJournals} margin={{ top: 5, right: 4, left: 0, bottom: 5 }}>
+                      <CartesianGrid stroke={stroke} strokeWidth={0.5} />
+                      <XAxis type="number" dataKey="count" stroke={stroke} tick={{ fontSize: cfg.fontPx }} />
+                      <YAxis type="category" dataKey="journal" stroke={stroke} width={90} tick={{ fontSize: cfg.fontPx }}
+                        tickFormatter={v => formatVehicle(v, 25)} />
+                      <Tooltip {...sharedTooltip('journal', '#94a3b8')} />
+                      <Bar dataKey="count" fill="#646464" strokeWidth={2} name="Quant." isAnimationActive={false} />
+                    </BarChart>
+                  )}
+                </ExportableChart>
               </ChartInstance>
             </SectionWrapper>
           )}
@@ -2014,19 +2426,24 @@ const StatisticsSection = ({ articles, onUpdateStatus, inclusionCriteria, exclus
               const barColor = db ? getBarColor(db) : TOTAL_BAR;
               return (
                 <>
-                  <div ref={chartRef}>
-                    <ComposedChart
-                      style={{ width: '100%', aspectRatio: pubScoreSlots.length > 1 ? 1 : 1.618, maxHeight: '60vh' }}
-                      responsive data={pubScoreData[slot.source] ?? []} margin={{ top: 5, right: 4, left: 0, bottom: 5 }} barCategoryGap={2}
-                    >
-                      <CartesianGrid stroke={stroke} strokeWidth={0.5} />
-                      <XAxis dataKey="score" stroke={stroke} tick={{ fontSize: 14 }} />
-                      <YAxis dataKey="count" stroke={stroke} tick={{ fontSize: 14 }} />
-                      <Tooltip {...sharedTooltip('score', lineColor)} />
-                      <Bar dataKey="count" fill={barColor} strokeWidth={1} name="Quant." />
-                      <Line dataKey="gaussian" stroke={lineColor} strokeWidth={2} type="natural" name="Gauss" dot={false} isAnimationActive={false} />
-                    </ComposedChart>
-                  </div>
+                  <ExportableChart ref={chartRef}>
+                    {(cfg) => (
+                      <ComposedChart
+                        width={cfg.width}
+                        height={cfg.height}
+                        responsive={!cfg.export}
+                        style={cfg.export ? undefined : { width: '100%', aspectRatio: pubScoreSlots.length > 1 ? 1 : 1.618, maxHeight: '60vh' }}
+                        data={pubScoreData[slot.source] ?? []} margin={{ top: 5, right: 4, left: 0, bottom: 5 }} barCategoryGap={2}
+                      >
+                        <CartesianGrid stroke={stroke} strokeWidth={0.5} />
+                        <XAxis dataKey="score" stroke={stroke} tick={{ fontSize: cfg.fontPx }} />
+                        <YAxis dataKey="count" stroke={stroke} width={40} tick={{ fontSize: cfg.fontPx }} />
+                        <Tooltip {...sharedTooltip('score', lineColor)} />
+                        <Bar dataKey="count" fill={barColor} strokeWidth={1} name="Quant." isAnimationActive={false} />
+                        <Line dataKey="gaussian" stroke={lineColor} strokeWidth={2} type="natural" name="Gauss" dot={false} isAnimationActive={false} />
+                      </ComposedChart>
+                    )}
+                  </ExportableChart>
                   {slot.source === 'Total' && <p className="text-xs text-gray-400 mt-1">* {t('stats.duplicatesNotCounted')}</p>}
                 </>
               );
@@ -2070,15 +2487,21 @@ const StatisticsSection = ({ articles, onUpdateStatus, inclusionCriteria, exclus
                 {filterTabs.filter(fk => filterSelected.has(fk)).map(fk => (
                   <ChartInstance key={fk} id={`filter-${fk}`} label={filterTabLabel(fk)}
                     chartRef={filterRefs[fk]} data={criterionsCount[fk]} openMenuId={openMenuId} onToggle={toggleMenu}>
-                    <div ref={filterRefs[fk]}>
-                      <PieChart style={{ width: '100%', aspectRatio: 1, maxHeight: '50vh' }} responsive>
-                        <Pie data={criterionsCount[fk]} dataKey="value" label={renderCustomizedLabel}
-                          stroke="none" labelLine={false} isAnimationActive={false}>
-                          {criterionsCount[fk].map((e, i) => <Cell key={i} fill={pieColors[e.name]} />)}
-                        </Pie>
-                        <Legend verticalAlign="bottom" content={<CustomLegend data={criterionsCount[fk]} />} />
-                      </PieChart>
-                    </div>
+                    <ExportableChart ref={filterRefs[fk]}>
+                      {(cfg) => (
+                        <PieChart
+                          width={cfg.width}
+                          height={cfg.height}
+                          responsive={!cfg.export}
+                          style={cfg.export ? undefined : { width: '100%', aspectRatio: 1, maxHeight: '50vh' }}>
+                          <Pie data={criterionsCount[fk]} dataKey="value" label={renderCustomizedLabel}
+                            stroke="none" labelLine={false} isAnimationActive={false}>
+                            {criterionsCount[fk].map((e, i) => <Cell key={i} fill={pieColors[e.name]} />)}
+                          </Pie>
+                          <Legend verticalAlign="bottom" content={<CustomLegend data={criterionsCount[fk]} />} />
+                        </PieChart>
+                      )}
+                    </ExportableChart>
                   </ChartInstance>
                 ))}
               </div>
@@ -2099,16 +2522,22 @@ const StatisticsSection = ({ articles, onUpdateStatus, inclusionCriteria, exclus
                       chartRef={criterionChartRefs[ctr]} data={data} openMenuId={openMenuId} onToggle={toggleMenu}>
                       {data.length === 0
                         ? <p className="text-xs text-gray-400 text-center py-6">{t('stats.noCriteria')}</p>
-                        : <div ref={criterionChartRefs[ctr]}>
-                          <PieChart style={{ width: '100%', aspectRatio: 1, maxHeight: '50vh' }} responsive>
-                            <Pie data={data} dataKey="value" label={renderCriterionLabel}
-                              labelLine={false} stroke="none" isAnimationActive={false}>
-                              {data.map((_, i) => <Cell key={i} fill={cols[i % cols.length]} />)}
-                            </Pie>
-                            <Tooltip {...criterionTooltip} />
-                            <Legend verticalAlign="bottom" content={<CriterionLegend data={data} ctr={ctr} />} />
-                          </PieChart>
-                        </div>
+                        : <ExportableChart ref={criterionChartRefs[ctr]}>
+                          {(cfg) => (
+                            <PieChart
+                              width={cfg.width}
+                              height={cfg.height}
+                              responsive={!cfg.export}
+                              style={cfg.export ? undefined : { width: '100%', aspectRatio: 1, maxHeight: '50vh' }}>
+                              <Pie data={data} dataKey="value" label={renderCriterionLabel}
+                                labelLine={false} stroke="none" isAnimationActive={false}>
+                                {data.map((_, i) => <Cell key={i} fill={cols[i % cols.length]} />)}
+                              </Pie>
+                              <Tooltip {...criterionTooltip} />
+                              <Legend verticalAlign="bottom" content={<CriterionLegend data={data} ctr={ctr} />} />
+                            </PieChart>
+                          )}
+                        </ExportableChart>
                       }
                     </ChartInstance>
                   );
@@ -2150,33 +2579,37 @@ const StatisticsSection = ({ articles, onUpdateStatus, inclusionCriteria, exclus
                           ? <p className="text-xs text-gray-400 text-center py-6">
                             {t('stats.noIncludedArticles')}
                           </p>
-                          : <div ref={filterOriginRef[fk]}>
-                            <PieChart
-                              style={{ width: '100%', aspectRatio: 1, maxHeight: '50vh' }}
-                              responsive
-                            >
-                              <Pie
-                                data={data}
-                                dataKey="value"
-                                label={renderCriterionLabel}
-                                labelLine={false}
-                                stroke="none"
-                                isAnimationActive={false}
+                          : <ExportableChart ref={filterOriginRef[fk]}>
+                            {(cfg) => (
+                              <PieChart
+                                width={cfg.width}
+                                height={cfg.height}
+                                responsive={!cfg.export}
+                                style={cfg.export ? undefined : { width: '100%', aspectRatio: 1, maxHeight: '50vh' }}
                               >
-                                {data.map((or, i) => (
-                                  <Cell
-                                    key={i}
-                                    fill={getOriginColors(or.id)[i % getOriginColors(or.id).length]}
-                                  />
-                                ))}
-                              </Pie>
-                              <Tooltip {...criterionTooltip} />
-                              <Legend
-                                verticalAlign="bottom"
-                                content={<OriginLegend data={data} or="Total" />}
-                              />
-                            </PieChart>
-                          </div>
+                                <Pie
+                                  data={data}
+                                  dataKey="value"
+                                  label={renderCriterionLabel}
+                                  labelLine={false}
+                                  stroke="none"
+                                  isAnimationActive={false}
+                                >
+                                  {data.map((or, i) => (
+                                    <Cell
+                                      key={i}
+                                      fill={getOriginColors(or.id)[i % getOriginColors(or.id).length]}
+                                    />
+                                  ))}
+                                </Pie>
+                                <Tooltip {...criterionTooltip} />
+                                <Legend
+                                  verticalAlign="bottom"
+                                  content={<OriginLegend data={data} or="Total" />}
+                                />
+                              </PieChart>
+                            )}
+                          </ExportableChart>
                         }
                       </ChartInstance>
                     );
@@ -2187,9 +2620,9 @@ const StatisticsSection = ({ articles, onUpdateStatus, inclusionCriteria, exclus
         </>
       )}
 
-      {/* ═══ ABA COAUTORIA ═════════════════════════════════════════════════════ */}
-      {activeTab === 'coauthorship' && (
-        <CoAuthorshipTab
+      {/* ═══ ABA REDE ═══════════════════════════════════════════════════════════ */}
+      {activeTab === 'network' && (
+        <NetworkTab
           articles={articles}
           theme={theme}
         />
@@ -2199,9 +2632,9 @@ const StatisticsSection = ({ articles, onUpdateStatus, inclusionCriteria, exclus
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Bibliometric Network Tab (Coautoria / Palavras-chave)
+// Network Tab (Coautoria / Palavras-chave)
 // ─────────────────────────────────────────────────────────────────────────────
-const CoAuthorshipTab = ({ articles, theme }) => {
+const NetworkTab = ({ articles, theme }) => {
   const { t } = useTranslation();
   const [networkType, setNetworkType] = useState('coauthorship');
   const [countingMethod, setCountingMethod] = useState('fractional');
@@ -2216,8 +2649,10 @@ const CoAuthorshipTab = ({ articles, theme }) => {
   const [labelPosition, setLabelPosition] = useState('below');
   const [labelOpacityThreshold, setLabelOpacityThreshold] = useState(0);
   const vizRef = useRef(null);
+  const networkContainerRef = useRef(null);
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [networkModalOpen, setNetworkModalOpen] = useState(false);
+  const [networkHelpOpen, setNetworkHelpOpen] = useState(false);
 
   const validArticles = useMemo(() =>
     articles.filter(a => a.title && a.title.trim() && !a.title.startsWith('Título não encontrado')),
@@ -2322,40 +2757,17 @@ const CoAuthorshipTab = ({ articles, theme }) => {
     setHighlightedNode(node?.id || null);
   }, []);
 
-  const clusterColorsList = useMemo(() => {
-    if (!filteredData) return [];
-    const clusterIds = [...new Set(filteredData.nodes.map(n => n.clusterId).filter(id => id !== null))];
-    return generateClusterColors(clusterIds.length);
-  }, [filteredData]);
-
   const countLabel = networkType === 'keywords' ? t('stats.occurrences') : t('stats.publications');
   const countKey = networkType === 'keywords' ? 'occurrenceCount' : 'publicationCount';
 
   const handleExportPNG = useCallback((settings) => {
     if (!vizRef.current) return;
-    const dataURL = vizRef.current.toDataURL();
+    const dataURL = vizRef.current.toDataURL(settings);
     if (!dataURL) return;
-    if (settings?.widthPx && settings?.heightPx) {
-      const srcImg = new Image();
-      srcImg.onload = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = settings.widthPx;
-        canvas.height = settings.heightPx;
-        const ctx = canvas.getContext('2d');
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
-        ctx.drawImage(srcImg, 0, 0, settings.widthPx, settings.heightPx);
-        canvas.toBlob(blob => {
-          FileSaver.saveAs(blob, `rede-${networkType}-${viewMode}.png`);
-        }, 'image/png', 1);
-      };
-      srcImg.src = dataURL;
-    } else {
-      const link = document.createElement('a');
-      link.download = `rede-${networkType}-${viewMode}.png`;
-      link.href = dataURL;
-      link.click();
-    }
+    const link = document.createElement('a');
+    link.download = `rede-${networkType}-${viewMode}.png`;
+    link.href = dataURL;
+    link.click();
   }, [networkType, viewMode]);
 
   const handleExportXLSX = useCallback(async () => {
@@ -2438,7 +2850,7 @@ const CoAuthorshipTab = ({ articles, theme }) => {
                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                 }`}
             >
-              {t('stats.tabCoauthorship')}
+              {t('stats.coauthorship')}
             </button>
             <button
               onClick={() => setNetworkType('keywords')}
@@ -2499,6 +2911,17 @@ const CoAuthorshipTab = ({ articles, theme }) => {
             </button>
           </div>
         </div>
+
+        <div className="ml-auto">
+          <button
+            onClick={() => setNetworkHelpOpen(true)}
+            title={t('stats.networkHelp')}
+            aria-label={t('stats.networkHelp')}
+            className="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-full p-1.5 cursor-pointer transition-all duration-200 flex items-center justify-center"
+          >
+            <HelpCircle size={16} />
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-4 mb-6">
@@ -2539,8 +2962,8 @@ const CoAuthorshipTab = ({ articles, theme }) => {
                 key={opt.value}
                 onClick={() => setLabelPosition(opt.value)}
                 className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${labelPosition === opt.value
-                    ? 'bg-white dark:bg-gray-900 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                  ? 'bg-white dark:bg-gray-900 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                   }`}
               >
                 {opt.label}
@@ -2552,17 +2975,27 @@ const CoAuthorshipTab = ({ articles, theme }) => {
         {networkType === 'keywords' && (
           <div className="flex items-center gap-2">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('stats.opacityLabel')}</label>
-            <select
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="5"
               value={labelOpacityThreshold}
-              onChange={(e) => setLabelOpacityThreshold(parseInt(e.target.value))}
-              className="px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            >
-              <option value={0}>{t('stats.opacityOff')}</option>
-              <option value={20}>{t('stats.opacityBottom20')}</option>
-              <option value={30}>{t('stats.opacityBottom30')}</option>
-              <option value={40}>{t('stats.opacityBottom40')}</option>
-              <option value={50}>{t('stats.opacityBottom50')}</option>
-            </select>
+              onChange={(e) => setLabelOpacityThreshold(parseInt(e.target.value) || 0)}
+              className="w-32 accent-indigo-500 cursor-pointer"
+              aria-label={t('stats.opacityLabel')}
+            />
+            <div className="relative">
+              <input
+                type="number"
+                min="0"
+                max="100"
+                value={labelOpacityThreshold}
+                onChange={(e) => setLabelOpacityThreshold(Math.min(100, Math.max(0, parseInt(e.target.value) || 0)))}
+                className="w-16 px-2 py-1.5 pr-5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              />
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400 dark:text-gray-500 pointer-events-none">%</span>
+            </div>
           </div>
         )}
 
@@ -2579,13 +3012,6 @@ const CoAuthorshipTab = ({ articles, theme }) => {
 
 
       </div>
-
-      {isComputing && (
-        <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-          <div className="animate-spin inline-block h-6 w-6 border-2 border-indigo-600 border-t-transparent rounded-full mb-2"></div>
-          <p>{t('stats.calculatingNetworkShort')}</p>
-        </div>
-      )}
 
       {filteredData && (
         <div className="mb-4 flex flex-wrap gap-4 text-sm">
@@ -2620,7 +3046,16 @@ const CoAuthorshipTab = ({ articles, theme }) => {
         </div>
       )}
 
-      {filteredData && filteredData.nodes.length > 0 && (
+      {isComputing && (
+        <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-4 flex items-center justify-center" style={{ height: '550px' }}>
+          <div className="flex items-center text-xs text-gray-400 gap-2">
+            <div className="animate-spin inline-block h-4 w-4 border-2 border-indigo-600 border-t-transparent rounded-full"></div>
+            {t('stats.calculatingNetworkShort')}
+          </div>
+        </div>
+      )}
+
+      {!isComputing && filteredData && filteredData.nodes.length > 0 && (
         <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-4">
           <div className="flex justify-end mb-2">
             <div className="relative">
@@ -2650,15 +3085,7 @@ const CoAuthorshipTab = ({ articles, theme }) => {
               )}
             </div>
           </div>
-          <div className="relative bg-white dark:bg-gray-800 rounded-lg" style={{ height: '550px' }}>
-            {isComputing && (
-              <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/70 dark:bg-gray-800/70 rounded-lg">
-                <div className="text-center">
-                  <div className="animate-spin inline-block h-8 w-8 border-2 border-indigo-600 border-t-transparent rounded-full mb-2"></div>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">{t('stats.calculatingNetworkShort')}</p>
-                </div>
-              </div>
-            )}
+          <div ref={networkContainerRef} className="relative bg-white dark:bg-gray-800 rounded-lg" style={{ height: '550px' }}>
             {viewMode === 'network' ? (
               <NetworkVisualization
                 ref={vizRef}
@@ -2687,37 +3114,6 @@ const CoAuthorshipTab = ({ articles, theme }) => {
               />
             )}
           </div>
-
-          {filteredData.communityCount > 0 && (() => {
-            const clusterCounts = {};
-            filteredData.nodes.forEach(n => {
-              if (n.clusterId !== null) {
-                clusterCounts[n.clusterId] = (clusterCounts[n.clusterId] || 0) + 1;
-              }
-            });
-            const meaningfulClusters = Object.entries(clusterCounts)
-              .filter(([, count]) => count > 1)
-              .sort((a, b) => b[1] - a[1]);
-
-            return meaningfulClusters.length > 0 && (
-              <div className="mt-4 flex flex-wrap gap-2">
-                {meaningfulClusters.map(([clusterId, count]) => (
-                  <div
-                    key={clusterId}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm"
-                    style={{
-                      backgroundColor: `${clusterColorsList[clusterId]}20`,
-                      color: clusterColorsList[clusterId],
-                      border: `1px solid ${clusterColorsList[clusterId]}40`,
-                    }}
-                  >
-                    <span className="font-bold">{parseInt(clusterId) + 1}</span>
-                    <span className="text-xs opacity-70">({count})</span>
-                  </div>
-                ))}
-              </div>
-            );
-          })()}
         </div>
       )}
 
@@ -2748,10 +3144,18 @@ const CoAuthorshipTab = ({ articles, theme }) => {
       )}
 
       {!isComputing && (!filteredData || filteredData.nodes.length === 0) && (
-        <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-          <p>{t('stats.noNetworkHint')}</p>
+        <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-4 flex items-center justify-center" style={{ height: '550px' }}>
+          <div className="flex items-center text-xs text-gray-400 gap-2">
+            <Info className={`h-5 w-5 `} />
+            <p>{t('stats.noNetworkHint')}</p>
+          </div>
         </div>
       )}
+
+      <NetworkHelpModal
+        isOpen={networkHelpOpen}
+        onClose={() => setNetworkHelpOpen(false)}
+      />
 
       <ExportConfigModal
         isOpen={networkModalOpen}
@@ -2759,6 +3163,9 @@ const CoAuthorshipTab = ({ articles, theme }) => {
         onExport={(settings) => handleExportPNG(settings)}
         format="png"
         svgElement={null}
+        sourceAspectRatio={networkContainerRef.current
+          ? networkContainerRef.current.getBoundingClientRect().width / networkContainerRef.current.getBoundingClientRect().height
+          : null}
       />
     </div>
   );

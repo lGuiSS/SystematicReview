@@ -11,7 +11,7 @@ function formatTimeSince(date, t) {
   return t("modals.unsaved.minutes", { count: diffMin });
 }
 
-export function UnsavedWarningModal({ lastSaved, hasUnsavedChanges = false, fileOpenedAt = null, warnAfterMin=10,  onSave, onDismiss }) {
+export function UnsavedWarningModal({ lastSaved, hasUnsavedChanges = false, fileOpenedAt = null, warnAfterMin=10,  onSave, onDismiss, autoSaveAvailable = false, autoSaveEnabled = false, onToggleAutoSave }) {
   const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
   const [exiting, setExiting] = useState(false);
@@ -128,6 +128,21 @@ export function UnsavedWarningModal({ lastSaved, hasUnsavedChanges = false, file
 
         {/* Divider */}
         <div className="border-t border-gray-100 dark:border-gray-700 mx-4" />
+
+        {/* Auto-save toggle */}
+        {autoSaveAvailable && (
+          <div className="px-4 pt-3">
+            <label className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={autoSaveEnabled}
+                onChange={(e) => onToggleAutoSave?.(e.target.checked)}
+                className="accent-indigo-500 w-4 h-4"
+              />
+              {t('autosave.unsavedCheckbox')}
+            </label>
+          </div>
+        )}
 
         {/* Actions */}
         <div className="flex gap-2 p-3">

@@ -1,23 +1,22 @@
 // fileSystem.js - Sistema de salvamento e abertura de arquivos
 
 // Versão atual do schema do arquivo
-const CURRENT_SCHEMA_VERSION = "1.1.0";
+const CURRENT_SCHEMA_VERSION = "1.2.0";
 
 // Schemas de versões para compatibilidade retroativa
 const SCHEMA_VERSIONS = {
   "1.0.0": {
     requiredFields: ["version", "protocol", "articles", "statistics", "metadata"],
-    migrations: [] 
+    migrations: []
   },
   "1.1.0": {
     requiredFields: ["version", "protocol", "articles", "statistics", "metadata"],
     migrations: [migrateFrom1_0_0to1_1_0]
+  },
+  "1.2.0": {
+    requiredFields: ["version", "protocol", "articles", "statistics", "metadata"],
+    migrations: [migrateFrom1_1_0to1_2_0]
   }
-  // Futuras versões serão adicionadas aqui:
-  // "1.2.0": {
-  //   requiredFields: [...],
-  //   migrations: [migrateFrom1_0_0to1_1_0]
-  // }
 };
 // Remove exclusionReason dos artigos, movendo seu valor para exclusionCriterion
 function migrateFrom1_0_0to1_1_0(data) {
@@ -43,9 +42,9 @@ function migrateFrom1_0_0to1_1_0(data) {
       const { exclusionReason, exclusionCriterion, inclusionCriterion, qualityCriteria = [], ...rest } = article;
       // --- exclusionCriterion ---
       const existingExclusion = Array.isArray(exclusionCriterion) ? exclusionCriterion : [];
-      const incoming          = Array.isArray(exclusionReason)
-                                  ? exclusionReason
-                                  : exclusionReason != null ? [exclusionReason] : [];
+      const incoming = Array.isArray(exclusionReason)
+        ? exclusionReason
+        : exclusionReason != null ? [exclusionReason] : [];
 
       const mergedExclusionIds = [...new Set([...existingExclusion, ...incoming])].filter(Boolean);
       const newExclusionCriterion = mergedExclusionIds
@@ -63,7 +62,7 @@ function migrateFrom1_0_0to1_1_0(data) {
         .filter(Boolean);
 
       // --- qualityCriterion ---
-      const newQualityCriterion = Array.isArray(qualityCriteria) ? qualityCriteria : [];  
+      const newQualityCriterion = Array.isArray(qualityCriteria) ? qualityCriteria : [];
 
       return {
         ...rest,
@@ -72,6 +71,38 @@ function migrateFrom1_0_0to1_1_0(data) {
         qualityCriteria: newQualityCriterion,
       };
     }),
+  };
+}
+// Reatribui IDs únicos a artigos com IDs duplicados ou ausentes (bug de IDs
+// colidindo). Referências `duplicateOf` apontam para o id da primeira
+// ocorrência, que é sempre mantido — portanto não precisam ser alteradas.
+function migrateFrom1_1_0to1_2_0(data) {
+  const { articles = [] } = data;
+
+  const allIds = new Set(articles.map(a => a.id).filter(Boolean));
+  const usedIds = new Set();
+
+  const newArticles = articles.map(article => {
+    const oldId = article.id;
+    if (oldId && !usedIds.has(oldId)) {
+      usedIds.add(oldId);
+      return article;
+    }
+
+    // Colisão ou id ausente: gera um novo id garantidamente único
+    let newId;
+    do {
+      newId = `${oldId || 'article'}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+    } while (usedIds.has(newId) || allIds.has(newId));
+
+    usedIds.add(newId);
+    return { ...article, id: newId };
+  });
+
+  return {
+    ...data,
+    version: "1.2.0",
+    articles: newArticles,
   };
 }
 // Função para criar o estado padrão
@@ -87,6 +118,7 @@ const createDefaultState = () => ({
     databases: []
   },
   articles: [],
+  statistics: {},
   currentSection: 'protocol',
   importedData: []
 });
@@ -110,7 +142,7 @@ const validateSchema = (data, version) => {
 const migrateData = (data) => {
   let currentData = { ...data };
   const fromVersion = currentData.version || "1.0.0";
-  
+
   // Se já está na versão atual, não precisa migrar
   if (fromVersion === CURRENT_SCHEMA_VERSION) {
     return currentData;
@@ -129,7 +161,7 @@ const migrateData = (data) => {
   for (let i = fromVersionIndex; i < currentVersionIndex; i++) {
     const nextVersion = versions[i + 1];
     const migrations = SCHEMA_VERSIONS[nextVersion].migrations;
-    
+
     for (const migration of migrations) {
       currentData = migration(currentData);
     }
@@ -137,14 +169,14 @@ const migrateData = (data) => {
 
   // Atualizar versão
   currentData.version = CURRENT_SCHEMA_VERSION;
-  
+
   return currentData;
 };
 
 // Função para adicionar campos ausentes com valores padrão
 const addMissingFields = (data) => {
   const defaultState = createDefaultState();
-  
+
   return {
     ...defaultState, // valores padrão primeiro
     ...data, // dados carregados sobrescrevem os padrão
@@ -155,50 +187,66 @@ const addMissingFields = (data) => {
   };
 };
 
-// Função principal de salvamento
-export const saveProjectToFile = async (state) => {
-  try {
-    const saveData = {
-      version: CURRENT_SCHEMA_VERSION,
-      protocol: state.protocol,
-      articles: state.articles,
-      statistics: state.statistics,
-      metadata: {
-        savedAt: new Date().toISOString(),
-        totalArticles: state.articles.length,
-        duplicates: state.articles.filter(a => a.isDuplicate).length,
-        appVersion: CURRENT_SCHEMA_VERSION,
-      },
-      currentSection: state.currentSection,
-      importedData: state.importedData || [],
-      warnAfterMin: state.warnAfterMin
-    };
+// Suporte à File System Access API (Chromium)
+export const isFileSystemAccessSupported = () =>
+  typeof window !== 'undefined' &&
+  typeof window.showSaveFilePicker === 'function' &&
+  typeof window.showOpenFilePicker === 'function';
 
-    const jsonData = JSON.stringify(saveData, null, 2);
+// Serializa o estado no formato de arquivo do projeto
+const buildSaveData = (state) => ({
+  version: CURRENT_SCHEMA_VERSION,
+  protocol: state.protocol,
+  articles: state.articles,
+  statistics: state.statistics,
+  metadata: {
+    savedAt: new Date().toISOString(),
+    totalArticles: state.articles.length,
+    duplicates: state.articles.filter(a => a.isDuplicate).length,
+    appVersion: CURRENT_SCHEMA_VERSION,
+  },
+  currentSection: state.currentSection,
+  importedData: state.importedData || [],
+  warnAfterMin: state.warnAfterMin
+});
+
+// Escreve conteúdo em um FileSystemFileHandle
+const writeToHandle = async (handle, content) => {
+  const writable = await handle.createWritable();
+  await writable.write(content);
+  await writable.close();
+};
+
+// Função principal de salvamento (abre o picker quando não há handle)
+export const saveProjectToFile = async (state, existingHandle = null) => {
+  try {
+    const jsonData = JSON.stringify(buildSaveData(state), null, 2);
     const timestamp = new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-');
     const suggestedName = `systematic-review-${timestamp}.srp`;
 
-    // Verificar suporte à API
-    if (typeof window.showSaveFilePicker !== 'function') {
-      console.warn('showSaveFilePicker não suportado, usando download padrão.');
-      return fallbackDownload(jsonData, suggestedName);
+    let fileHandle = existingHandle;
+
+    if (!fileHandle) {
+      // Verificar suporte à API
+      if (!isFileSystemAccessSupported()) {
+        console.warn('showSaveFilePicker não suportado, usando download padrão.');
+        return fallbackDownload(jsonData, suggestedName);
+      }
+
+      fileHandle = await window.showSaveFilePicker({
+        suggestedName,
+        types: [
+          {
+            description: 'Systematic Review Project',
+            accept: { 'application/json': ['.srp'] },
+          },
+        ],
+      });
     }
 
-    const fileHandle = await window.showSaveFilePicker({
-      suggestedName,
-      types: [
-        {
-          description: 'Systematic Review Project',
-          accept: { 'application/json': ['.srp'] },
-        },
-      ],
-    });
+    await writeToHandle(fileHandle, jsonData);
 
-    const writable = await fileHandle.createWritable();
-    await writable.write(jsonData);
-    await writable.close();
-
-    return { success: true, filename: fileHandle.name };
+    return { success: true, filename: fileHandle.name, fileHandle };
 
   } catch (error) {
     // Log completo para diagnóstico
@@ -209,6 +257,145 @@ export const saveProjectToFile = async (state) => {
     }
 
     return { success: false, error: error?.message || `Erro desconhecido: ${error}` };
+  }
+};
+
+// Salvamento automático: grava direto no handle sem abrir o picker
+export const autoSaveToFile = async (state, fileHandle) => {
+  try {
+    if (!fileHandle || typeof fileHandle.createWritable !== 'function') {
+      return { success: false, error: 'Handle inválido para salvamento automático.' };
+    }
+
+    const jsonData = JSON.stringify(buildSaveData(state), null, 2);
+    await writeToHandle(fileHandle, jsonData);
+
+    return { success: true, filename: fileHandle.name };
+  } catch (error) {
+    console.error('Erro no salvamento automático:', error);
+    return { success: false, error: error?.message || 'Falha no salvamento automático.' };
+  }
+};
+
+// Abre o picker de arquivo e devolve o handle (permite auto-save do arquivo aberto)
+export const openProjectFromPicker = async () => {
+  try {
+    if (!isFileSystemAccessSupported()) {
+      return { success: false, error: 'API não suportada neste navegador.', unsupported: true };
+    }
+
+    const [fileHandle] = await window.showOpenFilePicker({
+      types: [
+        {
+          description: 'Systematic Review Project',
+          accept: { 'application/json': ['.srp', '.json'] },
+        },
+      ],
+      multiple: false,
+    });
+
+    const file = await fileHandle.getFile();
+    const content = await file.text();
+
+    return { success: true, file, content, fileHandle, filename: fileHandle.name };
+  } catch (error) {
+    if (error?.name === 'AbortError') {
+      return { success: false, error: 'Operação cancelada pelo usuário.' };
+    }
+    console.error('Erro ao abrir via picker:', error);
+    return { success: false, error: error?.message || 'Falha ao abrir o arquivo.' };
+  }
+};
+
+// Consulta a permissão de escrita do handle (sem pedir, para reabertura)
+export const queryHandlePermission = async (fileHandle) => {
+  try {
+    if (!fileHandle || typeof fileHandle.queryPermission !== 'function') {
+      return { granted: true, state: 'granted' };
+    }
+    const state = await fileHandle.queryPermission({ mode: 'readwrite' });
+    return { granted: state === 'granted', state };
+  } catch {
+    return { granted: false, state: 'denied' };
+  }
+};
+
+// Solicita permissão de escrita (requer gesto do usuário quando em 'prompt')
+export const requestHandlePermission = async (fileHandle) => {
+  try {
+    if (!fileHandle || typeof fileHandle.requestPermission !== 'function') {
+      return { granted: true, state: 'granted' };
+    }
+    const state = await fileHandle.requestPermission({ mode: 'readwrite' });
+    return { granted: state === 'granted', state };
+  } catch {
+    return { granted: false, state: 'denied' };
+  }
+};
+
+// ── Persistência do handle em IndexedDB (sobrevive ao reload) ───────────────
+const HANDLE_DB_NAME = 'sysreview-fs';
+const HANDLE_DB_STORE = 'handles';
+const HANDLE_DB_KEY = 'autoSaveFileHandle';
+
+const openHandleDb = () => new Promise((resolve, reject) => {
+  const req = indexedDB.open(HANDLE_DB_NAME, 1);
+  req.onupgradeneeded = () => {
+    if (!req.result.objectStoreNames.contains(HANDLE_DB_STORE)) {
+      req.result.createObjectStore(HANDLE_DB_STORE);
+    }
+  };
+  req.onsuccess = () => resolve(req.result);
+  req.onerror = () => reject(req.error);
+});
+
+export const saveFileHandle = async (fileHandle) => {
+  try {
+    if (!fileHandle) return { success: false, error: 'Handle ausente.' };
+    const db = await openHandleDb();
+    const tx = db.transaction(HANDLE_DB_STORE, 'readwrite');
+    tx.objectStore(HANDLE_DB_STORE).put(fileHandle, HANDLE_DB_KEY);
+    await new Promise((resolve, reject) => {
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+    });
+    db.close();
+    return { success: true };
+  } catch (error) {
+    console.warn('Falha ao persistir handle:', error);
+    return { success: false, error: error?.message || 'Falha ao persistir handle.' };
+  }
+};
+
+export const loadFileHandle = async () => {
+  try {
+    const db = await openHandleDb();
+    const tx = db.transaction(HANDLE_DB_STORE, 'readonly');
+    const req = tx.objectStore(HANDLE_DB_STORE).get(HANDLE_DB_KEY);
+    const handle = await new Promise((resolve, reject) => {
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    db.close();
+    return handle || null;
+  } catch {
+    return null;
+  }
+};
+
+export const clearFileHandle = async () => {
+  try {
+    const db = await openHandleDb();
+    const tx = db.transaction(HANDLE_DB_STORE, 'readwrite');
+    tx.objectStore(HANDLE_DB_STORE).delete(HANDLE_DB_KEY);
+    await new Promise((resolve, reject) => {
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+    });
+    db.close();
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error?.message || 'Falha ao limpar handle.' };
   }
 };
 
@@ -234,43 +421,44 @@ const fallbackDownload = (jsonData, filename) => {
 export const loadProjectFromFile = (file) => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    
+
     reader.onload = (event) => {
       try {
         // Parse do JSON
         const rawData = JSON.parse(event.target.result);
-        
+
         // Determinar versão do arquivo
         const fileVersion = rawData.version || "1.0.0";
         console.log(`Carregando arquivo versão: ${fileVersion}`);
-        
+
         // Validar schema básico
         try {
           validateSchema(rawData, fileVersion);
         } catch (validationError) {
           console.warn('Falha na validação do schema, tentando recuperar:', validationError.message);
         }
-        
+
         // Migrar dados se necessário
         let migratedData = migrateData(rawData);
-        
+
         // Adicionar campos ausentes com valores padrão
         const completeData = addMissingFields(migratedData);
-        
+
         // Validar dados migrados
         validateSchema(completeData, CURRENT_SCHEMA_VERSION);
-        
+
         // Log de sucesso
         console.log(`Arquivo carregado com sucesso. Versão original: ${fileVersion}, Versão atual: ${CURRENT_SCHEMA_VERSION}`);
         console.log(`Total de artigos: ${completeData.articles.length}`);
-        
+
         resolve({
           success: true,
           data: completeData,
           originalVersion: fileVersion,
+          newVersion: CURRENT_SCHEMA_VERSION,
           migrated: fileVersion !== CURRENT_SCHEMA_VERSION
         });
-        
+
       } catch (error) {
         console.error('Erro ao carregar arquivo:', error);
         reject({
@@ -280,63 +468,26 @@ export const loadProjectFromFile = (file) => {
         });
       }
     };
-    
+
     reader.onerror = () => {
       reject({
         success: false,
         error: 'Erro ao ler o arquivo'
       });
     };
-    
+
     reader.readAsText(file);
   });
-};
-
-// Função auxiliar para calcular estatísticas
-const calculateStatistics = (articles) => {
-  const dataProcessing = {
-    pending: articles.filter(a => a.dataProcessingStatus === 'pending' && !a.isDuplicate).length,
-    included: articles.filter(a => a.dataProcessingStatus === 'included' && !a.isDuplicate).length,
-    excluded: articles.filter(a => a.dataProcessingStatus === 'excluded' || a.isDuplicate).length
-  };
-
-  const filter1 = {
-    pending: articles.filter(a => 
-      a.dataProcessingStatus === 'included' && 
-      !a.isDuplicate && 
-      a.filter1Status === 'pending'
-    ).length,
-    included: articles.filter(a => a.filter1Status === 'included').length,
-    excluded: articles.filter(a => 
-      a.dataProcessingStatus === 'included' && 
-      !a.isDuplicate && 
-      a.filter1Status === 'excluded'
-    ).length
-  };
-  
-  const filter2 = {
-    pending: articles.filter(a => a.filter1Status === 'included' && a.filter2Status === 'pending').length,
-    included: articles.filter(a => a.filter2Status === 'included').length,
-    excluded: articles.filter(a => a.filter1Status === 'included' && a.filter2Status === 'excluded').length
-  };
-  
-  const filter3 = {
-    pending: articles.filter(a => a.filter2Status === 'included' && a.filter3Status === 'pending').length,
-    included: articles.filter(a => a.filter3Status === 'included').length,
-    excluded: articles.filter(a => a.filter2Status === 'included' && a.filter3Status === 'excluded').length
-  };
-  
-  return { dataProcessing, filter1, filter2, filter3 };
 };
 
 // Função para auto-save (salvamento automático periódico)
 export const setupAutoSave = (getState, intervalMinutes = 5) => {
   const interval = intervalMinutes * 60 * 1000; // converter para ms
-  
+
   return setInterval(() => {
     try {
       const state = getState();
-      
+
       // Só fazer auto-save se houver dados relevantes
       if (state.articles.length > 0 || state.protocol.title.trim()) {
         const autoSaveData = {
@@ -347,7 +498,7 @@ export const setupAutoSave = (getState, intervalMinutes = 5) => {
             isAutoSave: true
           }
         };
-        
+
         // Salvar no localStorage como backup
         localStorage.setItem('systematic-review-autosave', JSON.stringify(autoSaveData));
         console.log('Auto-save realizado:', new Date().toLocaleTimeString());
@@ -364,9 +515,11 @@ export const loadAutoSave = () => {
     const autoSaveData = localStorage.getItem('systematic-review-autosave');
     if (autoSaveData) {
       const parsedData = JSON.parse(autoSaveData);
+      // Aplica migrações (incluindo correção de IDs duplicados) antes de restaurar
+      const migratedData = migrateData(parsedData);
       return {
         success: true,
-        data: parsedData,
+        data: migratedData,
         isAutoSave: true
       };
     }

@@ -3,6 +3,9 @@ import { forceSimulation, forceLink, forceManyBody, forceCenter, forceCollide } 
 import { scaleLinear } from 'd3-scale';
 import { generateClusterColors } from './communityDetection';
 
+const AGGRESSIVE_MIN_OPACITY = 0.15;
+const OVERLAP_OPACITY = 0.45;
+
 const NetworkVisualization = forwardRef(({
   nodes,
   edges,
@@ -24,10 +27,6 @@ const NetworkVisualization = forwardRef(({
   const dragNodeRef = useRef(null);
   const transformRef = useRef({ x: 0, y: 0, k: 1 });
   const [transform, setTransform] = useState({ x: 0, y: 0, k: 1 });
-
-  useImperativeHandle(ref, () => ({
-    toDataURL: () => canvasRef.current?.toDataURL('image/png')
-  }));
 
   const countKey = stats?.method === 'keywords' ? 'occurrenceCount' : 'publicationCount';
 
@@ -61,21 +60,36 @@ const NetworkVisualization = forwardRef(({
     [maxCount]
   );
 
-  const getLabelOpacity = useCallback((simNodes, node) => {
+  const getNodeOpacity = useCallback((simNodes, node, counts) => {
     if (!simNodes || simNodes.length === 0 || labelOpacityThreshold <= 0) return 1;
-    const cx = simNodes.reduce((s, n) => s + n.x, 0) / simNodes.length;
-    const cy = simNodes.reduce((s, n) => s + n.y, 0) / simNodes.length;
-    let maxDist = 0;
-    for (const n of simNodes) {
-      const d = Math.sqrt((n.x - cx) ** 2 + (n.y - cy) ** 2);
-      if (d > maxDist) maxDist = d;
-    }
-    if (maxDist === 0) return 1;
-    const minOpacity = 1 - (labelOpacityThreshold / 100) * 0.85;
-    const d = Math.sqrt((node.x - cx) ** 2 + (node.y - cy) ** 2);
-    const ratio = d / maxDist;
-    return Math.max(minOpacity, 1 - ratio * (1 - minOpacity));
-  }, [labelOpacityThreshold]);
+
+    const count = node[countKey] || 1;
+
+    // Sobreposto a um nó de maior ocorrência: opacidade "agressiva, mas nem tanto"
+    const overlapsHigher = simNodes.some(other => {
+      if (other === node) return false;
+      const otherCount = other[countKey] || 1;
+      if (otherCount <= count) return false;
+      const dx = node.x - other.x;
+      const dy = node.y - other.y;
+      const r = nodeRadiusScale(count);
+      const ro = nodeRadiusScale(otherCount);
+      return Math.sqrt(dx * dx + dy * dy) < r + ro;
+    });
+    if (overlapsHigher) return OVERLAP_OPACITY;
+
+    // Menores ocorrências recebem opacidade agressiva; maiores ficam nítidas
+    const minCount = counts[0];
+    const maxCount = counts[counts.length - 1];
+    if (maxCount <= minCount) return 1;
+
+    const cutoffIdx = Math.floor(counts.length * (labelOpacityThreshold / 100)) - 1;
+    const cutoff = cutoffIdx >= 0 ? counts[cutoffIdx] : minCount;
+    if (cutoff <= minCount || count >= cutoff) return 1;
+
+    const ratio = (count - minCount) / (cutoff - minCount);
+    return AGGRESSIVE_MIN_OPACITY + (1 - AGGRESSIVE_MIN_OPACITY) * ratio;
+  }, [countKey, labelOpacityThreshold, nodeRadiusScale]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -137,25 +151,16 @@ const NetworkVisualization = forwardRef(({
     return () => { sim.stop(); };
   }, [nodes, edges, dimensions, countKey]);
 
-  useEffect(() => {
-    if (nodes && nodes.length > 0) {
-      const timer = setTimeout(() => {
-        containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [nodes]);
-
   useEffect(() => { draw(); }, [highlightedNode, transform, labelPosition, labelOpacityThreshold]);
 
-  const drawLabel = useCallback((ctx, node, r, isDark, t, simNodes) => {
+  const drawLabel = useCallback((ctx, node, r, isDark, t, simNodes, counts) => {
     const fontSize = fontSizeScale(node[countKey] || 1);
     if (t.k <= 0.3 && r <= 6) return;
 
     ctx.font = `600 ${fontSize}px Inter, system-ui, sans-serif`;
     ctx.textAlign = 'center';
     ctx.fillStyle = isDark ? '#E5E7EB' : '#1F2937';
-    ctx.globalAlpha = getLabelOpacity(simNodes, node);
+    ctx.globalAlpha = getNodeOpacity(simNodes, node, counts);
 
     let labelY;
     switch (labelPosition) {
@@ -176,33 +181,25 @@ const NetworkVisualization = forwardRef(({
 
     ctx.fillText(node.label, node.x, labelY);
     ctx.globalAlpha = 1;
-  }, [fontSizeScale, countKey, labelPosition, getLabelOpacity]);
+  }, [fontSizeScale, countKey, labelPosition, getNodeOpacity]);
 
-  const draw = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    const { width, height } = dimensions;
-    const dpr = window.devicePixelRatio || 1;
-
-    canvas.width = width * dpr;
-    canvas.height = height * dpr;
-    canvas.style.width = `${width}px`;
-    canvas.style.height = `${height}px`;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
+  const paint = useCallback((ctx, cssWidth, cssHeight, pixelScale) => {
     const t = transformRef.current;
-    ctx.clearRect(0, 0, width, height);
+    ctx.setTransform(pixelScale, 0, 0, pixelScale, 0, 0);
+    ctx.clearRect(0, 0, cssWidth, cssHeight);
     ctx.save();
     ctx.translate(t.x, t.y);
     ctx.scale(t.k, t.k);
 
     const isDark = theme === 'dark';
     ctx.fillStyle = isDark ? '#111827' : '#ffffff';
-    ctx.fillRect(-t.x / t.k, -t.y / t.k, width / t.k, height / t.k);
+    ctx.fillRect(-t.x / t.k, -t.y / t.k, cssWidth / t.k, cssHeight / t.k);
 
     const simLinks = linksRef.current;
     const simNodes = nodesRef.current;
+
+    const counts = simNodes.map(n => n[countKey] || 1).sort((a, b) => a - b);
+    const drawNodes = [...simNodes].sort((a, b) => (a[countKey] || 1) - (b[countKey] || 1));
 
     simLinks.forEach(link => {
       const isHighlighted = highlightedNode &&
@@ -221,12 +218,13 @@ const NetworkVisualization = forwardRef(({
       ctx.globalAlpha = 1;
     });
 
-    simNodes.forEach(node => {
+    drawNodes.forEach(node => {
       const r = nodeRadiusScale(node[countKey] || 1);
       const isHighlighted = highlightedNode === node.id;
       const isFaded = highlightedNode && !isHighlighted;
 
-      ctx.globalAlpha = isFaded ? 0.2 : 1;
+      const opacity = getNodeOpacity(simNodes, node, counts);
+      ctx.globalAlpha = isFaded ? 0.2 : opacity;
 
       const color = isHighlighted ? '#FBBF24' : (clusterColors[node.clusterId] || '#9CA3AF');
       ctx.beginPath();
@@ -240,12 +238,46 @@ const NetworkVisualization = forwardRef(({
         ctx.stroke();
       }
 
-      drawLabel(ctx, node, r, isDark, t, simNodes);
+      drawLabel(ctx, node, r, isDark, t, simNodes, counts);
       ctx.globalAlpha = 1;
     });
 
     ctx.restore();
-  }, [dimensions, theme, highlightedNode, nodeRadiusScale, linkWidthScale, clusterColors, countKey, drawLabel]);
+  }, [theme, highlightedNode, nodeRadiusScale, linkWidthScale, clusterColors, countKey, drawLabel, getNodeOpacity]);
+
+  const draw = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const { width, height } = dimensions;
+    const dpr = window.devicePixelRatio || 1;
+
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    canvas.style.width = `${width}px`;
+    canvas.style.height = `${height}px`;
+
+    paint(ctx, width, height, dpr);
+  }, [dimensions, paint]);
+
+  useImperativeHandle(ref, () => ({
+    toDataURL: (opts) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return null;
+      if (!opts || !opts.widthPx || !opts.heightPx) return canvas.toDataURL('image/png');
+
+      const { width, height } = dimensions;
+      const scale = Math.min(opts.widthPx / width, opts.heightPx / height);
+      const drawW = Math.max(1, Math.round(width * scale));
+      const drawH = Math.max(1, Math.round(height * scale));
+
+      const off = document.createElement('canvas');
+      off.width = drawW;
+      off.height = drawH;
+      paint(off.getContext('2d'), width, height, scale);
+      return off.toDataURL('image/png');
+    }
+  }), [dimensions, paint]);
 
   const screenToGraph = useCallback((clientX, clientY) => {
     const canvas = canvasRef.current;

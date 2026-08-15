@@ -100,10 +100,6 @@ const DensityVisualization = forwardRef(({
   const densityCacheRef = useRef(null);
   const simPhaseRef = useRef('hot');
 
-  useImperativeHandle(ref, () => ({
-    toDataURL: () => canvasRef.current?.toDataURL('image/png')
-  }));
-
   const countKey = stats?.method === 'keywords' ? 'occurrenceCount' : 'publicationCount';
 
   const maxCount = useMemo(() => {
@@ -210,39 +206,19 @@ const DensityVisualization = forwardRef(({
     return () => { sim.stop(); };
   }, [nodes, edges, dimensions, countKey]);
 
-  useEffect(() => {
-    if (nodes && nodes.length > 0) {
-      const timer = setTimeout(() => {
-        containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [nodes]);
-
   useEffect(() => { draw(); }, [highlightedNode, transform, labelOpacityThreshold]);
 
-  const draw = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    const { width, height } = dimensions;
-    const dpr = window.devicePixelRatio || 1;
-
-    canvas.width = width * dpr;
-    canvas.height = height * dpr;
-    canvas.style.width = `${width}px`;
-    canvas.style.height = `${height}px`;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
+  const paint = useCallback((ctx, cssWidth, cssHeight, pixelScale) => {
     const t = transformRef.current;
-    ctx.clearRect(0, 0, width, height);
+    ctx.setTransform(pixelScale, 0, 0, pixelScale, 0, 0);
+    ctx.clearRect(0, 0, cssWidth, cssHeight);
     ctx.save();
     ctx.translate(t.x, t.y);
     ctx.scale(t.k, t.k);
 
     const isDark = theme === 'dark';
     ctx.fillStyle = isDark ? '#111827' : '#ffffff';
-    ctx.fillRect(-t.x / t.k, -t.y / t.k, width / t.k, height / t.k);
+    ctx.fillRect(-t.x / t.k, -t.y / t.k, cssWidth / t.k, cssHeight / t.k);
 
     const simNodes = nodesRef.current;
     if (simNodes.length === 0) { ctx.restore(); return; }
@@ -296,7 +272,41 @@ const DensityVisualization = forwardRef(({
     });
 
     ctx.restore();
-  }, [dimensions, theme, highlightedNode, nodeRadiusScale, clusterColors, countKey, maxCount, labelPosition, getLabelOpacity]);
+  }, [theme, highlightedNode, nodeRadiusScale, countKey, maxCount, labelPosition, getLabelOpacity]);
+
+  const draw = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const { width, height } = dimensions;
+    const dpr = window.devicePixelRatio || 1;
+
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    canvas.style.width = `${width}px`;
+    canvas.style.height = `${height}px`;
+
+    paint(ctx, width, height, dpr);
+  }, [dimensions, paint]);
+
+  useImperativeHandle(ref, () => ({
+    toDataURL: (opts) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return null;
+      if (!opts || !opts.widthPx || !opts.heightPx) return canvas.toDataURL('image/png');
+
+      const { width, height } = dimensions;
+      const scale = Math.min(opts.widthPx / width, opts.heightPx / height);
+      const drawW = Math.max(1, Math.round(width * scale));
+      const drawH = Math.max(1, Math.round(height * scale));
+
+      const off = document.createElement('canvas');
+      off.width = drawW;
+      off.height = drawH;
+      paint(off.getContext('2d'), width, height, scale);
+      return off.toDataURL('image/png');
+    }
+  }), [dimensions, paint]);
 
   const screenToGraph = useCallback((clientX, clientY) => {
     const canvas = canvasRef.current;
