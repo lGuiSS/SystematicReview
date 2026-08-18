@@ -40,9 +40,10 @@ body,
 
   textarea {
     field-sizing: content;
-    min-height: 2lh;
+    min-height: 1lh;
     max-height: 10lh;
     resize: none;
+    overflow-y: auto !important;
   }
 }
 

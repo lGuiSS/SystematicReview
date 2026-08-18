@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect, useMemo, useCallback } from 'react';
-import { Search, Filter, ChartArea, Download, Table, Upload, CheckCircle, Check, XCircle, BookCopy, List, Clock, BarChart3, FileText, Database, RefreshCw, Settings, Sun, Moon, Bell, ArrowUpDown, ChevronDown, Eye, PlusCircle, X, CopyX, CopyCheck, HeartHandshake, Languages, Save } from 'lucide-react';
+import { Search, Filter, ChartArea, Download, Table, Upload, CheckCircle, Check, XCircle, BookCopy, List, Clock, BarChart3, FileText, Database, RefreshCw, Settings, Sun, Moon, Bell, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, Eye, PlusCircle, X, CopyX, CopyCheck, HeartHandshake, Languages, Save } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { SvgIcon } from './icons/SysReviewIcon.jsx';
 
@@ -33,7 +33,8 @@ import ExcelJS from "exceljs";
 const useTheme = () => {
   const [theme, setTheme] = useState(() => {
     const saved = localStorage.getItem('theme');
-    return saved || 'light';
+    if (saved) return saved;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   });
 
   useEffect(() => {
@@ -1109,24 +1110,24 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
           <div>
             <h3 className="text-sm sm:text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">{t('protocol.inclusionCriteria')}</h3>
             <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-              <div className="overflow-hidden">
-                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <div className="overflow-hidden h-full">
+                <table className="table-fixed min-w-full h-full divide-y divide-gray-200 dark:divide-gray-700">
                   <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                     {protocol.inclusionCriteria.map((criteria, index) => (
-                      <tr key={index} className="transition-colors duration-200">
-                        <td className="">
+                      <tr key={index} className="transition-colors duration-200 h-full">
+                        <td className="w-16">
                           <span className="px-4 py-2 text-gray-500 font-bold dark:text-gray-400 text-sm">{`I${index + 1}`}</span>
 
                         </td>
-                        <td className="w-full p-0">
+                        <td className="p-0 h-px w-full max-w-0">
                           <textarea
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 resize-none text-sm"
+                            className="w-full h-full px-3 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 resize-none text-sm break-all"
                             value={criteria.value}
                             onChange={(e) => handleCriteriaChange('inclusionCriteria', index, e.target.value, 'value')}
                             placeholder={t('protocol.inclusionPlaceholder')}
                           />
                         </td>
-                        <td className="px-4 py-2 text-right">
+                        <td className="px-4 py-2 text-right whitespace-nowrap">
                           <button
                             disabled={protocol.inclusionCriteria.length === 1}
                             onClick={() => removeCriteria({ type: 'inclusionCriteria', index: index })}
@@ -1154,25 +1155,25 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
           <div>
             <h3 className="text-sm sm:text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">{t('protocol.exclusionCriteria')}</h3>
             <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-              <div className="overflow-hidden">
-                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <div className="overflow-hidden h-full">
+                <table className="table-fixed min-w-full h-full divide-y divide-gray-200 dark:divide-gray-700">
 
                   <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                     {protocol.exclusionCriteria.map((criteria, index) => (
-                      <tr key={index} className="transition-colors duration-200">
-                        <td className="">
+                      <tr key={index} className="transition-colors duration-200 h-full">
+                        <td className="w-16">
                           <span className="px-4 py-2 text-gray-500 font-bold dark:text-gray-400">{`E${index + 1}`}</span>
 
                         </td>
-                        <td className="w-full p-0">
+                        <td className="p-0 h-px w-full max-w-0">
                           <textarea
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 resize-none text-sm"
+                            className="w-full h-full px-3 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 resize-none text-sm break-all"
                             value={criteria.value}
                             onChange={(e) => handleCriteriaChange('exclusionCriteria', index, e.target.value, 'value')}
                             placeholder={t('protocol.exclusionPlaceholder')}
                           />
                         </td>
-                        <td className="px-4 py-2 text-right">
+                        <td className="px-4 py-2 text-right whitespace-nowrap">
                           <button
                             disabled={protocol.exclusionCriteria.length === 1}
                             onClick={() => removeCriteria({ type: 'exclusionCriteria', index: index })}
@@ -1200,24 +1201,24 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
           <div>
             <h3 className="text-sm sm:text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">{t('protocol.qualityCriteria')}</h3>
             <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-              <div className="overflow-hidden">
-                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <div className="overflow-hidden h-full">
+                <table className="table-fixed min-w-full h-full divide-y divide-gray-200 dark:divide-gray-700">
 
                   <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                     {protocol.qualityCriteria.map((criteria, index) => (
-                      <tr key={index} className="transition-colors duration-200">
-                        <td className="">
+                      <tr key={index} className="transition-colors duration-200 h-full">
+                        <td className="w-16">
                           <span className="px-4 py-2 text-gray-500 font-bold dark:text-gray-400 text-sm">{`Q${index + 1}`}</span>
                         </td>
-                        <td className="w-full p-0">
+                        <td className="p-0 h-px w-full max-w-0">
                           <textarea
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 resize-none text-sm"
+                            className="w-full h-full px-3 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 resize-none text-sm break-all"
                             value={criteria.value}
                             onChange={(e) => handleCriteriaChange('qualityCriteria', index, e.target.value, 'value')}
                             placeholder={t('protocol.qualityPlaceholder')}
                           />
                         </td>
-                        <td className="px-4 py-2 text-right">
+                        <td className="px-4 py-2 text-right whitespace-nowrap">
                           <button
                             disabled={protocol.qualityCriteria.length === 1}
                             onClick={() => removeCriteria({ type: 'qualityCriteria', index: index })}
@@ -1250,7 +1251,7 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
             <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
 
               {/* ── MOBILE: card list (hidden on sm+) ── */}
-              <div className="divide-y divide-gray-200 dark:divide-gray-700 sm:hidden">
+              <div className="divide-y divide-gray-200 dark:divide-gray-700 sm:hidden overflow-y-auto">
                 {protocol.extractionCriteria.map((criteria, index) => (
                   <div key={index} className="p-3 flex flex-col gap-2">
 
@@ -1308,33 +1309,32 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
               </div>
 
               {/* ── DESKTOP: original table (hidden below sm) ── */}
-              <div className="hidden sm:block overflow-auto">
-                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <div className="hidden sm:block ">
+                <table className="table-fixed min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                   <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                     {protocol.extractionCriteria.map((criteria, index) => (
                       <tr key={index} className="transition-colors duration-200">
-                        <td>
+                        <td className="w-16">
                           <span className="px-4 py-2 text-gray-500 font-bold dark:text-gray-400 text-sm">
                             {`EX${index + 1}`}
                           </span>
                         </td>
-                        <td>
+                        <td className="w-40 p-0 h-px">
                           <select
                             value={criteria.type || 'Text'}
                             onChange={(e) =>
                               handleCriteriaChange('extractionCriteria', index, e.target.value, 'type')
                             }
-                            className="px-3 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 text-sm"
+                            className="h-full h-full px-3 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 text-sm"
                           >
                             <option value="Text">{t('protocol.textType')}</option>
                             <option value="Pick on List">{t('protocol.singleChoice')}</option>
                             <option value="Pick on Many">{t('protocol.multipleChoice')}</option>
                           </select>
                         </td>
-                        <td className="w-full">
-                          <input
-                            type="text"
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 text-sm !h-full resize-none"
+                        <td className="p-0 h-px w-full max-w-0">
+                          <textarea
+                            className="w-full h-full px-3 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 resize-none text-sm break-all"
                             value={criteria.value}
                             onChange={(e) =>
                               handleCriteriaChange('extractionCriteria', index, e.target.value, 'value')
@@ -1344,7 +1344,7 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
                         </td>
 
                         {!(criteria.type !== 'Pick on List' && criteria.type !== 'Pick on Many' || criteria.value === '') && (
-                          <td className="px-4 py-2 text-right">
+                          <td className="px-4 py-2 text-right whitespace-nowrap">
 
 
                             <button
@@ -1417,10 +1417,10 @@ const ProtocolSection = ({ protocol, onUpdateProtocol }) => {
                       {selectedExCriteria.items.map((criteria, index) => (
                         <tr key={index} className="transition-colors duration-200">
 
-                          <td className="w-full">
+                          <td className="w-full p-0 h-px">
                             <input
                               type="text"
-                              className={index === 0 ? "w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-tl-lg focus:ring-2 focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 text-sm" : "w-full px-3 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 text-sm"}
+                              className={index === 0 ? "w-full h-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-tl-lg focus:ring-2 focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 text-sm" : "w-full px-3 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 text-sm"}
                               value={criteria}
                               onChange={(e) => handleCriteriaChange('extractionCriteria', selectedInExCriteria, e.target.value, 'items', index)}
                               placeholder={t('protocol.qualityPlaceholder')}
@@ -1638,11 +1638,11 @@ const ScoringSystemConfig = ({ scoringSystem, onUpdate, protocol, addCriteria, r
                       {protocol.keywords.map((criteria, index) => (
                         <tr key={index} className="transition-colors duration-200">
 
-                          <td className="w-full">
+                          <td className="w-full p-0 h-px">
                             <input
                               type="text"
                               // flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-20
-                              className={index === 0 ? "w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-tl-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 text-sm" : "w-full px-3 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 text-sm"}
+                              className={index === 0 ? "w-full h-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-tl-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 text-sm" : "w-full h-full px-3 py-2 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200 text-sm"}
                               value={criteria}
                               onChange={(e) => handleCriteriaChange('keywords', index, e.target.value)}
                               placeholder={t('scoring.keywordPlaceholder')}
@@ -1677,7 +1677,7 @@ const ScoringSystemConfig = ({ scoringSystem, onUpdate, protocol, addCriteria, r
           <div className="p-4">
             <div>
               <h5 className="font-medium text-blue-700 dark:text-blue-300 mb-4">{t('scoring.fieldWeights')}</h5>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {[
                   { label: t('scoring.titleField'), key: 'title' },
                   { label: t('scoring.abstractField'), key: 'abstract' },
@@ -1707,7 +1707,7 @@ const ScoringSystemConfig = ({ scoringSystem, onUpdate, protocol, addCriteria, r
 
             <div className="border-t border-blue-200 dark:border-blue-800 pt-6">
               <h5 className="font-medium text-blue-700 dark:text-blue-300 mb-4">{t('scoring.searchSettings')}</h5>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 {[
                   {
                     key: 'caseInsensitive',
@@ -2793,10 +2793,10 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
       });
     }
 
-    // Aplicar ordenação (score preferencial + título como secundária)
+    // Aplicar ordenação (score com título como desempate)
     if (sortConfig.key) {
       const sortKeys =
-        sortConfig.key === 'title' || sortConfig.key === 'score'
+        sortConfig.key === 'score'
           ? ['score', 'title']
           : [sortConfig.key];
 
@@ -2838,11 +2838,13 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
   }, [searchTerm, statusFilter]);
 
   const handleSort = (key) => {
-    let direction = 'asc';
-    if (sortConfig.key === key && sortConfig.direction === 'asc') {
-      direction = 'desc';
+    if (sortConfig.key !== key) {
+      setSortConfig({ key, direction: 'asc' });
+    } else if (sortConfig.direction === 'asc') {
+      setSortConfig({ key, direction: 'desc' });
+    } else {
+      setSortConfig({ key: null, direction: 'asc' });
     }
-    setSortConfig({ key, direction });
   };
 
   const getDownstreamFields = (statusField) => ({
@@ -3045,37 +3047,61 @@ const ArticlesList = ({ articles, currentFilter, onUpdateStatus, protocol }) => 
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                 <button
                   onClick={() => handleSort('title')}
-                  className="flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-200"
+                  className={`flex items-center gap-1 ${sortConfig.key === 'title'
+                    ? 'text-indigo-600 dark:text-indigo-400 font-semibold'
+                    : 'hover:text-gray-700 dark:hover:text-gray-200'}`}
                 >
                   {t('articles.colTitle')}
-                  <ArrowUpDown className="h-3 w-3" />
+                  {sortConfig.key === 'title'
+                    ? (sortConfig.direction === 'asc'
+                      ? <ArrowUp className="h-3 w-3" />
+                      : <ArrowDown className="h-3 w-3" />)
+                    : <ArrowUpDown className="h-3 w-3" />}
                 </button>
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                 <button
                   onClick={() => handleSort('source')}
-                  className="flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-200"
+                  className={`flex items-center gap-1 ${sortConfig.key === 'source'
+                    ? 'text-indigo-600 dark:text-indigo-400 font-semibold'
+                    : 'hover:text-gray-700 dark:hover:text-gray-200'}`}
                 >
                   {t('articles.colSource')}
-                  <ArrowUpDown className="h-3 w-3" />
+                  {sortConfig.key === 'source'
+                    ? (sortConfig.direction === 'asc'
+                      ? <ArrowUp className="h-3 w-3" />
+                      : <ArrowDown className="h-3 w-3" />)
+                    : <ArrowUpDown className="h-3 w-3" />}
                 </button>
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                 <button
                   onClick={() => handleSort('year')}
-                  className="flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-200"
+                  className={`flex items-center gap-1 ${sortConfig.key === 'year'
+                    ? 'text-indigo-600 dark:text-indigo-400 font-semibold'
+                    : 'hover:text-gray-700 dark:hover:text-gray-200'}`}
                 >
                   {t('articles.colYear')}
-                  <ArrowUpDown className="h-3 w-3" />
+                  {sortConfig.key === 'year'
+                    ? (sortConfig.direction === 'asc'
+                      ? <ArrowUp className="h-3 w-3" />
+                      : <ArrowDown className="h-3 w-3" />)
+                    : <ArrowUpDown className="h-3 w-3" />}
                 </button>
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                 <button
                   onClick={() => handleSort('score')}
-                  className="flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-200"
+                  className={`flex items-center gap-1 ${sortConfig.key === 'score'
+                    ? 'text-indigo-600 dark:text-indigo-400 font-semibold'
+                    : 'hover:text-gray-700 dark:hover:text-gray-200'}`}
                 >
                   {t('articles.colScore')}
-                  <ArrowUpDown className="h-3 w-3" />
+                  {sortConfig.key === 'score'
+                    ? (sortConfig.direction === 'asc'
+                      ? <ArrowUp className="h-3 w-3" />
+                      : <ArrowDown className="h-3 w-3" />)
+                    : <ArrowUpDown className="h-3 w-3" />}
                 </button>
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">{t('articles.colStatus')}</th>
@@ -4430,7 +4456,7 @@ const SystematicReviewTool = () => {
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6 transition-colors duration-200">
           <div className="flex flex-col min-[560px]:flex-row flex-wrap items-start justify-between mb-4 gap-3">
             <div className="min-w-0 shrink-0">
-              <div className="flex justify-between items-start gap-3 align-items">
+              <div className="flex justify-start items-start gap-3 align-items">
                 <div className="w-[32px] shrink-0">
                   <SvgIcon
                     className="w-full h-full"
