@@ -136,12 +136,6 @@ src/
 
 O scoring automático avalia a relevância de cada artigo com base na correspondência de palavras-chave:
 
-| Campo | Peso Padrão | Descrição |
-|---|---|---|
-| Título | 8 | Palavras-chave encontradas no título do artigo |
-| Resumo | 3 | Palavras-chave encontradas no resumo |
-| Palavras-chave | 10 | Palavras-chave encontradas nos keywords do artigo |
-
 **Opções configuráveis:**
 - Ignorar maiúsculas/minúsculas
 - Correspondência por palavra exata (word boundary)
